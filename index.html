@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/ageha.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="/mermaid.min.js"></script>
+    <title>Ageha Editor</title>
+  </head>
+
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
+
+<style>
+  html, body {
+    background-color: #2e2e2e;
+    padding: 10px;
+    overscroll-behavior: none;
+    touch-action: none;
+    -webkit-overflow-scrolling: auto;
+  }
+
+  /* Mermaid.jsのシンタックスエラーの描画を回避 */
+  .mermaid .error-icon {
+    display: none; /* アイコンを非表示にする */
+  }
+  .mermaid .error-text {
+    display: none;
+  }
+
+  pre[class*="language-"] {
+    margin: 0;
+  }
+</style>

@@ -1,0 +1,38 @@
+{
+  "name": "ageha",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "tauri": "tauri"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2",
+    "@tauri-apps/plugin-dialog": "^2.3.0",
+    "@tauri-apps/plugin-fs": "^2.4.0",
+    "@tauri-apps/plugin-global-shortcut": "^2.3.0",
+    "@tauri-apps/plugin-opener": "^2",
+    "ace-builds": "^1.24.0",
+    "katex": "^0.16.21",
+    "marked": "^13.0.3",
+    "pinia": "^2.1.7",
+    "prismjs": "^1.30.0",
+    "vue": "^3.5.13",
+    "xss": "^1.0.14"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2",
+    "@types/katex": "^0.16.7",
+    "@types/marked": "^5.0.1",
+    "@types/node": "^20.14.5",
+    "@types/prismjs": "^1.26.5",
+    "@vitejs/plugin-vue": "^5.2.1",
+    "license-checker": "^25.0.1",
+    "typescript": "~5.6.2",
+    "vite": "^6.0.3",
+    "vue-tsc": "^2.1.10"
+  }
+}
