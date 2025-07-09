@@ -27,9 +27,11 @@ import Editor from "./Editor.vue";
   color: #f0f0f0;
   text-shadow: 2px 1px 2px rgb(165, 165, 165);
   letter-spacing: 1px;
-  font-size: 40px;
-  margin-top: -3px;
-  margin-left: 30px;
+  font-size: 38px;
+  margin: 0;
+  margin-left: 10px;
+  margin-bottom: 10px;
+  border-bottom: solid 1px gray;
 }
 
 @keyframes fade-in {

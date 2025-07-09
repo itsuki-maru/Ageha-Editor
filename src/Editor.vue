@@ -272,14 +272,14 @@ function useWindowSize() {
 const { height } = useWindowSize();
 const divHeight = ref(0);
 if (height.value > 850) {
-    divHeight.value = height.value * 0.75;
+    divHeight.value = height.value * 0.72;
 } else if (height.value > 400) {
     divHeight.value = height.value * 0.6;
 }
 
 watch(height, (newHeight) => {
     if (newHeight > 800) {
-        divHeight.value = newHeight * 0.75;
+        divHeight.value = newHeight * 0.72;
     } else {
         divHeight.value = newHeight * 0.6;
     }
