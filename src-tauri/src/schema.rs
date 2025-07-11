@@ -11,3 +11,9 @@ pub struct ReadFileData {
     pub status: StatusCode,
     pub text_data: String,
 }
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ArgsReadFileData {
+    pub file_path: String,
+    pub file_data: String,
+}
