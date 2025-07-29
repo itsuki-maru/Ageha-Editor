@@ -6,5 +6,6 @@ pub struct Config {
 }
 
 pub static CONFIG: Lazy<Config> = Lazy::new(|| Config {
-    args_file_path: env::var("LAUNCH_ARGS_FILE_PATH").expect("Args file path get error."),
+    args_file_path: env::var("LAUNCH_ARGS_FILE_PATH")
+        .expect("Args file path get error."),
 });

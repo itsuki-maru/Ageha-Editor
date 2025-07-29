@@ -3,16 +3,17 @@ use std::{
     fs,
     io::{BufWriter, Write},
     env,
+    path::{Path, PathBuf},
 };
+use dirs;
 mod schema;
-mod utils;
 use schema::{StatusCode, ReadFileData};
 mod config;
 use config::CONFIG;
 
 #[tauri::command]
 async fn request_launch_args() -> Result<ReadFileData, ReadFileData> {
-    let target_file_abs = match utils::get_abs_filepath(&CONFIG.args_file_path) {
+    let target_file_abs = match get_abs_filepath(&CONFIG.args_file_path) {
         Ok(path) => path,
         Err(_) => return Err(
             ReadFileData {
@@ -48,7 +49,7 @@ async fn request_launch_args() -> Result<ReadFileData, ReadFileData> {
 #[tauri::command]
 async fn read_file(target_file: &str) -> Result<ReadFileData, ReadFileData> {
     // 対象ファイルの絶対パスを取得
-    let target_file_abs = match utils::get_abs_filepath(target_file) {
+    let target_file_abs = match get_abs_filepath(target_file) {
         Ok(path) => path,
         Err(_) => return Err(
             ReadFileData {
@@ -123,4 +124,31 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![read_file, save_file, request_launch_args])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+// ファイルの絶対パスを取得する関数
+pub fn get_abs_filepath(filename: &str) -> std::io::Result<PathBuf> {
+    // ホームディレクトリを取得
+    let home_dir = match dirs::home_dir() {
+        Some(path) => path,
+        None => {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::NotFound,
+                "Home directory not found.",
+            ))
+        }
+    };
+
+    let path = Path::new(filename);
+
+    // パスがホームディレクトリからの相対パスであるかチェック
+    if path.starts_with("~/") {
+        // ホームディレクトリのパスに置換
+        let without_tilde = path.strip_prefix("~/").expect("Cound not strip tilde.");
+        Ok(home_dir.join(without_tilde))
+    } else {
+        // 通常のパス処理
+        let current_dir = env::current_dir()?;
+        Ok(current_dir.join(path))
+    }
 }
