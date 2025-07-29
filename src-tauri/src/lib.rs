@@ -117,7 +117,6 @@ pub fn run() {
         .setup(|app| {
             if let Some(window) = app.get_webview_window("main") {
                 window.maximize().unwrap(); // 起動時に最大化
-                window.open_devtools();
             }
             Ok(())
         })
