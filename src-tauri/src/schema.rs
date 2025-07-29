@@ -9,6 +9,7 @@ pub struct StatusCode {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ReadFileData {
     pub status: StatusCode,
+    pub file_abs_path: String,
     pub text_data: String,
 }
 

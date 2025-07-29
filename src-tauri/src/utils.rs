@@ -1,6 +1,8 @@
 use dirs;
-use std::env;
-use std::path::{Path, PathBuf};
+use std::{
+    env,
+    path::{Path, PathBuf}
+};
 
 // ファイルの絶対パスを取得する関数
 pub fn get_abs_filepath(filename: &str) -> std::io::Result<PathBuf> {

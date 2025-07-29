@@ -16,6 +16,29 @@ import { videoToken, detailsToken, noteToken, warningToken, renderer } from "./u
 import "katex/dist/katex.min.css";
 import Help from "@/components/Help.vue";
 
+type RustArgs = {
+    status: StatusCode,
+    file_abs_path: string;
+    text_data: string;
+};
+
+onMounted(async () => {
+    try {
+        const result = await invoke<RustArgs | null>("request_launch_args");
+        if (result) {
+            const textData = result.text_data
+            renderFilePath.value = result.file_abs_path;
+            editorContent.value = textData;
+            diffEditorRef.value.oldEditorContent = textData;
+            diffEditorRef.value.newEdirotContent = textData;
+        } else {
+            console.log("Not launch args");
+        }
+    } catch (error) {
+        console.log("Not launch args");
+    }
+})
+
 const mermaid: any = (window as any).mermaid;
 
 // Mermaidの初期読み込みを阻止（MarkedによるHTMLレンダリング後にinitで読み込み）
