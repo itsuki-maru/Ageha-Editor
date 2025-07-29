@@ -27,7 +27,7 @@ import Editor from "./Editor.vue";
   color: #f0f0f0;
   text-shadow: 2px 1px 2px rgb(165, 165, 165);
   letter-spacing: 1px;
-  font-size: 38px;
+  font-size: 34px;
   margin: 0;
   margin-left: 10px;
   margin-bottom: 10px;

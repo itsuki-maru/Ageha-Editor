@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { open, save } from '@tauri-apps/plugin-dialog';
+import { open, save, confirm } from '@tauri-apps/plugin-dialog';
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from '@tauri-apps/api/event';
 import { ref, computed, onMounted, onUnmounted, onBeforeUnmount, watch } from "vue";
@@ -35,15 +35,10 @@ onMounted(async () => {
             diffEditorRef.value.newEdirotContent = textData;
         }
     } catch (error) {
-        console.info("Not file args.");
     }
 });
 
 listen("tauri://drag-drop", async (event) => {
-    const paths = (event.payload as { paths: string[] }).paths;
-    const dropFilePath = paths[0];
-    renderFilePath.value = dropFilePath;
-    const fileExtention = dropFilePath?.split(".").pop();
     const allowExtentions = [
         "jpg",
         "JPG",
@@ -57,15 +52,28 @@ listen("tauri://drag-drop", async (event) => {
         "WEBP",
     ];
 
+    const paths = (event.payload as { paths: string[] }).paths;
+    const dropFilePath = paths[0];
+    const fileExtention = dropFilePath?.split(".").pop();
     if (!fileExtention) return;
+
     // 拡張子が.mdならファイルオープン
     if (fileExtention === "md") {
         const textData = await callRustReadMarkdownFile(dropFilePath);
+        // 変更フラグにより未保存警告
+        if (isEdit.value) {
+            const confirmation = await confirm(
+                "ファイルが保存されていません。よろしいですか？",
+                { title: "保存の確認", kind: "warning" }
+            );
+            if (!confirmation) return;
+        };
         if (textData) {
             editorContent.value = textData;
             diffEditorRef.value.oldEditorContent = textData;
             diffEditorRef.value.newEdirotContent = textData;
         }
+        renderFilePath.value = dropFilePath;
     };
 
     // 拡張子が画像形式なら画像挿入
@@ -203,7 +211,7 @@ onMounted(() => {
 
     let isEditorScrolling = false;
     let isPreviewScrolling = false;
-    console.info(isEditorScrolling);
+    if (isEditorScrolling) {} // ビルドエラー回避
 
     // editorからpreviewへのスクロールの同期
     // previewからeditorの同期は不可（画像の差分を微調整するため）
@@ -335,14 +343,14 @@ function useWindowSize() {
 const { height } = useWindowSize();
 const divHeight = ref(0);
 if (height.value > 850) {
-    divHeight.value = height.value * 0.72;
+    divHeight.value = height.value * 0.74;
 } else if (height.value > 400) {
     divHeight.value = height.value * 0.6;
 }
 
 watch(height, (newHeight) => {
     if (newHeight > 800) {
-        divHeight.value = newHeight * 0.72;
+        divHeight.value = newHeight * 0.74;
     } else {
         divHeight.value = newHeight * 0.6;
     }
@@ -424,16 +432,19 @@ const diffEditor: DiffEditorData = {
 const diffEditorRef = ref<DiffEditorData>(diffEditor);
 
 // 読み取ったファイル内容の初期状態との変更を監視
+const isEdit = ref(false); // 変更フラグ
 watch(
     () => [diffEditorRef.value.oldEditorContent, diffEditorRef.value.newEdirotContent],
     ([oldVal, newVal]) => {
         if (oldVal === newVal) {
             if (renderFilePath.value.includes("*")) {
                 renderFilePath.value = renderFilePath.value.replace(/\*/g, "");
+                isEdit.value = false;
             }
         } else if (oldVal !== newVal) {
             if (!renderFilePath.value.includes("*")) {
                 renderFilePath.value = `*${renderFilePath.value}`;
+                isEdit.value = true;
             }
         }
     }
@@ -441,21 +452,28 @@ watch(
 
 // ファイルを開く
 const fileOpen = async () => {
+    // 変更フラグにより未保存警告
+    if (isEdit.value) {
+        const confirmation = await confirm(
+            "ファイルが保存されていません。よろしいですか？",
+            { title: "保存の確認", kind: "warning" }
+        );
+        if (!confirmation) return;
+    };
     const filePath = await selectFile("Markdown File", ["md", "txt"]);
     if (!filePath) return;
-    renderFilePath.value = filePath;
     const textData = await callRustReadMarkdownFile(filePath);
     if (textData) {
-
         editorContent.value = textData;
         diffEditorRef.value.oldEditorContent = textData;
         diffEditorRef.value.newEdirotContent = textData;
+        renderFilePath.value = filePath;
     }
+    isEdit.value = false;
 };
 
 // Rust側でのマークダウンファイル取得処理
 async function callRustReadMarkdownFile(filePath: string) {
-    if (renderFilePath.value === "") return;
     try {
         const response: ResponseTextData = await invoke(
             "read_file",
@@ -516,6 +534,8 @@ const fileSave = async () => {
     if (status.status_code === 200) {
         renderFilePath.value = trimSavePath;
     }
+    // 変更フラグをfalse
+    isEdit.value = false;
 };
 
 // Rust側での保存処理

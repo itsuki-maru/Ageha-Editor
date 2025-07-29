@@ -116,7 +116,10 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
             if let Some(window) = app.get_webview_window("main") {
-                window.maximize().unwrap(); // 起動時に最大化
+                #[cfg(debug_assertions)]
+                {
+                    window.is_devtools_open();
+                }
             }
             Ok(())
         })
