@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { open, save } from '@tauri-apps/plugin-dialog';
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from '@tauri-apps/api/event';
 import { ref, computed, onMounted, onUnmounted, onBeforeUnmount, watch } from "vue";
 import type { Ref } from "vue";
 import { FilterXSS, getDefaultWhiteList } from "xss";
@@ -22,6 +23,7 @@ type RustArgs = {
     text_data: string;
 };
 
+// ウィンドウ起動後にRustバックエンドに起動時の引数状況を要求
 onMounted(async () => {
     try {
         const result = await invoke<RustArgs | null>("request_launch_args");
@@ -31,13 +33,52 @@ onMounted(async () => {
             editorContent.value = textData;
             diffEditorRef.value.oldEditorContent = textData;
             diffEditorRef.value.newEdirotContent = textData;
-        } else {
-            console.log("Not launch args");
         }
     } catch (error) {
-        console.log("Not launch args");
+        console.info("Not file args.");
     }
-})
+});
+
+listen("tauri://drag-drop", async (event) => {
+    const paths = (event.payload as { paths: string[] }).paths;
+    const dropFilePath = paths[0];
+    renderFilePath.value = dropFilePath;
+    const fileExtention = dropFilePath?.split(".").pop();
+    const allowExtentions = [
+        "jpg",
+        "JPG",
+        "jpeg",
+        "JPEG",
+        "png",
+        "PNG",
+        "svg",
+        "svg",
+        "webp",
+        "WEBP",
+    ];
+
+    if (!fileExtention) return;
+    // 拡張子が.mdならファイルオープン
+    if (fileExtention === "md") {
+        const textData = await callRustReadMarkdownFile(dropFilePath);
+        if (textData) {
+            editorContent.value = textData;
+            diffEditorRef.value.oldEditorContent = textData;
+            diffEditorRef.value.newEdirotContent = textData;
+        }
+    };
+
+    // 拡張子が画像形式なら画像挿入
+    if (allowExtentions.includes(fileExtention)) {
+        const replacePath = dropFilePath?.replace(/\\/g, "/");
+        const fileName = getFileName(replacePath);
+        const imageUrlMarkdown = `![${fileName}](${replacePath})`;
+        insertMarkdown(imageUrlMarkdown);
+        return;
+    } else {
+        return;
+    }
+});
 
 const mermaid: any = (window as any).mermaid;
 
@@ -56,7 +97,6 @@ marked.use(
         extensions: [videoToken, detailsToken, noteToken, warningToken],
     }
 );
-
 
 // XSSフィルタの設定をカスタマイズする
 let xssOptions: IFilterXSSOptions = {
