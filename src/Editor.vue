@@ -17,6 +17,8 @@ import { videoToken, detailsToken, noteToken, warningToken, renderer } from "./u
 import "katex/dist/katex.min.css";
 import Help from "@/components/Help.vue";
 
+
+// アプリケーション起動処理完了後の引数受け取り
 type RustArgs = {
     status: StatusCode,
     file_abs_path: string;
@@ -29,7 +31,7 @@ onMounted(async () => {
         const result = await invoke<RustArgs | null>("request_launch_args");
         if (result) {
             const textData = result.text_data
-            renderFilePath.value = result.file_abs_path;
+            activeFilePath.value = result.file_abs_path;
             editorContent.value = textData;
             diffEditorRef.value.oldEditorContent = textData;
             diffEditorRef.value.newEdirotContent = textData;
@@ -39,7 +41,12 @@ onMounted(async () => {
 });
 
 listen("tauri://drag-drop", async (event) => {
-    const allowExtentions = [
+    const allowTextFiles = [
+        "md",
+        "txt",
+    ];
+
+    const allowImageExtentions = [
         "jpg",
         "JPG",
         "jpeg",
@@ -58,26 +65,30 @@ listen("tauri://drag-drop", async (event) => {
     if (!fileExtention) return;
 
     // 拡張子が.mdならファイルオープン
-    if (fileExtention === "md") {
-        const textData = await callRustReadMarkdownFile(dropFilePath);
+    if (allowTextFiles.includes(fileExtention)) {
         // 変更フラグにより未保存警告
         if (isEdit.value) {
             const confirmation = await confirm(
-                "ファイルが保存されていません。よろしいですか？",
+                "ファイルが保存されていません。よろしいですか??",
                 { title: "保存の確認", kind: "warning" }
             );
             if (!confirmation) return;
         };
-        if (textData) {
+
+        const textData = await callRustReadMarkdownFile(dropFilePath);
+        
+        // 変更フラグをfalse
+        isEdit.value = false;
+        if (textData || textData === "") {
             editorContent.value = textData;
             diffEditorRef.value.oldEditorContent = textData;
             diffEditorRef.value.newEdirotContent = textData;
         }
-        renderFilePath.value = dropFilePath;
+        activeFilePath.value = dropFilePath;
     };
 
     // 拡張子が画像形式なら画像挿入
-    if (allowExtentions.includes(fileExtention)) {
+    if (allowImageExtentions.includes(fileExtention)) {
         const replacePath = dropFilePath?.replace(/\\/g, "/");
         const fileName = getFileName(replacePath);
         const imageUrlMarkdown = `![${fileName}](${replacePath})`;
@@ -422,8 +433,8 @@ function insertMarkdown(text: string) {
     editor.focus();
 };
 
-// ファイルパスを保持
-const renderFilePath = ref("");
+// 編集中のアクティブファイル
+const activeFilePath = ref("");
 // 初期ファイル読み込み情報を保持
 const diffEditor: DiffEditorData = {
     newEdirotContent: "",
@@ -437,13 +448,13 @@ watch(
     () => [diffEditorRef.value.oldEditorContent, diffEditorRef.value.newEdirotContent],
     ([oldVal, newVal]) => {
         if (oldVal === newVal) {
-            if (renderFilePath.value.includes("*")) {
-                renderFilePath.value = renderFilePath.value.replace(/\*/g, "");
+            if (activeFilePath.value.includes("*")) {
+                activeFilePath.value = activeFilePath.value.replace(/\*/g, "");
                 isEdit.value = false;
             }
         } else if (oldVal !== newVal) {
-            if (!renderFilePath.value.includes("*")) {
-                renderFilePath.value = `*${renderFilePath.value}`;
+            if (!activeFilePath.value.includes("*")) {
+                activeFilePath.value = `*${activeFilePath.value}`;
                 isEdit.value = true;
             }
         }
@@ -455,19 +466,21 @@ const fileOpen = async () => {
     // 変更フラグにより未保存警告
     if (isEdit.value) {
         const confirmation = await confirm(
-            "ファイルが保存されていません。よろしいですか？",
+            "ファイルが保存されていません。よろしいですか??",
             { title: "保存の確認", kind: "warning" }
         );
         if (!confirmation) return;
     };
+
     const filePath = await selectFile("Markdown File", ["md", "txt"]);
     if (!filePath) return;
+
     const textData = await callRustReadMarkdownFile(filePath);
-    if (textData) {
+    if (textData || textData === "") {
         editorContent.value = textData;
         diffEditorRef.value.oldEditorContent = textData;
         diffEditorRef.value.newEdirotContent = textData;
-        renderFilePath.value = filePath;
+        activeFilePath.value = filePath;
     }
     isEdit.value = false;
 };
@@ -482,6 +495,37 @@ async function callRustReadMarkdownFile(filePath: string) {
         return response.text_data;
     } catch (error) {
         console.error(error)
+    }
+}
+
+// 新規ファイルの保存処理
+async function newWriteSave(filePath: string, fileData: string) {
+    // Rust側で保存処理
+    const status = await callRustSaveFile(
+        filePath,
+        fileData,
+    );
+    if (status.status_code === 200) {
+        activeFilePath.value = filePath;
+        return true;
+    } else {
+        return false;
+    }
+}
+
+// ファイルの上書き保存処理
+async function overWriteSave() {
+    // Rust側で保存処理
+    const trimSavePath = activeFilePath.value.replace(/\*/g, "");
+    const status = await callRustSaveFile(
+        trimSavePath,
+        editor.getValue(),
+    );
+    if (status.status_code === 200) {
+        activeFilePath.value = trimSavePath;
+        return true;
+    } else {
+        return false;
     }
 }
 
@@ -507,33 +551,20 @@ async function selectFile(
 // ファイル保存
 const fileSave = async () => {
     const markdownText = editor.getValue();
-    let savePath = renderFilePath.value;
-
-    // 新規ファイル保存（エディター入力有）
-    if (savePath === "*") {
+    // 新規ファイル保存
+    if (activeFilePath.value === "*" || (markdownText === "" && activeFilePath.value === "")) {
         const saveNewPath = await saveNewFile();
         if (saveNewPath) {
-            savePath = saveNewPath;
+            const isSaved = await newWriteSave(saveNewPath, markdownText);
+            if (!isSaved) return;
         }
-    }
-    // 新規ファイル保存（空ファイル）
-    if (markdownText === "" && savePath === "") {
-        const saveNewPath = await saveNewFile();
-        if (saveNewPath) {
-            savePath = saveNewPath;
-        }
+
+    // 上書き保存
+    } else {
+        const isSaved = await overWriteSave();
+        if (!isSaved) return;
     }
 
-    // Rust側で保存処理
-    const trimSavePath = savePath.replace(/\*/g, "");
-    const status = await callRustSaveFile(
-        trimSavePath,
-        markdownText,
-    );
-
-    if (status.status_code === 200) {
-        renderFilePath.value = trimSavePath;
-    }
     // 変更フラグをfalse
     isEdit.value = false;
 };
@@ -729,7 +760,7 @@ function getFileName(path: string): string {
 
     <!-- ファイルパス -->
     <footer>
-        <p class="footer-path">{{ renderFilePath }}</p>
+        <p class="footer-path">{{ activeFilePath }}</p>
     </footer>
 </template>
 
