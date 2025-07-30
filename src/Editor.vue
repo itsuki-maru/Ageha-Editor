@@ -697,7 +697,7 @@ function getFileName(path: string): string {
     </div>
 
     <!-- マークダウン入力支援ボタン -->
-    <div class="input-tools" v-show="isShowTools">
+    <div class="input-tools" v-show="isShowTools" :style="{ width: isPreview ? '40%' : '85%' }">
         <button class="btn-input-tools" title="## を挿入" v-on:click="insertMarkdown('## ')"><img
                 src="/format_h2_24.png" class="btn-input-tools-img" alt="format_h2_24.png"></button>
         <button class="btn-input-tools" title="### を挿入" v-on:click="insertMarkdown('### ')"><img
