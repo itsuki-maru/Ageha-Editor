@@ -7,9 +7,10 @@
   ],
   "permissions": [
     "core:default",
+    "core:window:allow-destroy",
     "opener:default",
     "dialog:allow-open",
     "dialog:allow-save",
-    "dialog:allow-confirm"
+    "dialog:allow-confirm"   
   ]
 }

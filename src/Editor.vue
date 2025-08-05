@@ -2,6 +2,7 @@
 import { open, save, confirm } from '@tauri-apps/plugin-dialog';
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from '@tauri-apps/api/event';
+import { getCurrentWindow } from '@tauri-apps/api/window';
 import { ref, computed, onMounted, onUnmounted, onBeforeUnmount, watch } from "vue";
 import type { Ref } from "vue";
 import { FilterXSS, getDefaultWhiteList } from "xss";
@@ -97,6 +98,22 @@ listen("tauri://drag-drop", async (event) => {
     } else {
         return;
     }
+});
+
+// ウィンドウクローズ時の処理追加
+onMounted(async () => {
+    await getCurrentWindow().onCloseRequested(async (event) => {
+        // 未保存のテキストが存在する場合の終了確認
+        if (isEdit.value) {
+            const confirmation = await confirm(
+                "ファイルが保存されていません。よろしいですか??",
+                { title: "終了の確認", kind: "warning" }
+            );
+            if (!confirmation) {
+                event.preventDefault();
+            }
+        }
+    })
 });
 
 const mermaid: any = (window as any).mermaid;
