@@ -692,7 +692,7 @@ function getFileName(path: string): string {
     <!-- エディタとプレビュー -->
     <div class="contants-area" :style="{ height: divHeight + 'px' }">
         <!-- エディター -->
-        <div class="left-area-isprev" :style="{ width: isPreview ? '47%' : '100%' }">
+        <div class="left-area-isprev" :style="{ width: isPreview ? '50%' : '100%', marginRight: isPreview ? '10px' : '0px' }">
             <div class="left-h3">
                 <h3 class="editor-and-preview-title" id="title_h3_1">Editor</h3>
             </div>
@@ -813,9 +813,8 @@ h3 {
 
 /* 画面左側エリア */
 .left-area-isprev {
-    width: 47%;
+    width: 50%;
     height: 100%;
-    margin-right: 10px;
 }
 
 .left-h3 {
