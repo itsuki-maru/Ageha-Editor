@@ -1,10 +1,17 @@
 <script setup lang="ts">
 import Editor from "./Editor.vue";
+import { message } from '@tauri-apps/plugin-dialog';
 
+async function openVersion() {
+  await message(
+    `Ageha Editor: Version ${__APP_VERSION__}`,
+    { title: "Version", kind: "info" }
+  );
+}
 </script>
 
 <template>
-  <h1 class="app-header" id="application-title">Ageha Editor</h1>
+  <h1 class="app-header" id="application-title" v-on:dblclick="openVersion">Ageha Editor</h1>
 <Editor></Editor>
 </template>
 
