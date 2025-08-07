@@ -115,10 +115,10 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
-            if let Some(window) = app.get_webview_window("main") {
+            if let Some(_window) = app.get_webview_window("main") {
                 #[cfg(debug_assertions)]
                 {
-                    window.is_devtools_open();
+                    _window.is_devtools_open();
                 }
             }
             Ok(())
