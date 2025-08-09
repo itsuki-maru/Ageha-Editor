@@ -4,11 +4,12 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from '@tauri-apps/api/event';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { ref, computed, onMounted, onUnmounted, onBeforeUnmount, watch } from "vue";
+import { convertFileSrc } from '@tauri-apps/api/core';
 import type { Ref } from "vue";
 import { FilterXSS, getDefaultWhiteList } from "xss";
 import type { IFilterXSSOptions } from "xss"
 import { marked } from "marked";
-import type { MarkedOptions } from "marked";
+import type { MarkedOptions, Tokens } from "marked";
 import type { LocalStrageItem, ResponseTextData, DiffEditorData, StatusCode } from "./interface";
 import * as ace from "ace-builds";
 import "ace-builds/src-noconflict/ext-searchbox"; // Ctrl+Fで検索ボックスを使用するために必要なモジュール
@@ -40,6 +41,50 @@ onMounted(async () => {
     } catch (error) {
     }
 });
+
+// imgタグをオーバーライド
+renderer.image = (tokens: Tokens.Image) => {
+    let width = "";
+    let href = tokens.href;
+    let text = tokens.text;
+    const match = tokens.href.match(/\s*=(\d+)(x)?$/);
+    if (match) {
+        width = match[1];
+        href = href.replace(/\s*=.*$/, "");
+    }
+    const widthAttr = width ? ` width="${width}px"` : "";
+
+    // 相対パスが指定された場合、絶対パスに変換してレンダリングするカスタマイズ
+    // セキュリティ上、
+    if (!href.startsWith("http://") && !href.startsWith("https://")) {
+        if (href.startsWith("./") || href.startsWith(".\\")) {
+            // 現在選択されているマークダウンファイルを起点に絶対パスに変換
+            const trimSavePath = activeFilePath.value.replace(/\*/g, "");
+            const fileParentPath = getParentPath(trimSavePath);
+            href = href.replace(/^./, fileParentPath);
+        }
+        href = convertFileSrc(href);
+        console.log(href)
+        return `<img src="${href}" alt="${text}" ${widthAttr}>`;
+    }
+    return `<img src="${href}" alt="${text}" ${widthAttr}>`;
+};
+
+// 親ディレクトリを取得
+function getParentPath(filePath: string) {
+    // 最後の`/`を見つける
+    let lastSlashIndex = filePath.lastIndexOf("/");
+    // `/`が見つからない場合
+    if (lastSlashIndex === -1) {
+        // 区切り文字を`\`に変えて再度試みる
+        lastSlashIndex = filePath.lastIndexOf("\\");
+        if (lastSlashIndex === -1) {
+            return "";
+        }
+    }
+    // 最後の`/`若しくは`\`までの文字列を返す
+    return filePath.substring(0, lastSlashIndex);
+}
 
 listen("tauri://drag-drop", async (event) => {
     const allowTextFiles = [

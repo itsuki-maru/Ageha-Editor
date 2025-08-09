@@ -1,6 +1,5 @@
 import { marked, Renderer } from "marked";
 import type { Token, Tokens } from "marked";
-import { convertFileSrc } from '@tauri-apps/api/core';
 
 // カスタムトークンの型定義
 interface CustomVideoToken {
@@ -151,31 +150,6 @@ renderer.code = (tokens: Tokens.Code) => {
     }
 }
 
-// imgタグをオーバーライド
-renderer.image = (tokens: Tokens.Image) => {
-    let width = "";
-    let href = tokens.href;
-    let text = tokens.text;
-    const match = tokens.href.match(/\s*=(\d+)(x)?$/);
-    if (match) {
-        width = match[1];
-        href = href.replace(/\s*=.*$/, "");
-    }
-    const widthAttr = width ? ` width="${width}px"` : "";
-
-    // 相対パスが指定された場合、絶対パスに変換してレンダリングするカスタマイズ
-    if (!href.startsWith("http://") && !href.startsWith("https://")) {
-        if (href.startsWith("./")) {
-            // 絶対パスに変換
-            const fileParentPath = getParentPath(href);
-            href = href.replace(/^./, fileParentPath);
-        }
-        href = convertFileSrc(href);
-        return `<img src="${href}" alt="${text}" ${widthAttr}>`;
-    }
-    return `<img src="${href}" alt="${text}" ${widthAttr}>`;
-};
-
 // HTMLエスケープ関数
 function escapeHtml(html: string) {
     return html
@@ -184,22 +158,6 @@ function escapeHtml(html: string) {
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#039;");
-}
-
-// 親ディレクトリを取得
-function getParentPath(filePath: string) {
-    // 最後の`/`を見つける
-    let lastSlashIndex = filePath.lastIndexOf("/");
-    // `/`が見つからない場合
-    if (lastSlashIndex === -1) {
-        // 区切り文字を`\`に変えて再度試みる
-        lastSlashIndex = filePath.lastIndexOf("\\");
-        if (lastSlashIndex === -1) {
-            return "";
-        }
-    }
-    // 最後の`/`若しくは`\`までの文字列を返す
-    return filePath.substring(0, lastSlashIndex);
 }
 
 export { videoToken, detailsToken, noteToken, warningToken, renderer }
