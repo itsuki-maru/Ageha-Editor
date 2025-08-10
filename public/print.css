@@ -537,3 +537,11 @@ details[open]>summary::before {
     font-size: large;
     border-bottom: 1px solid #cccccc;
 }
+
+.katex-display {
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    font-size: 1.2em;
+    padding-bottom: 5px;
+}
