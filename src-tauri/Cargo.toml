@@ -1,6 +1,6 @@
 [package]
 name = "ageha"
-version = "0.0.6"
+version = "0.0.7"
 description = "Markdown Editor"
 authors = ["you"]
 edition = "2024"
