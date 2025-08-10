@@ -843,6 +843,9 @@ function getFileName(path: string): string {
         <button class="btn-input-tools" title=":::warningを挿入"
             v-on:click="insertMarkdown(':::warning タイトル\n内容\n:::')"><img src="/warning_24.png"
                 class="btn-input-tools-img" alt="warning_24.png"></button>
+        <button class="btn-input-tools" title="$$を挿入"
+            v-on:click="insertMarkdown('$$\n数式\n$$')"><img src="/math24.png"
+                class="btn-input-tools-img" alt="math24.png"></button>
     </div>
 
     <!-- ヘルプモーダル -->
