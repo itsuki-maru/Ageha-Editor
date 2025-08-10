@@ -1,5 +1,11 @@
 # Release Notes
 
+## v0.0.6
+
+- 画像ファイルを相対パスで読み込み可能とした。
+- assetProtocol.scopeの設定不足によりMarkdown画像が読み込めない不具合を修正
+    - Markdownファイル再読み込み後にローカル画像が表示されない問題（assetProtocol.scopeの許可範囲不足とパス解決処理の不備）
+
 ## v0.0.5
 
 - アプリケーションライセンスを MIT に設定
