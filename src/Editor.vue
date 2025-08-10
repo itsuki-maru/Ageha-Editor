@@ -3,7 +3,7 @@ import { open, save, confirm } from '@tauri-apps/plugin-dialog';
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from '@tauri-apps/api/event';
 import { getCurrentWindow } from '@tauri-apps/api/window';
-import { ref, computed, onMounted, onUnmounted, onBeforeUnmount, watch } from "vue";
+import { ref, onMounted, onUnmounted, onBeforeUnmount, watch } from "vue";
 import { convertFileSrc } from '@tauri-apps/api/core';
 import type { Ref } from "vue";
 import { FilterXSS, getDefaultWhiteList } from "xss";
@@ -55,7 +55,7 @@ renderer.image = (tokens: Tokens.Image) => {
     const widthAttr = width ? ` width="${width}px"` : "";
 
     // 相対パスが指定された場合、絶対パスに変換してレンダリングするカスタマイズ
-    // セキュリティ上、
+    // セキュリティ上、`./`のみを許可
     if (!href.startsWith("http://") && !href.startsWith("https://")) {
         if (href.startsWith("./") || href.startsWith(".\\")) {
             // 現在選択されているマークダウンファイルを起点に絶対パスに変換
@@ -64,7 +64,6 @@ renderer.image = (tokens: Tokens.Image) => {
             href = href.replace(/^./, fileParentPath);
         }
         href = convertFileSrc(href);
-        console.log(href)
         return `<img src="${href}" alt="${text}" ${widthAttr}>`;
     }
     return `<img src="${href}" alt="${text}" ${widthAttr}>`;
@@ -201,7 +200,7 @@ const editorRef = ref<HTMLDivElement | null>(null);
 let editor: any | null = null;
 
 // editorContent（bodyの要素）の変化を監視
-const editorContent = ref("");
+const editorContent = ref<string>("");
 watch(editorContent, (newEditorContent) => {
     diffEditorRef.value.newEdirotContent = newEditorContent;
     if (editor && editor.getValue() !== newEditorContent) {
@@ -353,15 +352,17 @@ onMounted(() => {
     }
 });
 
+const parsedHtml = ref<string>("");
+
 // マークダウンからHTMLへのパース処理
-const markDownConv = computed(
-    (): String => {
-        const plainText = editorContent.value;
+watch(
+    editorContent,
+    (md) => {
         const options: MarkedOptions = { async: false };
-        const htmlStr = marked.parse(plainText, options);
-        const cleanHtml = myXss.process(htmlStr as string);
-        return cleanHtml;
-    }
+        const htmlStr = marked.parse(md, options);
+        parsedHtml.value = myXss.process(htmlStr as string);
+    },
+    { flush: "post" } // DOM更新後に走らせて描画と競合しにくくする
 );
 
 // スクロール同期の設定
@@ -661,7 +662,7 @@ async function saveNewFile(): Promise<string | null> {
 
 // 出力処理の開始
 const printOut = () => {
-    printPreviewWindow(markDownConv.value);
+    printPreviewWindow(parsedHtml.value);
 };
 
 // OSのプリント出力を起動
@@ -753,7 +754,7 @@ function getFileName(path: string): string {
                 <h3 class="editor-and-preview-title" id="title_h3_2">Preview</h3>
             </div>
             <div class="preview-area" id="result" ref="previewArea" :style="{ height: (divHeight) + 'px' }">
-                <section v-html="markDownConv"></section>
+                <section v-html="parsedHtml"></section>
             </div>
         </div>
     </div>
