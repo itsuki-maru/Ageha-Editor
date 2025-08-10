@@ -17,6 +17,7 @@ import "ace-builds/src-noconflict/mode-markdown"; // Aceでマークダウンを
 import "ace-builds/src-noconflict/theme-monokai"; // Aceのテーマのモジュール
 import { videoToken, detailsToken, noteToken, warningToken, renderer } from "./utils/markedSetup";
 import "katex/dist/katex.min.css";
+import mermaid from 'mermaid';
 import Help from "@/components/Help.vue";
 
 
@@ -160,10 +161,11 @@ onMounted(async () => {
     })
 });
 
-const mermaid: any = (window as any).mermaid;
-
 // Mermaidの初期読み込みを阻止（MarkedによるHTMLレンダリング後にinitで読み込み）
-mermaid.initialize({ startOnLoad: false });
+mermaid.initialize({ 
+    startOnLoad: false,
+    theme: "default",
+});
 
 // markedの設定をカスタマイズ
 marked.setOptions({
@@ -467,6 +469,9 @@ const handleKeyDown = (event: KeyboardEvent) => {
         event.preventDefault();
         handleHelpModal();
 
+    } else if (event.ctrlKey && event.key === "m") {
+        drawMermaid();
+
     // Escapeキーでモーダルウィンドウをクローズ
     } else if (event.key === "Escape") {
         event.preventDefault();
@@ -665,25 +670,48 @@ const printOut = () => {
     printPreviewWindow(parsedHtml.value);
 };
 
+async function renderMermaidToSvg(html: string): Promise<string> {
+    const container = document.createElement("div");
+    container.innerHTML = html;
+    const blocks = container.querySelectorAll<HTMLElement>(".mermaid");
+    let i = 0;
+
+    for (const block of Array.from(blocks)) {
+        const code = block.textContent ?? "";
+        const { svg } = await mermaid.render(`print-graph-${i++}`, code);
+        // SVGで置換
+        block.outerHTML = svg;
+    }
+    return container.innerHTML;
+}
+
 // OSのプリント出力を起動
-function printPreviewWindow(htmlBody: String) {
+async function printPreviewWindow(htmlBody: string) {
     if (editorContent.value === "") {
         handleMessageModal("入力がありません。");
         return;
     };
+
+    // 事前にmermaidの記述をSVGへ変換
+    const rendered = await renderMermaidToSvg(htmlBody);
+
+    // 印刷ウィンドウに投入
     const printWindow = window.open("", "_blank", "width=800,height=600");
     if (!printWindow) return;
-    printWindow.document.writeln(`
+    printWindow.document.writeln(
+        `
         <html>
             <head>
                 <meta charset="UTF-8">
                 <title>印刷</title>
                 <link rel="stylesheet" href="print.css">
+                
             </head>
             
-            <body>${htmlBody}</body>
+            <body>${rendered}</body>
         </html>
-    `);
+    `
+    );
     printWindow.document.close();
     printWindow.onload = () => {
         printWindow.focus();
