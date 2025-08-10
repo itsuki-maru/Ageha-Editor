@@ -1,5 +1,6 @@
 import { marked, Renderer } from "marked";
 import type { Token, Tokens } from "marked";
+import katex from "katex";
 
 // カスタムトークンの型定義
 interface CustomVideoToken {
@@ -160,4 +161,54 @@ function escapeHtml(html: string) {
         .replace(/'/g, "&#039;");
 }
 
-export { videoToken, detailsToken, noteToken, warningToken, renderer }
+// カスタムトークンの型定義
+interface CustomKatexToken {
+    type: "math" | Token["type"]; // 既存の型に "math"を追加
+    text: string;
+    displayMode: boolean;
+}
+
+const mathExtentionToken: any = {
+    name: "math",
+    level: "inline",
+    start(src: string) {
+        return src.match(/\$+/)?.index;
+    },
+    tokenizer(src: string, _tokens: Token[]): CustomKatexToken | null {
+        const blockMath = /^\$\$([^$]+)\$\$/; // $$...$$
+        const inlineMath = /^\$([^$\n]+)\$/;  // $...$
+
+        const blockMatch = blockMath.exec(src);
+        if (blockMatch) {
+            return {
+                type: "math",
+                raw: blockMatch[0],
+                text: blockMatch[1],
+                displayMode: true,
+            } as CustomKatexToken;
+        }
+        const inlineMatch = inlineMath.exec(src);
+        if (inlineMatch) {
+            return {
+                type: "math",
+                raw: inlineMatch[0],
+                text: inlineMatch[1],
+                displayMode: false,
+            } as CustomKatexToken;
+        }
+        return null;
+    },
+    renderer(token: any) {
+        try {
+            return katex.renderToString(token.text, {
+                throwOnError: false,
+                displayMode: token.displayMode,
+                output: "html",
+            });
+        } catch (error) {
+            return token.text;
+        }
+    }
+};
+
+export { videoToken, detailsToken, noteToken, warningToken, mathExtentionToken, renderer }

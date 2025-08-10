@@ -15,7 +15,7 @@ import * as ace from "ace-builds";
 import "ace-builds/src-noconflict/ext-searchbox"; // Ctrl+Fで検索ボックスを使用するために必要なモジュール
 import "ace-builds/src-noconflict/mode-markdown"; // Aceでマークダウンを使用するためのモジュール
 import "ace-builds/src-noconflict/theme-monokai"; // Aceのテーマのモジュール
-import { videoToken, detailsToken, noteToken, warningToken, renderer } from "./utils/markedSetup";
+import { videoToken, detailsToken, noteToken, warningToken, mathExtentionToken, renderer } from "./utils/markedSetup";
 import "katex/dist/katex.min.css";
 import mermaid from 'mermaid';
 import Help from "@/components/Help.vue";
@@ -176,7 +176,13 @@ marked.setOptions({
 // Markedにカスタムトークンを追加
 marked.use(
     {
-        extensions: [videoToken, detailsToken, noteToken, warningToken],
+        extensions: [
+            videoToken,
+            detailsToken,
+            noteToken,
+            warningToken,
+            mathExtentionToken,
+        ],
     }
 );
 
@@ -193,7 +199,19 @@ let xssOptions: IFilterXSSOptions = {
         pre: ['class'],
         a: ['target', 'rel', 'href', 'title'],
         div: ['class'],
+        span: ['class', 'aria-hidden', 'style'],
     },
+    // Katexでサニタイズされてしまうスタイルを再定義
+    css: {
+        whiteList: {
+            height: true,
+            'margin-right': true,
+            top: true,
+            width: true,
+            'margin-left': true,
+            left: true, right: true, bottom: true,
+        }
+    }
 };
 const myXss = new FilterXSS(xssOptions);
 
@@ -705,6 +723,7 @@ async function printPreviewWindow(htmlBody: string) {
                 <meta charset="UTF-8">
                 <title>印刷</title>
                 <link rel="stylesheet" href="print.css">
+                <link rel="stylesheet" href="katex.css">
                 
             </head>
             

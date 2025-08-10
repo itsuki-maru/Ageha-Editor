@@ -16,7 +16,7 @@
     "@tauri-apps/plugin-global-shortcut": "^2.3.0",
     "@tauri-apps/plugin-opener": "^2",
     "ace-builds": "^1.24.0",
-    "katex": "^0.16.21",
+    "katex": "^0.16.22",
     "marked": "^13.0.3",
     "mermaid": "^11.9.0",
     "pinia": "^2.1.7",
