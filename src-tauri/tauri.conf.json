@@ -13,8 +13,8 @@
     "windows": [
       {
         "title": "Ageha",
-        "width": 800,
-        "height": 600
+        "width": 900,
+        "height": 660
       }
     ],
     "security": {
@@ -34,6 +34,15 @@
     }
   },
   "bundle": {
+    "windows": {
+      "nsis": {
+        "languages": ["Japanese"],
+        "installerIcon": "icons/icon.ico"
+      },
+      "wix": {
+        "language": "ja-JP"
+      }
+    },
     "active": true,
     "targets": "all",
     "icon": [
@@ -46,7 +55,7 @@
       {
         "name": "Ageha Editor",
         "description": "Markdown editor application",
-        "ext": ["md", "txt"]
+        "ext": ["md", "txt", "py", "rs", "js"]
       }
     ]
   }
