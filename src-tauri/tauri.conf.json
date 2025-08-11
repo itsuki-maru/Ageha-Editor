@@ -55,7 +55,7 @@
       {
         "name": "Ageha Editor",
         "description": "Markdown editor application",
-        "ext": ["md", "txt", "py", "rs", "js"]
+        "ext": ["md", "txt"]
       }
     ]
   }
