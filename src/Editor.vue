@@ -435,17 +435,22 @@ function useWindowSize() {
 }
 
 const { height } = useWindowSize();
+const isHeightScreen = ref(false);
 const divHeight = ref(0);
 if (height.value > 850) {
+    isHeightScreen.value = true;
     divHeight.value = height.value * 0.74;
 } else if (height.value > 400) {
+    isHeightScreen.value = false;
     divHeight.value = height.value * 0.6;
 }
 
 watch(height, (newHeight) => {
     if (newHeight > 800) {
+        isHeightScreen.value = true;
         divHeight.value = newHeight * 0.74;
     } else {
+        isHeightScreen.value = false;
         divHeight.value = newHeight * 0.6;
     }
 });
@@ -807,7 +812,10 @@ function getFileName(path: string): string {
     </div>
 
     <!-- マークダウン入力支援ボタン -->
-    <div class="input-tools" v-show="isShowTools" :style="{ width: isPreview ? '40%' : '85%' }">
+    <div class="input-tools" v-show="isShowTools" :style="[
+        isPreview ? { right: '53%' } : { right : '6%' },
+        isHeightScreen ? { height: '60%' } : { height : '50%' }
+    ]">
         <button class="btn-input-tools" title="## を挿入" v-on:click="insertMarkdown('## ')"><img
                 src="/format_h2_24.png" class="btn-input-tools-img" alt="format_h2_24.png"></button>
         <button class="btn-input-tools" title="### を挿入" v-on:click="insertMarkdown('### ')"><img
