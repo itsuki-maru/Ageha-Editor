@@ -545,3 +545,7 @@ details[open]>summary::before {
     font-size: 1.2em;
     padding-bottom: 5px;
 }
+
+.pagebreak {
+    page-break-before: always;
+}

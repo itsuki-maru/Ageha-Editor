@@ -2,7 +2,7 @@ import { marked, Renderer } from "marked";
 import type { Token, Tokens } from "marked";
 import katex from "katex";
 
-// カスタムトークンの型定義
+// videoトークンの型定義
 interface CustomVideoToken {
     type: "video" | Token["type"]; // 既存の型に "video"を追加
     href: string;
@@ -211,4 +211,35 @@ const mathExtentionToken: any = {
     }
 };
 
-export { videoToken, detailsToken, noteToken, warningToken, mathExtentionToken, renderer }
+// カスタムトークンpagebreakの型定義
+interface CustomPagebreakToken {
+    type: "pagebreak" | Token["type"]; // 既存の型に "video"を追加
+    text: string;
+}
+
+// カスタムトークン"linbreak"の定義（型は緩くanyとする）
+const PageBreakToken: any = {
+    name: "pagebreak",
+    level: "inline",
+    start(src: string) {
+        return src.match(/^@@@$/)?.index;
+    },
+    tokenizer(src: string, _tokens: Token[]): CustomPagebreakToken | null {
+        const rule = /^@@@$/;
+        const match = rule.exec(src);
+        if (match) {
+            return {
+                type: "pagebreak", // カスタムトークンタイプ
+                raw: match[0],
+                text: match[1],
+                href: match[2],
+            } as CustomPagebreakToken; // 型アサーション
+        }
+        return null;
+    },
+    renderer(__token: CustomPagebreakToken) {
+        return `<div class="pagebreak"></div>`
+    }
+};
+
+export { videoToken, detailsToken, noteToken, warningToken, mathExtentionToken, PageBreakToken, renderer }

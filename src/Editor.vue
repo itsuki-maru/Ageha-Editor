@@ -15,7 +15,7 @@ import * as ace from "ace-builds";
 import "ace-builds/src-noconflict/ext-searchbox"; // Ctrl+Fで検索ボックスを使用するために必要なモジュール
 import "ace-builds/src-noconflict/mode-markdown"; // Aceでマークダウンを使用するためのモジュール
 import "ace-builds/src-noconflict/theme-monokai"; // Aceのテーマのモジュール
-import { videoToken, detailsToken, noteToken, warningToken, mathExtentionToken, renderer } from "./utils/markedSetup";
+import { videoToken, detailsToken, noteToken, warningToken, mathExtentionToken, PageBreakToken, renderer } from "./utils/markedSetup";
 import "katex/dist/katex.min.css";
 import mermaid from 'mermaid';
 import Help from "@/components/Help.vue";
@@ -182,6 +182,7 @@ marked.use(
             noteToken,
             warningToken,
             mathExtentionToken,
+            PageBreakToken
         ],
     }
 );
@@ -854,6 +855,9 @@ function getFileName(path: string): string {
         <button class="btn-input-tools" title="$$を挿入"
             v-on:click="insertMarkdown('$$\n数式\n$$')"><img src="/math24.png"
                 class="btn-input-tools-img" alt="math24.png"></button>
+        <button class="btn-input-tools" title="@@@（改ページ）を挿入"
+            v-on:click="insertMarkdown('@@@')"><img src="/keyboard_return_24.png"
+                class="btn-input-tools-img" alt="keyboard_return_24.png"></button>
     </div>
 
     <!-- ヘルプモーダル -->
