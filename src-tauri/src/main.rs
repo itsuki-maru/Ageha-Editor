@@ -39,5 +39,6 @@ fn main() {
         .init();
 
     info!("Launch args file: {}", &CONFIG.args_file_path);
+
     ageha_lib::run()
 }
