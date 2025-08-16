@@ -217,7 +217,7 @@ interface CustomPagebreakToken {
     text: string;
 }
 
-// カスタムトークン"linbreak"の定義（型は緩くanyとする）
+// カスタムトークン"pagebreak"の定義（型は緩くanyとする）
 const PageBreakToken: any = {
     name: "pagebreak",
     level: "inline",
