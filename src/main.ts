@@ -11,10 +11,10 @@ const app = createApp(App);
 const pinia = createPinia();
 app.use(pinia);
 
-// ローカルストレージの情報を初期化
+// ローカルストレージの情報を初期化（同期）
 useLocalStorageStore(pinia).init();
 
-// Rustのバックエンドからのデータ取得は非同期
+// Rustのバックエンドからのデータ取得（非同期）
 useRustArgsStore(pinia).init().finally(() => {
     app.mount("#app");
 });

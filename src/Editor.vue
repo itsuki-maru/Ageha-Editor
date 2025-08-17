@@ -130,6 +130,10 @@ listen("tauri://drag-drop", async (event) => {
             editorContent.value = textData;
             diffEditorRef.value.oldEditorContent = textData;
             diffEditorRef.value.newEdirotContent = textData;
+
+            // ストアの情報を更新
+            rustArgsStore.rustArgsData.text_data = textData;
+            rustArgsStore.rustArgsData.file_abs_path = dropFilePath;
         }
         activeFilePath.value = dropFilePath;
     };
@@ -227,6 +231,8 @@ watch(editorContent, (newEditorContent) => {
     diffEditorRef.value.newEdirotContent = newEditorContent;
     if (editor && editor.getValue() !== newEditorContent) {
         editor.setValue(newEditorContent, 1);
+        // ストアの情報を更新
+        rustArgsStore.rustArgsData.text_data = newEditorContent;
     }
 });
 
@@ -551,6 +557,10 @@ const fileOpen = async () => {
         diffEditorRef.value.oldEditorContent = textData;
         diffEditorRef.value.newEdirotContent = textData;
         activeFilePath.value = filePath;
+
+        // ストアの情報を更新
+        rustArgsStore.rustArgsData.text_data = textData;
+        rustArgsStore.rustArgsData.file_abs_path = filePath;
     }
     isEdit.value = false;
 };
