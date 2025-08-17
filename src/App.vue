@@ -41,7 +41,7 @@ const handlerMode = (): void => {
       <label for="switch" class="switch-label">
         <div class="switch">
           <input type="checkbox" id="switch" v-model="isViewerMode" v-on:click="handlerMode()">
-                <div class="base"></div>
+                <div class="toggle-base"></div>
                 <div class="circle"></div>
                 <div class="slider"></div>
         </div>
@@ -96,7 +96,7 @@ input[type='checkbox'] {
   opacity: 0;
 }
 
-.base {
+.toggle-base {
   width: 56px;
   border-radius: 16px;
   height: 32px;
