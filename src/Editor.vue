@@ -7,38 +7,39 @@ import { ref, onMounted, onUnmounted, onBeforeUnmount, watch } from "vue";
 import { convertFileSrc } from '@tauri-apps/api/core';
 import type { Ref } from "vue";
 import { FilterXSS, getDefaultWhiteList } from "xss";
-import type { IFilterXSSOptions } from "xss"
+import type { IFilterXSSOptions } from "xss";
 import { marked } from "marked";
 import type { MarkedOptions, Tokens } from "marked";
-import type { LocalStrageItem, ResponseTextData, DiffEditorData, StatusCode } from "./interface";
+import type { ResponseTextData, DiffEditorData, StatusCode } from "./interface";
 import * as ace from "ace-builds";
 import "ace-builds/src-noconflict/ext-searchbox"; // Ctrl+Fで検索ボックスを使用するために必要なモジュール
 import "ace-builds/src-noconflict/mode-markdown"; // Aceでマークダウンを使用するためのモジュール
 import "ace-builds/src-noconflict/theme-monokai"; // Aceのテーマのモジュール
-import { videoToken, detailsToken, noteToken, warningToken, mathExtentionToken, PageBreakToken, renderer } from "./utils/markedSetup";
+import { 
+    videoToken,
+    detailsToken,
+    noteToken,
+    warningToken,
+    mathExtentionToken,
+    PageBreakToken,
+    renderer} from "./utils/markedSetup";
 import "katex/dist/katex.min.css";
 import mermaid from 'mermaid';
 import Help from "@/components/Help.vue";
+import { useLocalStorageStore } from "./stores/localStorages";
+import { useRustArgsStore } from './stores/markdownDatas';
 
 
-// アプリケーション起動処理完了後の引数受け取り
-type RustArgs = {
-    status: StatusCode,
-    file_abs_path: string;
-    text_data: string;
-};
+const rustArgsStore = useRustArgsStore();
 
 // ウィンドウ起動後にRustバックエンドに起動時の引数状況を要求
 onMounted(async () => {
     try {
-        const result = await invoke<RustArgs | null>("request_launch_args");
-        if (result) {
-            const textData = result.text_data
-            activeFilePath.value = result.file_abs_path;
-            editorContent.value = textData;
-            diffEditorRef.value.oldEditorContent = textData;
-            diffEditorRef.value.newEdirotContent = textData;
-        }
+        const textData = rustArgsStore.rustArgsData.text_data
+        activeFilePath.value = rustArgsStore.rustArgsData.file_abs_path;
+        editorContent.value = textData;
+        diffEditorRef.value.oldEditorContent = textData;
+        diffEditorRef.value.newEdirotContent = textData;
     } catch (error) {
     }
 });
@@ -229,44 +230,21 @@ watch(editorContent, (newEditorContent) => {
     }
 });
 
-// ローカルストレージから最後のアプリケーション設定情報を取得
-const localStorageItems = getLocalStrageInfo();
-const isShowTools = ref(false); // マークダウン入力ツール表示コントロール
-const isPreview = ref(true); // プレビューの表示非表示
-
-if (localStorageItems.isShowToolsFromLocalStrage === null) {
-    localStorage.setItem("isShowTools", "false");
-};
-
-if (localStorageItems.isShowToolsFromLocalStrage === "true") {
-    isShowTools.value = true;
-};
-
-if (localStorageItems.isPreviewFromLocalStrage === null) {
-    localStorage.setItem("isPreview", "true");
-};
-
-if (localStorageItems.isPreviewFromLocalStrage === "false") {
-    isPreview.value = false;
-}
-
-// ローカルストレージから前回起動時の状況を取得
-function getLocalStrageInfo(): LocalStrageItem {
-    const localstrageItem = {
-        isShowToolsFromLocalStrage: localStorage.getItem("isShowTools"),
-        isPreviewFromLocalStrage: localStorage.getItem("isPreview")
-    }
-    return localstrageItem;
-}
+// ローカルストレージ情報ストア
+const localStorageItem = useLocalStorageStore();
+const isShowTools = ref(true);
+const isPreview = ref(true);
+if (localStorageItem.isShowToolsFromLocalStrage === "false") isShowTools.value = false;
+if (localStorageItem.isPreviewFromLocalStrage === "false") isPreview.value = false;
 
 // マークダウン記号入力ボタンの表示非表示切替
 const handleInputTool = (): void => {
     if (isShowTools.value) {
         isShowTools.value = false;
-        localStorage.setItem("isShowTools", "false");
+        localStorageItem.setMarkdownTools(false);
     } else {
         isShowTools.value = true;
-        localStorage.setItem("isShowTools", "true");
+        localStorageItem.setMarkdownTools(true);
     }
 };
 
@@ -274,10 +252,10 @@ const handleInputTool = (): void => {
 const handlePreview = (): void => {
     if (isPreview.value) {
         isPreview.value = false;
-        localStorage.setItem("isPreview", "false");
+        localStorageItem.setPreview(false);
     } else {
         isPreview.value = true
-        localStorage.setItem("isPreview", "true");
+        localStorageItem.setPreview(true);
     }
 };
 
@@ -1019,13 +997,6 @@ h3#title_h3_2:after {
 .right-area-preview {
     width: 52%;
     height: 100%;
-}
-
-.preview-area {
-    overflow-y: auto;
-    border-radius: 5px;
-    padding: 0 20px;
-    background-color: #ffffff;
 }
 
 /* ヘルプモーダル */

@@ -218,3 +218,10 @@ details[open] > summary::before {
     font-size: large;
     border-bottom: 1px solid #cccccc;
 }
+
+.preview-area {
+    overflow-y: auto;
+    border-radius: 5px;
+    padding: 0 20px;
+    background-color: #ffffff;
+}

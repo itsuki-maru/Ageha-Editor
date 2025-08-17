@@ -1,5 +1,6 @@
 // ローカルストレージの情報格納
 export interface LocalStrageItem {
+    isViewerModeFromLocalStrage: string | null;
     isShowToolsFromLocalStrage: string | null;
     isPreviewFromLocalStrage: string | null;
 };
@@ -20,3 +21,10 @@ export interface DiffEditorData {
     oldEditorContent: string,
     newEdirotContent: string,
 }
+
+// Rust側から受け取ったファイル保持
+export interface RustArgs {
+    status: StatusCode,
+    file_abs_path: string;
+    text_data: string;
+};
