@@ -232,7 +232,7 @@ function copyClipBoard(codeId: string) {
 
     <div class="code-container" style="position: relative;">
         <button class="copy-btn" data-target="help-markup" style="position: absolute; top: 5px; right: 5px; z-index: 1;" v-on:click="copyClipBoard('help-markup')">コピー</button>
-        <pre><code id="help-markup" class="language-markdown">○×商事</code></pre>
+        <pre><code id="help-markup" class="language-markdown">`○×商事`</code></pre>
     </div>
 
     <p><code>○×商事</code></p>

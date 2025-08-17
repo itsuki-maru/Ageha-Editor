@@ -775,7 +775,7 @@ function getFileName(path: string): string {
             </div>
             <div class="edit-area" :style="{ height: divHeight + 'px' }">
                 <div ref="editorRef" class="editor-div" id="editor"
-                    title="マークダウンエディター&#10;Wikiとして作成したい文書をマークダウンで記述します。&#10;作成はリアルタイムで左側のプレビューエリアに反映されます。">
+                    title="作成したい文書をマークダウンで記述します。&#10;作成はリアルタイムで左側のプレビューエリアに反映されます。">
                 </div>
             </div>
         </div>
