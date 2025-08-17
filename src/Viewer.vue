@@ -70,8 +70,9 @@ onMounted(async () => {
     try {
         const textData = rustArgsStore.rustArgsData.text_data;
         const options: MarkedOptions = { async: false };
-        const htmlStr = marked.parse(textData, options);
-        parsedHtml.value = myXss.process(htmlStr as string);
+        const htmlStr = await marked.parse(textData, options);
+        const sanitaizedHtml = myXss.process(htmlStr as string);
+        parsedHtml.value = await renderMermaidToSvg(sanitaizedHtml);
     } catch (error) {
     }
 });
