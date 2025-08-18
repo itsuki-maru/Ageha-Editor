@@ -240,8 +240,8 @@ watch(editorContent, (newEditorContent) => {
 const localStorageItem = useLocalStorageStore();
 const isShowTools = ref(true);
 const isPreview = ref(true);
-if (localStorageItem.isShowToolsFromLocalStrage === "false") isShowTools.value = false;
-if (localStorageItem.isPreviewFromLocalStrage === "false") isPreview.value = false;
+if (localStorageItem.isShowToolsFromLocalStrage === false) isShowTools.value = false;
+if (localStorageItem.isPreviewFromLocalStrage === false) isPreview.value = false;
 
 // マークダウン記号入力ボタンの表示非表示切替
 const handleInputTool = (): void => {
@@ -733,6 +733,45 @@ async function printPreviewWindow(htmlBody: string) {
     };
 };
 
+const openWindowViewerCall = () => {
+    openWindowViewer(parsedHtml.value);
+}
+
+// プレビューウィンドウ起動
+async function openWindowViewer(htmlBody: string) {
+    if (editorContent.value === "") {
+        handleMessageModal("入力がありません。");
+        return;
+    };
+
+    // 事前にmermaidの記述をSVGへ変換
+    const rendered = await renderMermaidToSvg(htmlBody);
+
+    // ビューアウィンドウに投入
+    const viewerWindow = window.open("", "_blank", "width=1000,height=800");
+    if (!viewerWindow) return;
+    viewerWindow.document.writeln(
+        `
+        <html>
+            <head>
+                <meta charset="UTF-8">
+                <title>Ageha Editor Viewer</title>
+                <link rel="stylesheet" href="viewer.css">
+                <link rel="stylesheet" href="katex.css">
+            </head>
+            
+            <body>${rendered}</body>
+            <style>
+                body {
+                    margin-top: 0;
+                }
+            </style>
+        </html>
+    `
+    );
+}
+
+
 // 画像ファイルパスを取得
 const readImage = async () => {
     const imageFilePath = await selectFile("Image File", ["png", "jpg", "jpeg", "svg"]);
@@ -769,6 +808,8 @@ function getFileName(path: string): string {
                     alt="preview_on_24.png"></button>
             <button class="btn-head-image" title="マークダウン入力ツール&#10;ショートカット: Ctrl + Alt + i" v-on:click="handleInputTool()"><img
                     src="/markdown_24.png" class="btn-img" alt="markdown_24.png"></button>
+            <button class="btn-head-image" title="別ウィンドウ&#10;ショートカット: Ctrl + Alt + w" v-on:click="openWindowViewerCall()"><img
+                    src="/new_window_fill24.png" class="btn-img" alt="new_window_fill24.png"></button>
         </div>
         <div id="btn-head-right">
             <button class="btn-head-image" title="書き方のヘルプを表示&#10;ショートカット: Ctrl + Alt + h" v-on:click="handleHelpModal"><img

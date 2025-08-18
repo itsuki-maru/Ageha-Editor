@@ -1,79 +1,129 @@
 import { defineStore } from "pinia";
-import { LazyStore } from "@tauri-apps/plugin-store";
+import { load, type Store as TauriStore } from '@tauri-apps/plugin-store';
 import type { LocalStrageItem } from "../interface";
 
 
-const store = new LazyStore("settings.json");
+// plugin-storeの設定
+const FILE_NAME = "settings.json";
+const STATE_KEY = "localState@v1";
 
-const STORAGE_KEY = "app/localStorageItem";
 const DEFAULT_STATE: LocalStrageItem = {
-    isViewerModeFromLocalStrage: "true",
-    isPreviewFromLocalStrage: "true",
-    isShowToolsFromLocalStrage: "true",
+    isPreviewFromLocalStrage: true,
+    isShowToolsFromLocalStrage: true,
 };
 
-function safeParse(json: string | null): LocalStrageItem {
+// HMR/多重init防止
+let wired = false;
+
+const bc = typeof window !== "undefined" && "BroadcastChannel" in window
+    ? new BroadcastChannel("local-store-channel")
+    : null;
+
+// LazyStoreを一度だけロードして使い回す
+let storePromise: Promise<TauriStore> | null = null;
+function getStore(): Promise<TauriStore> {
+    if (!storePromise) {
+        // autoSave: true/数値(ms)/falseのいずれか
+        // 150ms デバウンスで自動保存する設定とする
+        storePromise = load(FILE_NAME, { autoSave: 150 });
+    }
+    return storePromise;
+};
+
+// 不足フィールド補完付き正規化
+function normalize(input: unknown): LocalStrageItem {
     try {
-        return json ? { ...DEFAULT_STATE, ...JSON.parse(json) } : { ...DEFAULT_STATE };
+        const obj = (typeof input === "string" ? JSON.parse(input) : input) ?? {};
+        return { ...DEFAULT_STATE, ...(obj as Partial<LocalStrageItem>) };
     } catch {
         // 壊れたJSONは破棄してデフォルト値へ戻す
         return { ...DEFAULT_STATE };
     }
 };
 
+// 読み込み
+async function readState(): Promise<LocalStrageItem> {
+    try {
+        const store = await getStore();
+        const raw = await store.get<string | object | null>(STATE_KEY);
+        return normalize(raw ?? null);
+    } catch {
+        return { ...DEFAULT_STATE };
+    }
+};
+
+// 書き込み（autoSaveの設定のためsave()は不要）
+async function writeState(state: LocalStrageItem): Promise<void> {
+    const store = await getStore();
+    await store.set(STATE_KEY, state);
+};
+
+// 削除
+async function deleteState(): Promise<void> {
+    const store = await getStore();
+    await store.delete(STATE_KEY);
+};
+
+// 他WebViewへ更新通知
+function notifyPeers(payload: LocalStrageItem) {
+    bc?.postMessage({ type: "local:update", state: payload });
+};
+
 export const useLocalStorageStore = defineStore({
     id: "localStorage",
     state: (): LocalStrageItem => ({ ...DEFAULT_STATE }),
     getters: {
-        isLoggedIn: (s) => !!s.isPreviewFromLocalStrage && !!s.isShowToolsFromLocalStrage && !!s.isViewerModeFromLocalStrage,
+        isLoggedIn: (s) => !!s.isPreviewFromLocalStrage && !!s.isShowToolsFromLocalStrage
     },
     actions: {
-        init(): void {
-            const loaded = safeParse(localStorage.getItem(STORAGE_KEY));
+        async init(): Promise<void> {
+            // 復元
+            const loaded = await readState();
             this.$patch(loaded);
-            // 以降の変更を自動保存
+
+            // 多重配線防止（HMR対策）
+            if (wired) return;
+            wired = true;
+
+            // 変更検知と自動保存
             this.$subscribe(
-                (_mutation, state) => {
-                    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+                async (_mutation, state) => {
+                    const plain: LocalStrageItem = {
+                        isPreviewFromLocalStrage: state.isPreviewFromLocalStrage,
+                        isShowToolsFromLocalStrage: state.isShowToolsFromLocalStrage,
+                    };
+                    await writeState(plain);
+                    notifyPeers(plain);
                 },
                 { detached: true }
             );
-            // タブ/ウィンドウ間での同期（別タブで変更されたら即反映）
-            window.addEventListener("storage", (e) => {
-                if (e.key === STORAGE_KEY) {
-                    const next = safeParse(e.newValue);
-                    this.$patch(next);
-                }
+
+            // 他WebView/タブからの更新反映
+            bc?.addEventListener("message", (e: MessageEvent) => {
+                if (e.data?.type !== "local:update") return;
+                const next = normalize(e.data.state);
+                const s = this.$state;
+                if (
+                    s.isPreviewFromLocalStrage === next.isPreviewFromLocalStrage &&
+                    s.isShowToolsFromLocalStrage === next.isShowToolsFromLocalStrage
+                ) return;
+                this.$patch(next);
             });
         },
 
         // 値の更新
-        setViewerMode(isViewerMode: boolean | null) {
-            if (isViewerMode) {
-                this.isViewerModeFromLocalStrage = "true";
-            } else {
-                this.isViewerModeFromLocalStrage = "false";
-            }
-        },
         setPreview(isPreview: boolean | null) {
-            if (isPreview) {
-                this.isPreviewFromLocalStrage = "true";
-            } else {
-                this.isPreviewFromLocalStrage = "false";
-            }
+            this.isPreviewFromLocalStrage = isPreview;
         },
         setMarkdownTools(isMarkdownTools: boolean | null) {
-            if (isMarkdownTools) {
-                this.isShowToolsFromLocalStrage = "true";
-            } else {
-                this.isShowToolsFromLocalStrage = "false";
-            }
+            this.isShowToolsFromLocalStrage = isMarkdownTools;
         },
 
         // クリア
-        clear() {
+        async clear() {
             this.$patch({ ...DEFAULT_STATE });
-            localStorage.removeItem(STORAGE_KEY);
+            await deleteState();
+            notifyPeers(this.$state);
         }
     }
 });

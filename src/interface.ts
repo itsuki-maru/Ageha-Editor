@@ -1,8 +1,7 @@
 // ローカルストレージの情報格納
 export interface LocalStrageItem {
-    isViewerModeFromLocalStrage: string | null;
-    isShowToolsFromLocalStrage: string | null;
-    isPreviewFromLocalStrage: string | null;
+    isShowToolsFromLocalStrage: boolean | null;
+    isPreviewFromLocalStrage: boolean | null;
 };
 
 export interface StatusCode {

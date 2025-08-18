@@ -12,7 +12,7 @@ const pinia = createPinia();
 app.use(pinia);
 
 // ローカルストレージの情報を初期化（同期）
-useLocalStorageStore(pinia).init();
+await useLocalStorageStore(pinia).init();
 
 // Rustのバックエンドからのデータ取得（非同期）
 useRustArgsStore(pinia).init().finally(() => {
