@@ -237,11 +237,14 @@ watch(editorContent, (newEditorContent) => {
 });
 
 // ローカルストレージ情報ストア
+const isShowTools = ref<boolean | null>(null);
+const isPreview = ref<boolean | null>(null);
 const localStorageItem = useLocalStorageStore();
-const isShowTools = ref(true);
-const isPreview = ref(true);
-if (localStorageItem.isShowToolsFromLocalStrage === false) isShowTools.value = false;
-if (localStorageItem.isPreviewFromLocalStrage === false) isPreview.value = false;
+onMounted(async () => {
+    await localStorageItem.init();
+    isShowTools.value = localStorageItem.isShowToolsFromLocalStrage;
+    isPreview.value = localStorageItem.isPreviewFromLocalStrage;
+});
 
 // マークダウン記号入力ボタンの表示非表示切替
 const handleInputTool = (): void => {
@@ -748,7 +751,7 @@ async function openWindowViewer(htmlBody: string) {
     const rendered = await renderMermaidToSvg(htmlBody);
 
     // ビューアウィンドウに投入
-    const viewerWindow = window.open("", "_blank", "width=1000,height=800");
+    const viewerWindow = window.open("", "_blank", "width=1000,height=900");
     if (!viewerWindow) return;
     viewerWindow.document.writeln(
         `
