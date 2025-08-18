@@ -3,10 +3,7 @@
 
 use std::env;
 use tracing::info;
-use tracing_subscriber::{
-    layer::SubscriberExt,
-    util::SubscriberInitExt,
-};
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use crate::config::CONFIG;
 mod config;
@@ -14,7 +11,9 @@ mod schema;
 
 fn main() {
     // 初期化処理（引数の取得と環境変数の設定）
-    unsafe { env::set_var("RUST_LOG", "ageha=error".to_string()); } // info, debug, error 開発時は適宜変更
+    unsafe {
+        env::set_var("RUST_LOG", "ageha=error".to_string());
+    } // info, debug, error 開発時は適宜変更
 
     // 引数の処理
     let args: Vec<String> = env::args().collect();

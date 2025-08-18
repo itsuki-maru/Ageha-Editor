@@ -1,21 +1,15 @@
-use tauri::{Manager};
-use std::{
-    env,
-};
+use std::env;
+use tauri::Manager;
+mod config;
 mod handler;
 mod schema;
-mod config;
 
-use handler::file::{
-    read_file,
-    save_file,
-    request_launch_args,
-};
-
+use handler::file::{read_file, request_launch_args, save_file};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {

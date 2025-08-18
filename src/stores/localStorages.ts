@@ -1,6 +1,9 @@
 import { defineStore } from "pinia";
+import { LazyStore } from "@tauri-apps/plugin-store";
 import type { LocalStrageItem } from "../interface";
 
+
+const store = new LazyStore("settings.json");
 
 const STORAGE_KEY = "app/localStorageItem";
 const DEFAULT_STATE: LocalStrageItem = {
