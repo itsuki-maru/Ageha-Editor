@@ -1,5 +1,10 @@
 # Release Notes
 
+## v0.0.18
+
+- エディタの設定情報を初期化ロードする場所をEditor.vueに変更
+- Viewerウィンドウのサイズを変更
+
 ## v0.0.17
 
 - ユーザーの設定j状態（プレビューの表示、マークダウン記号の入力ボタンの表示）保存をローカルストレージから [tauri-store-plugin](https://v2.tauri.app/ja/plugin/store/) に変更
