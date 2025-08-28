@@ -166,6 +166,12 @@ onMounted(async () => {
     })
 });
 
+// Window titleの変更処理
+async function updateTitle(newTitle: string) {
+    const window = getCurrentWindow();
+    await window.setTitle(newTitle);
+};
+
 // Mermaidの初期読み込みを阻止（MarkedによるHTMLレンダリング後にinitで読み込み）
 mermaid.initialize({ 
     startOnLoad: false,
@@ -427,19 +433,19 @@ const isHeightScreen = ref(false);
 const divHeight = ref(0);
 if (height.value > 850) {
     isHeightScreen.value = true;
-    divHeight.value = height.value * 0.77;
+    divHeight.value = height.value * 0.81;
 } else if (height.value > 400) {
     isHeightScreen.value = false;
-    divHeight.value = height.value * 0.66;
+    divHeight.value = height.value * 0.69;
 }
 
 watch(height, (newHeight) => {
     if (newHeight > 800) {
         isHeightScreen.value = true;
-        divHeight.value = newHeight * 0.77;
+        divHeight.value = newHeight * 0.81;
     } else {
         isHeightScreen.value = false;
-        divHeight.value = newHeight * 0.66;
+        divHeight.value = newHeight * 0.69;
     }
 });
 
@@ -519,6 +525,13 @@ function insertMarkdown(text: string) {
 
 // 編集中のアクティブファイル
 const activeFilePath = ref("");
+watch(activeFilePath, async () => {
+    if (activeFilePath.value === "") {
+        await updateTitle("Ageha");
+    } else {
+        await updateTitle(activeFilePath.value);
+    }
+})
 // 初期ファイル読み込み情報を保持
 const diffEditor: DiffEditorData = {
     newEdirotContent: "",
@@ -926,11 +939,6 @@ function getFileName(path: string): string {
             </div>
         </div>
     </div>
-
-    <!-- ファイルパス -->
-    <footer>
-        <p class="footer-path">{{ activeFilePath }}</p>
-    </footer>
 </template>
 
 <style scoped>
@@ -1111,15 +1119,6 @@ h3#title_h3_2:after {
     background: whitesmoke;
     border-radius: 10px;
     text-align: center;
-}
-
-.footer-path {
-    position: fixed;
-    bottom: 1px;
-    left: 1%;
-    text-align: right;
-    font-size: 14px;
-    color: #f0f0f0;
 }
 
 .btn-help-close {
