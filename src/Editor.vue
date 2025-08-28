@@ -427,19 +427,19 @@ const isHeightScreen = ref(false);
 const divHeight = ref(0);
 if (height.value > 850) {
     isHeightScreen.value = true;
-    divHeight.value = height.value * 0.74;
+    divHeight.value = height.value * 0.8;
 } else if (height.value > 400) {
     isHeightScreen.value = false;
-    divHeight.value = height.value * 0.6;
+    divHeight.value = height.value * 0.66;
 }
 
 watch(height, (newHeight) => {
     if (newHeight > 800) {
         isHeightScreen.value = true;
-        divHeight.value = newHeight * 0.74;
+        divHeight.value = newHeight * 0.8;
     } else {
         isHeightScreen.value = false;
-        divHeight.value = newHeight * 0.6;
+        divHeight.value = newHeight * 0.66;
     }
 });
 
@@ -479,6 +479,11 @@ const handleKeyDown = (event: KeyboardEvent) => {
     } else if (event.ctrlKey && event.altKey && event.key === "h") {
         event.preventDefault();
         handleHelpModal();
+
+    // 新規エディタ起動
+    } else if (event.ctrlKey && event.altKey && event.key === "n") {
+        event.preventDefault();
+        openNewInstance();
 
     } else if (event.ctrlKey && event.key === "m") {
         drawMermaid();
@@ -579,6 +584,11 @@ async function callRustReadMarkdownFile(filePath: string) {
     } catch (error) {
         console.error(error)
     }
+}
+
+// 別プロセスを起動
+async function openNewInstance() {
+    await invoke("spawn_self", { args: ["--new-window"] });
 }
 
 // 新規ファイルの保存処理
@@ -751,7 +761,7 @@ async function openWindowViewer(htmlBody: string) {
     const rendered = await renderMermaidToSvg(htmlBody);
 
     // ビューアウィンドウに投入
-    const viewerWindow = window.open("", "_blank", "width=1000,height=900");
+    const viewerWindow = window.open("", "_blank", "width=1000,height=700");
     if (!viewerWindow) return;
     viewerWindow.document.writeln(
         `
@@ -815,6 +825,8 @@ function getFileName(path: string): string {
                     src="/new_window_fill24.png" class="btn-img" alt="new_window_fill24.png"></button>
         </div>
         <div id="btn-head-right">
+            <button class="btn-head-image" title="新しいエディターを起動&#10;ショートカット: Ctrl + Alt + n" v-on:click="openNewInstance()"><img
+                    src="/new_editor_24.png" class="btn-img" alt="new_editor_24.png"></button>
             <button class="btn-head-image" title="書き方のヘルプを表示&#10;ショートカット: Ctrl + Alt + h" v-on:click="handleHelpModal"><img
                     src="/help_24.png" class="btn-img" alt="help_24.png"></button>
         </div>
@@ -846,7 +858,7 @@ function getFileName(path: string): string {
 
     <!-- マークダウン入力支援ボタン -->
     <div class="input-tools" v-show="isShowTools" :style="[
-        isPreview ? { right: '53%' } : { right : '6%' },
+        isPreview ? { right: '54%' } : { right : '6%' },
         isHeightScreen ? { height: '60%' } : { height : '50%' }
     ]">
         <button class="btn-input-tools" title="## を挿入" v-on:click="insertMarkdown('## ')"><img
@@ -897,7 +909,7 @@ function getFileName(path: string): string {
         <div id="overlay-help" v-show="showHelpContent">
             <div id="content-help">
                 <Help></Help>
-                <button v-on:click="handleHelpModal()">閉じる</button>
+                <button class="btn-help-close" v-on:click="handleHelpModal()">閉じる</button>
             </div>
         </div>
     </transition>
@@ -1010,7 +1022,7 @@ h3#title_h3_1:after {
 
 /* 画面右側エリア */
 .editor-and-preview-title {
-    font-size: 22px;
+    font-size: 16px;
 }
 
 .right-h3 {
@@ -1108,5 +1120,10 @@ h3#title_h3_2:after {
     text-align: right;
     font-size: 14px;
     color: #f0f0f0;
+}
+
+.btn-help-close {
+    font-size: 12px;
+    margin-bottom: 15px;
 }
 </style>

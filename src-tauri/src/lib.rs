@@ -5,6 +5,7 @@ mod handler;
 mod schema;
 
 use handler::file::{read_file, request_launch_args, save_file};
+use handler::spawn_self::spawn_self;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -24,7 +25,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             read_file,
             save_file,
-            request_launch_args
+            request_launch_args,
+            spawn_self,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

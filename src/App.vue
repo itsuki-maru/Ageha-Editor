@@ -44,7 +44,7 @@ async function openVersion() {
   color: #f0f0f0;
   text-shadow: 2px 1px 2px rgb(165, 165, 165);
   letter-spacing: 1px;
-  font-size: 34px;
+  font-size: 20px;
   margin: 0;
   margin-left: 10px;
 }
