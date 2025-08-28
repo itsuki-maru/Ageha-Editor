@@ -433,7 +433,7 @@ const isHeightScreen = ref(false);
 const divHeight = ref(0);
 if (height.value > 850) {
     isHeightScreen.value = true;
-    divHeight.value = height.value * 0.81;
+    divHeight.value = height.value * 0.8;
 } else if (height.value > 400) {
     isHeightScreen.value = false;
     divHeight.value = height.value * 0.69;
@@ -442,7 +442,7 @@ if (height.value > 850) {
 watch(height, (newHeight) => {
     if (newHeight > 800) {
         isHeightScreen.value = true;
-        divHeight.value = newHeight * 0.81;
+        divHeight.value = newHeight * 0.8;
     } else {
         isHeightScreen.value = false;
         divHeight.value = newHeight * 0.69;
