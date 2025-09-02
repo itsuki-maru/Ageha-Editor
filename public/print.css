@@ -3,6 +3,12 @@
     margin: 1mm;
 }
 
+@media print {
+    button.copy-btn {
+        display: none !important;
+    }
+}
+
 html {
     transform: scale(0.9);
 }

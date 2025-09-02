@@ -142,12 +142,21 @@ renderer.link = (tokens: Tokens.Link) => {
 };
 
 // mermaidの処理
-const originalCodeRenderer = renderer.code.bind(renderer);
 renderer.code = (tokens: Tokens.Code) => {
+    // mermaidの処理
     if (tokens.lang == "mermaid") {
         return '<pre class="mermaid">' + escapeHtml(tokens.text) + '\n</pre>';
+        
+    // 通常のコードブロック + コピー機能
     } else {
-        return originalCodeRenderer(tokens);
+        const id = `code-${Math.random().toString(36).substr(2, 9)}`;
+        const escapedCode = escapeHtml(tokens.text);
+        return `
+        <div class="code-container" style="position: relative;">
+        <button class="copy-btn" data-target="${id}" style="position: absolute; top: 5px; right: 5px; z-index: 1;">コピー</button>
+        <pre><code id="${id}">${escapedCode}</code></pre>
+        </div>
+        `
     }
 }
 

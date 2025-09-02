@@ -71,6 +71,34 @@ renderer.image = (tokens: Tokens.Image) => {
     return `<img src="${href}" alt="${text}" ${widthAttr}>`;
 };
 
+// codeタグにコピー機能を実装
+onMounted(() => {
+    document.addEventListener("click", (e) => {
+        const target = e.target as HTMLElement;
+        if (target.classList.contains("copy-btn")) {
+            const codeId = target.dataset.target;
+            const codeElem = document.getElementById(codeId || "")
+            if (codeElem) {
+                navigator.clipboard.writeText(codeElem.textContent || "");
+                // すでにメッセージがあれば削除
+                const existingTooltip = target.parentElement?.querySelector(".copy-tooltip");
+                if (existingTooltip) existingTooltip.remove();
+                // メッセージを作成
+                const tooltip = document.createElement("div");
+                tooltip.textContent = "コピーしました";
+                tooltip.className = "copy-tooltip";
+                // ボタンの親要素（code-container）に追加
+                target.parentElement?.appendChild(tooltip);
+                // 一定時間後に非表示
+                setTimeout(() => {
+                    tooltip.style.opacity = "0";
+                    setTimeout(() => tooltip.remove(), 300);
+                }, 1000);
+            }
+        }
+    });
+});
+
 // 親ディレクトリを取得
 function getParentPath(filePath: string) {
     // 最後の`/`を見つける
@@ -210,7 +238,10 @@ let xssOptions: IFilterXSSOptions = {
         h6: ['id'],
         pre: ['class'],
         a: ['target', 'rel', 'href', 'title'],
+        button: ['class', 'data-target'],
+        code: ['id', 'class'],
         div: ['class'],
+        p: ['class'],
         span: ['class', 'aria-hidden', 'style'],
     },
     // Katexでサニタイズされてしまうスタイルを再定義
@@ -708,6 +739,7 @@ const printOut = () => {
     printPreviewWindow(parsedHtml.value);
 };
 
+// Mermaid.jsの事前レンダリング
 async function renderMermaidToSvg(html: string): Promise<string> {
     const container = document.createElement("div");
     container.innerHTML = html;
@@ -721,7 +753,7 @@ async function renderMermaidToSvg(html: string): Promise<string> {
         block.outerHTML = svg;
     }
     return container.innerHTML;
-}
+};
 
 // OSのプリント出力を起動
 async function printPreviewWindow(htmlBody: string) {
@@ -792,6 +824,7 @@ async function openWindowViewer(htmlBody: string) {
                     margin-top: 0;
                 }
             </style>
+            <script src="preview.js"><\/script>
         </html>
     `
     );
