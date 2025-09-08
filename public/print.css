@@ -7,6 +7,10 @@
     button.copy-btn {
         display: none !important;
     }
+
+    iframe {
+        display: none !important;
+    }
 }
 
 html {

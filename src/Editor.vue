@@ -22,7 +22,10 @@ import {
     warningToken,
     mathExtentionToken,
     PageBreakToken,
-    renderer} from "./utils/markedSetup";
+    youtubeToken,
+    renderIframe,
+    renderer,
+} from "./utils/markedSetup";
 import "katex/dist/katex.min.css";
 import mermaid from 'mermaid';
 import Help from "@/components/Help.vue";
@@ -221,7 +224,8 @@ marked.use(
             noteToken,
             warningToken,
             mathExtentionToken,
-            PageBreakToken
+            PageBreakToken,
+            youtubeToken
         ],
     }
 );
@@ -243,6 +247,11 @@ let xssOptions: IFilterXSSOptions = {
         div: ['class'],
         p: ['class'],
         span: ['class', 'aria-hidden', 'style'],
+        "app-youtube": ['video-id', 'data-src']
+    },
+    // iframeの確認（念のため、iframeはここで不許可）
+    onTag(tag, _html) {
+        if (tag === "iframe") return "Not Allow iframe ";
     },
     // Katexでサニタイズされてしまうスタイルを再定義
     css: {
@@ -405,7 +414,8 @@ watch(
     (md) => {
         const options: MarkedOptions = { async: false };
         const htmlStr = marked.parse(md, options);
-        parsedHtml.value = myXss.process(htmlStr as string);
+        const cleanHtml = myXss.process(htmlStr as string);
+        parsedHtml.value = renderIframe(cleanHtml);
     },
     { flush: "post" } // DOM更新後に走らせて描画と競合しにくくする
 );

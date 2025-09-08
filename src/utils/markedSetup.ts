@@ -34,6 +34,77 @@ const videoToken: any = {
     }
 };
 
+// カスタムトークンの型定義 YouTubeのみ埋め込みを実現
+interface CustomYouTubeToken {
+    type: "youtube" | Token["type"]; // 既存の型に "youtube"を追加
+    href: string;
+    text: string;
+}
+
+// カスタムトークン"youtube"の定義（型は緩くanyとする）
+const youtubeToken: any = {
+    name: "youtube",
+    level: "inline",
+    start(src: string) {
+        return src.match(/\?\[.*\]\(.*\)/)?.index;
+    },
+    tokenizer(src: string, _tokens: Token[]): CustomYouTubeToken | null {
+        const rule = /^\@\[(youtube)\]\((.*?)\)/;
+        const match = rule.exec(src);
+        if (match) {
+            const id = extractYouTubeId(match[2]);
+            if (!id) return null;
+            return {
+                type: "youtube", // カスタムトークンタイプ
+                raw: match[0],
+                text: id,
+                href: match[2],
+            } as CustomYouTubeToken; // 型アサーション
+        }
+        return null;
+    },
+    renderer(token: CustomYouTubeToken) {
+        // 生iframeではなく、自前テンプレートにする（例：Web Component）
+        return `<app-youtube video-id="${token.text}" data-src="${token.href}"></app-youtube>`;
+    }
+};
+
+// 11文字のYouTube ID検証
+const ID_RE = /^[\w-]{11}$/;
+function extractYouTubeId(rawUrl: string): string | null {
+    try {
+        const url = new URL(rawUrl);
+        const host = url.hostname.toLowerCase();
+        const allowYouTubeList = [
+            "www.youtube.com",
+            "youtube.com",
+            "m.youtube.com",
+            "youtu.be",
+            "www.youtube-nocookie.com"
+        ]
+        if (!allowYouTubeList.includes(host)) return null;
+
+        // shorts / watch / youtu.be に対応
+        if (host === "youtu.be") {
+            const id = url.pathname.slice(1);
+            return ID_RE.test(id) ? id : null;
+        };
+        if (url.pathname.startsWith("/shorts/")) {
+            const id = url.pathname.split("/")[2] ?? "";
+            return ID_RE.test(id) ? id : null;
+        };
+        if (url.pathname === "/watch") {
+            const id = url.searchParams.get("v") ?? "";
+            return ID_RE.test(id) ? id : null;
+        };
+        if (url.pathname.startsWith("/embed/")) {
+            const id = url.pathname.split("/")[2] ?? "";
+            return ID_RE.test(id) ? id : null;
+        };
+        return null;
+    } catch { return null; }
+}
+
 // 共通インターフェース
 interface CustomDetailsToken {
     type: "details" | "note" | "warning" | Token["type"];
@@ -251,4 +322,26 @@ const PageBreakToken: any = {
     }
 };
 
-export { videoToken, detailsToken, noteToken, warningToken, mathExtentionToken, PageBreakToken, renderer }
+// app-youtubeからiframeに置換
+function renderIframe(html: string): string {
+    return html.replace(
+        /<app-youtube\s+[^>]*video-id=["']([\w-]{11})["'][^>]*>(?:<\/app-youtube>)?/g,
+        (_, videoId) => {
+            const src = `https://www.youtube-nocookie.com/embed/${videoId}?rel=0`;
+            return `
+            <iframe
+                src="${src}"
+                loading="lazy"
+                referrerpolicy="no-referrer"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowfullscreen
+                sandbox="allow-scripts allow-popups allow-same-origin"
+                width="560" height="315"
+                style="border:0;"
+            ></iframe>
+            `.trim();
+        }
+    );
+};
+
+export { videoToken, detailsToken, noteToken, warningToken, mathExtentionToken, PageBreakToken, renderer, youtubeToken, renderIframe }
