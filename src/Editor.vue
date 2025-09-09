@@ -26,12 +26,13 @@ import {
     renderIframe,
     renderer,
 } from "./utils/markedSetup";
+import { createHtml } from './utils/htmlTemplate';
+import viewerCss from "./viewer.css?inline";
 import "katex/dist/katex.min.css";
 import mermaid from 'mermaid';
 import Help from "@/components/Help.vue";
 import { useLocalStorageStore } from "./stores/localStorages";
 import { useRustArgsStore } from './stores/markdownDatas';
-
 
 const rustArgsStore = useRustArgsStore();
 
@@ -512,6 +513,11 @@ const handleKeyDown = (event: KeyboardEvent) => {
         event.preventDefault();
         printOut();
 
+    // HTML出力
+    } else if (event.ctrlKey && event.altKey && event.key === "f") {
+        event.preventDefault();
+        printOutHtml();
+
     // プレビュー切り替え
     } else if (event.ctrlKey && event.altKey && event.key === "/") {
         event.preventDefault();
@@ -695,7 +701,7 @@ async function selectFile(
     }
 }
 
-// ファイル保存
+// マークダウンファイル保存
 const fileSave = async () => {
     const markdownText = editor.getValue();
     // 新規ファイル保存
@@ -714,6 +720,19 @@ const fileSave = async () => {
 
     // 変更フラグをfalse
     isEdit.value = false;
+};
+
+// HTMLファイル保存
+const htmlFileSave = async () => {
+    const saveNewPath = await saveNewHtmlFile();
+    const options: MarkedOptions = { async: false };
+    const htmlStr = await marked.parse(editorContent.value, options);
+    const mermaidRenderHtml = await renderMermaidToSvg(htmlStr);
+    const html = createHtml(mermaidRenderHtml, viewerCss as string);
+    if (saveNewPath) {
+        const isSaved = await newWriteSave(saveNewPath, html);
+        if (!isSaved) return;
+    }
 };
 
 // Rust側での保存処理
@@ -744,10 +763,23 @@ async function saveNewFile(): Promise<string | null> {
     return path;
 };
 
+// 新規HTMLファイル保存ダイアログ
+async function saveNewHtmlFile(): Promise<string | null> {
+    const path = await save({
+        filters: [{ name: "html", extensions: ["html"] }]
+    });
+    return path;
+};
+
 // 出力処理の開始
 const printOut = () => {
     printPreviewWindow(parsedHtml.value);
 };
+
+// HTML出力開始
+const printOutHtml = () => {
+    htmlFileSave();
+}
 
 // Mermaid.jsの事前レンダリング
 async function renderMermaidToSvg(html: string): Promise<string> {
@@ -869,6 +901,8 @@ function getFileName(path: string): string {
                     src="/smartphone_line24.png" class="btn-img" alt="smartphone_line24.png"></button>
             <button class="btn-head-image" title="出力（PDFまたは紙）&#10;ショートカット: Ctrl + Alt + p" v-on:click="printOut()"><img
                     src="/print_24.png" class="btn-img" alt="print_24.png"></button>
+            <button class="btn-head-image" title="HTML出力&#10;ショートカット: Ctrl + Alt + f" v-on:click="printOutHtml()"><img
+                    src="/html_24.png" class="btn-img" alt="print_24.png"></button>
             <button v-if="isPreview" class="btn-head-image" title="プレビュー切り替え&#10;ショートカット: Ctrl + Alt + /"
                 v-on:click="handlePreview()"><img src="/preview_off_24.png" class="btn-img"
                     alt="preview_off_24.png"></button>
