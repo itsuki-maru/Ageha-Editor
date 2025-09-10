@@ -1,5 +1,23 @@
 # Release Notes
 
+## v0.0.24
+
+### YouTubeの埋め込みに対応
+
+- 独自のトークナイザを実装し、YouTubeのみを許可するiframeにパース
+    - 一度、独自タグにパース後、最終的にiframeに変換
+- 記述方法: `@[youtube](https://www.youtube.com/embed/jNQXAC9IVRw?si=Tv9xSOiNLmGs8i-g)`
+
+### HTML出力
+
+- PDF以外にもHTMLの出力機能を実装
+
+### CSSの変更
+
+- マークダウンに適用するCSSをユーザーが変更できるようにアップデート
+    - 初回起動時にユーザーディレクトリに `.ageha` が作成される
+    - JSON設定ファイルにCSSの場所が記述されており、自身で用意したCSSに変更、またはデフォルトで `~/.ageha` ディレクトリ内に作成される `ageha.css` により変更。
+
 ## v0.0.23
 
 - コードブロックにコピーボタンを追加
