@@ -27,7 +27,6 @@ import {
     renderer,
 } from "./utils/markedSetup";
 import { createHtml } from './utils/htmlTemplate';
-import viewerCss from "./viewer.css?inline";
 import "katex/dist/katex.min.css";
 import mermaid from 'mermaid';
 import Help from "@/components/Help.vue";
@@ -728,7 +727,7 @@ const htmlFileSave = async () => {
     const options: MarkedOptions = { async: false };
     const htmlStr = await marked.parse(editorContent.value, options);
     const mermaidRenderHtml = await renderMermaidToSvg(htmlStr);
-    const html = createHtml(mermaidRenderHtml, viewerCss as string);
+    const html = createHtml(mermaidRenderHtml, rustArgsStore.rustArgsData.css_data);
     if (saveNewPath) {
         const isSaved = await newWriteSave(saveNewPath, html);
         if (!isSaved) return;
