@@ -3,6 +3,7 @@ use tauri::Manager;
 mod config;
 mod handler;
 mod schema;
+mod utils;
 
 use handler::file::{read_file, request_launch_args, save_file};
 use handler::spawn_self::spawn_self;

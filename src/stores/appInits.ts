@@ -1,23 +1,24 @@
 import { defineStore } from "pinia";
-import { RustArgs } from "../interface";
+import { RustArgsInit } from "../interface";
 import { invoke } from "@tauri-apps/api/core";
 
 
-const DEFAULT_STATE: RustArgs = {
+const DEFAULT_STATE: RustArgsInit = {
     status: {
         status_code: 200,
         message: "",
     },
     file_abs_path: "",
     text_data: "",
+    css_data: "",
 };
 
 interface State {
-    rustArgsData: RustArgs
+    rustArgsData: RustArgsInit
 };
 
 
-export const useRustArgsStore = defineStore({
+export const useRustArgsInitStore = defineStore({
     id: "rustArgs",
     state: (): State => {
         return {
@@ -27,7 +28,7 @@ export const useRustArgsStore = defineStore({
     actions: {
         async init(): Promise<void> {
             try {
-                const result = await invoke<RustArgs | null>("request_launch_args");
+                const result = await invoke<RustArgsInit | null>("request_launch_args");
                 if (result) {
                     this.rustArgsData = result;
                 }

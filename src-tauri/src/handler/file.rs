@@ -1,17 +1,35 @@
 use crate::config::CONFIG;
-use crate::schema::{ReadFileData, StatusCode};
+use crate::utils::get_abs_filepath;
+use crate::schema::{LaunchRequestData, ReadFileData, StatusCode};
 use std::{
-    env, fs,
-    io::{BufWriter, Write},
-    path::{Path, PathBuf},
+    fs,
+    io::{BufWriter, Write}
 };
 
 #[tauri::command]
-pub async fn request_launch_args() -> Result<ReadFileData, ReadFileData> {
+pub async fn request_launch_args() -> Result<LaunchRequestData, LaunchRequestData> {
+    // CSSデータ取得
+    let css_data = match fs::read_to_string(&CONFIG.css_file_path) {
+        Ok(file) => file,
+        Err(_) => {
+            return Err(LaunchRequestData {
+                status: {
+                    StatusCode {
+                        status_code: 500,
+                        message: "CSS file read error.".to_string(),
+                    }
+                },
+                file_abs_path: "".to_string(),
+                text_data: "".to_string(),
+                css_data: "".to_string(),
+            });
+        }
+    };
+
     let target_file_abs = match get_abs_filepath(&CONFIG.args_file_path) {
         Ok(path) => path,
         Err(_) => {
-            return Err(ReadFileData {
+            return Err(LaunchRequestData {
                 status: {
                     StatusCode {
                         status_code: 500,
@@ -20,14 +38,16 @@ pub async fn request_launch_args() -> Result<ReadFileData, ReadFileData> {
                 },
                 file_abs_path: "".to_string(),
                 text_data: "".to_string(),
+                css_data: css_data,
             });
         }
     };
 
     let text_data = match fs::read_to_string(target_file_abs.clone()) {
         Ok(file) => file,
+        // 引数の指定なしと判定し、OKでレスポンス
         Err(_) => {
-            return Err(ReadFileData {
+            return Ok(LaunchRequestData {
                 status: {
                     StatusCode {
                         status_code: 500,
@@ -36,17 +56,19 @@ pub async fn request_launch_args() -> Result<ReadFileData, ReadFileData> {
                 },
                 file_abs_path: "".to_string(),
                 text_data: "".to_string(),
+                css_data: css_data,
             });
         }
     };
 
-    Ok(ReadFileData {
+    Ok(LaunchRequestData {
         status: StatusCode {
             status_code: 200,
             message: "Read Ok.".to_string(),
         },
         file_abs_path: format!("{}", target_file_abs.to_string_lossy()),
         text_data: text_data,
+        css_data: css_data,
     })
 }
 
@@ -129,32 +151,5 @@ pub async fn save_file(
             status_code: 500,
             message: "Save Error.".to_string(),
         }),
-    }
-}
-
-// ファイルの絶対パスを取得する関数
-fn get_abs_filepath(filename: &str) -> std::io::Result<PathBuf> {
-    // ホームディレクトリを取得
-    let home_dir = match dirs::home_dir() {
-        Some(path) => path,
-        None => {
-            return Err(std::io::Error::new(
-                std::io::ErrorKind::NotFound,
-                "Home directory not found.",
-            ));
-        }
-    };
-
-    let path = Path::new(filename);
-
-    // パスがホームディレクトリからの相対パスであるかチェック
-    if path.starts_with("~/") {
-        // ホームディレクトリのパスに置換
-        let without_tilde = path.strip_prefix("~/").expect("Cound not strip tilde.");
-        Ok(home_dir.join(without_tilde))
-    } else {
-        // 通常のパス処理
-        let current_dir = env::current_dir()?;
-        Ok(current_dir.join(path))
     }
 }

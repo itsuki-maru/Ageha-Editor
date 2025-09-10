@@ -8,11 +8,16 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use crate::config::CONFIG;
 mod config;
 mod schema;
+mod init;
 
 fn main() {
     // 初期化処理（引数の取得と環境変数の設定）
+    let app_setup_path = init::get_application_user_setup_path();
+    let default_env = init::read_or_create_json_env(app_setup_path);
+
     unsafe {
-        env::set_var("RUST_LOG", "ageha=error".to_string());
+        env::set_var("CSS_PATH", default_env.css_file_path);
+        env::set_var("RUST_LOG", default_env.rust_log);
     } // info, debug, error 開発時は適宜変更
 
     // 引数の処理
@@ -38,6 +43,7 @@ fn main() {
         .init();
 
     info!("Launch args file: {}", &CONFIG.args_file_path);
+    info!("Launch CSS file: {}", &CONFIG.css_file_path);
 
     ageha_lib::run()
 }

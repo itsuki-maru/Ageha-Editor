@@ -84,7 +84,7 @@ input[type="number"]:focus {
 .input-tools {
     position: absolute;
     display: grid;
-    bottom: 16%;
+    bottom: 10%;
     overflow: scroll;
     scrollbar-width: none; /* Firefox */
 }

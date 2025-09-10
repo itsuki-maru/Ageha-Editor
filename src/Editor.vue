@@ -32,9 +32,9 @@ import "katex/dist/katex.min.css";
 import mermaid from 'mermaid';
 import Help from "@/components/Help.vue";
 import { useLocalStorageStore } from "./stores/localStorages";
-import { useRustArgsStore } from './stores/markdownDatas';
+import { useRustArgsInitStore } from './stores/appInits';
 
-const rustArgsStore = useRustArgsStore();
+const rustArgsStore = useRustArgsInitStore();
 
 // ウィンドウ起動後にRustバックエンドに起動時の引数状況を要求
 onMounted(async () => {
@@ -816,8 +816,22 @@ async function printPreviewWindow(htmlBody: string) {
             <head>
                 <meta charset="UTF-8">
                 <title>印刷</title>
-                <link rel="stylesheet" href="print.css">
                 <link rel="stylesheet" href="katex.css">
+                <style>${rustArgsStore.rustArgsData.css_data}
+                    @media print {
+                        button.copy-btn {
+                        display: none !important;
+                        }
+                        
+                        iframe {
+                            display: none !important;
+                        }
+                    }
+                    
+                    html {
+                        transform: scale(0.9);
+                    }
+                </style>
                 
             </head>
             
@@ -856,7 +870,7 @@ async function openWindowViewer(htmlBody: string) {
             <head>
                 <meta charset="UTF-8">
                 <title>Ageha Editor Viewer</title>
-                <link rel="stylesheet" href="viewer.css">
+                <style>${rustArgsStore.rustArgsData.css_data}</style>
                 <link rel="stylesheet" href="katex.css">
             </head>
             
@@ -941,7 +955,7 @@ function getFileName(path: string): string {
                 <h3 class="editor-and-preview-title" id="title_h3_2">Preview</h3>
             </div>
             <div class="preview-area" id="result" ref="previewArea" :style="{ height: (divHeight) + 'px' }">
-                <section v-html="parsedHtml"></section>
+                <section class="markdown-body" v-html="parsedHtml"></section>
             </div>
         </div>
     </div>
