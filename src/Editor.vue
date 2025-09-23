@@ -43,6 +43,10 @@ onMounted(async () => {
         editorContent.value = textData;
         diffEditorRef.value.oldEditorContent = textData;
         diffEditorRef.value.newEdirotContent = textData;
+        // エディタレンダリング後にフォーカス
+        setTimeout(() => {
+            editor.focus()
+        }, 250)
     } catch (error) {
     }
 });
