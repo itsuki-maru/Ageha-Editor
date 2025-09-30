@@ -620,6 +620,11 @@ fn create_default_css(file_path: PathBuf) -> io::Result<()> {
         padding-bottom: 5px;
     }
 
+    .katex-display > .katex {
+        text-align: left;
+        margin-left: 3%;
+    }
+
     .pagebreak {
         page-break-before: always;
     }

@@ -873,8 +873,8 @@ async function openWindowViewer(htmlBody: string) {
             <head>
                 <meta charset="UTF-8">
                 <title>Ageha Editor Viewer</title>
-                <style>${rustArgsStore.rustArgsData.css_data}</style>
                 <link rel="stylesheet" href="katex.css">
+                <style>${rustArgsStore.rustArgsData.css_data}</style>
             </head>
             
             <body>${rendered}</body>
