@@ -1,5 +1,18 @@
 # Release Notes
 
+## v0.0.26
+
+可読性を向上させるため、Katex による数式の配置をセンターから左寄せに変更。
+
+**index.html**
+
+```html
+  .katex-display > .katex {
+    text-align: left;
+    margin-left: 5%;
+  }
+```
+
 ## v0.0.25
 
 - 起動後にエディターにフォーカスする処理追加
