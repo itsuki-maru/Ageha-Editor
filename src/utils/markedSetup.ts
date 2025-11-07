@@ -327,15 +327,14 @@ function renderIframe(html: string): string {
     return html.replace(
         /<app-youtube\s+[^>]*video-id=["']([\w-]{11})["'][^>]*>(?:<\/app-youtube>)?/g,
         (_, videoId) => {
-            const src = `https://www.youtube-nocookie.com/embed/${videoId}?rel=0`;
+            const src = `https://www.youtube-nocookie.com/embed/${videoId}`;
             return `
             <iframe
                 src="${src}"
-                loading="lazy"
-                referrerpolicy="no-referrer"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                title="YouTube video player"
+                frameborder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin"
                 allowfullscreen
-                sandbox="allow-scripts allow-popups allow-same-origin"
                 width="560" height="315"
                 style="border:0;"
             ></iframe>
