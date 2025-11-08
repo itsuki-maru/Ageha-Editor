@@ -968,11 +968,13 @@ function getFileName(path: string): string {
         isPreview ? { right: '54%' } : { right : '6%' },
         isHeightScreen ? { height: '60%' } : { height : '50%' }
     ]">
-        <button class="btn-input-tools" title="## を挿入" v-on:click="insertMarkdown('## ')"><img
+        <button class="btn-input-tools" title="# を挿入&#10;一番大きい見出し" v-on:click="insertMarkdown('# ')"><img
+                src="/format_h1_24.png" class="btn-input-tools-img" alt="format_h1_24.png"></button>
+        <button class="btn-input-tools" title="## を挿入&#10;二番目に大きい見出し" v-on:click="insertMarkdown('## ')"><img
                 src="/format_h2_24.png" class="btn-input-tools-img" alt="format_h2_24.png"></button>
-        <button class="btn-input-tools" title="### を挿入" v-on:click="insertMarkdown('### ')"><img
+        <button class="btn-input-tools" title="### を挿入&#10;三番目に大きい見出し" v-on:click="insertMarkdown('### ')"><img
                 src="/format_h3_24.png" class="btn-input-tools-img" alt="format_h3_24.png"></button>
-        <button class="btn-input-tools" title="** を挿入" v-on:click="insertMarkdown('**')"><img
+        <button class="btn-input-tools" title="** を挿入&#10;文字を ** で囲むと太字で協調" v-on:click="insertMarkdown('**')"><img
                 src="/format_bold_24.png" class="btn-input-tools-img" alt="format_bold_24.png"></button>
         <button class="btn-input-tools" title="- を挿入" v-on:click="insertMarkdown('- ')"><img
                 src="/format_list_bulleted_24.png" class="btn-input-tools-img"
@@ -1009,6 +1011,12 @@ function getFileName(path: string): string {
         <button class="btn-input-tools" title="@@@（改ページ）を挿入"
             v-on:click="insertMarkdown('@@@')"><img src="/keyboard_return_24.png"
                 class="btn-input-tools-img" alt="keyboard_return_24.png"></button>
+        <button class="btn-input-tools" title="[](tel:+81)を挿入&#10;0 を省略した番号をハイフンなしで入力&#10;例）080-1234-5678 => +818012345678"
+            v-on:click="insertMarkdown('[](tel:+81)')"><img src="/tel_24.png"
+                class="btn-input-tools-img" alt="tel_24.png"></button>
+        <button class="btn-input-tools" title="[](mailto:)を挿入&#10;mailto:maru@example.com のようにメールアドレスを入力"
+            v-on:click="insertMarkdown('[](mailto:)')"><img src="/mail_24.png"
+                class="btn-input-tools-img" alt="mail_24.png"></button>
     </div>
 
     <!-- ヘルプモーダル -->
