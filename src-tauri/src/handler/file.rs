@@ -1,9 +1,9 @@
 use crate::config::CONFIG;
-use crate::utils::get_abs_filepath;
 use crate::schema::{LaunchRequestData, ReadFileData, StatusCode};
+use crate::utils::get_abs_filepath;
 use std::{
     fs,
-    io::{BufWriter, Write}
+    io::{BufWriter, Write},
 };
 
 #[tauri::command]

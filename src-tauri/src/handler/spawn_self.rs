@@ -1,7 +1,4 @@
-use std::{
-    process,
-    env,
-};
+use std::{env, process};
 
 #[tauri::command]
 pub async fn spawn_self(_args: Vec<String>) -> Result<(), String> {

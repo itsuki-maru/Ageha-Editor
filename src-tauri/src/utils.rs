@@ -1,4 +1,4 @@
-use std::{io, path, env};
+use std::{env, io, path};
 
 // ファイルの絶対パスを取得する関数
 pub fn get_abs_filepath(filename: &str) -> io::Result<path::PathBuf> {

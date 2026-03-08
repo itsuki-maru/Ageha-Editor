@@ -7,8 +7,8 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use crate::config::CONFIG;
 mod config;
-mod schema;
 mod init;
+mod schema;
 
 fn main() {
     // 初期化処理（引数の取得と環境変数の設定）
