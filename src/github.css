@@ -2,29 +2,26 @@ body {
     font-family: Helvetica, arial, sans-serif;
     font-size: 14px;
     line-height: 1.6;
-    margin-left: -1px;
+    padding-top: 10px;
+    padding-bottom: 10px;
     background-color: white;
-    padding: 2px;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
+    padding: 30px;
 }
 
-body>*:first-child {
+body > *:first-child {
     margin-top: 0 !important;
 }
-
-body>*:last-child {
+body > *:last-child {
     margin-bottom: 0 !important;
 }
 
 a {
-    color: #4183C4;
+    color: #1431af;
+    text-decoration: underline;
 }
-
 a.absent {
     color: #cc0000;
 }
-
 a.anchor {
     display: block;
     padding-left: 30px;
@@ -56,7 +53,8 @@ h3:hover a.anchor,
 h4:hover a.anchor,
 h5:hover a.anchor,
 h6:hover a.anchor {
-    background: url("../../images/modules/styleguide/para.png") no-repeat 10px center;
+    background: url("../../images/modules/styleguide/para.png") no-repeat 10px
+        center;
     text-decoration: none;
 }
 
@@ -68,25 +66,16 @@ h1 code {
 h2 tt,
 h2 code {
     font-size: inherit;
-    background: transparent;
-    border: none;
-    color: red;
 }
 
 h3 tt,
 h3 code {
     font-size: inherit;
-    background: transparent;
-    border: none;
-    color: red;
 }
 
 h4 tt,
 h4 code {
     font-size: inherit;
-    background: transparent;
-    border: none;
-    color: red;
 }
 
 h5 tt,
@@ -100,21 +89,19 @@ h6 code {
 }
 
 h1 {
-    font-size: 30px;
-    margin-bottom: 18px;
+    font-size: 28px;
     color: black;
 }
 
 h2 {
     font-size: 24px;
-    margin-bottom: 20px;
     border-bottom: 2px solid #cccccc;
     color: black;
 }
 
 h3 {
-    font-size: 20px;
-    border-bottom: 1px solid #dbdbdb;
+    font-size: 18px;
+    border-bottom: 0.5px solid #cccccc;
 }
 
 h4 {
@@ -122,7 +109,7 @@ h4 {
 }
 
 h5 {
-    font-size: 15px;
+    font-size: 14px;
 }
 
 h6 {
@@ -139,36 +126,33 @@ li,
 table,
 pre {
     margin: 15px 0;
-    font-size: 14px;
 }
 
 hr {
-    background: transparent url("../../images/modules/pulls/dirty-shade.png") repeat-x 0 0;
+    background: transparent url("../../images/modules/pulls/dirty-shade.png")
+        repeat-x 0 0;
     border: 0 none;
     color: #cccccc;
     height: 4px;
     padding: 0;
 }
 
-body>h2:first-child {
+body > h2:first-child {
     margin-top: 0;
     padding-top: 0;
 }
-
-body>h1:first-child {
+body > h1:first-child {
     margin-top: 0;
     padding-top: 0;
 }
-
-body>h1:first-child+h2 {
+body > h1:first-child + h2 {
     margin-top: 0;
     padding-top: 0;
 }
-
-body>h3:first-child,
-body>h4:first-child,
-body>h5:first-child,
-body>h6:first-child {
+body > h3:first-child,
+body > h4:first-child,
+body > h5:first-child,
+body > h6:first-child {
     margin-top: 0;
     padding-top: 0;
 }
@@ -196,12 +180,6 @@ li p.first {
     display: inline-block;
 }
 
-li code {
-    background: transparent;
-    border: none;
-    color: red;
-}
-
 ul,
 ol {
     padding-left: 30px;
@@ -220,37 +198,30 @@ ol :last-child {
 dl {
     padding: 0;
 }
-
 dl dt {
-    font-size: 12px;
+    font-size: 14px;
     font-weight: bold;
     font-style: italic;
     padding: 0;
     margin: 15px 0 5px;
 }
-
 dl dt:first-child {
     padding: 0;
 }
-
-dl dt> :first-child {
+dl dt > :first-child {
     margin-top: 0;
 }
-
-dl dt> :last-child {
+dl dt > :last-child {
     margin-bottom: 0;
 }
-
 dl dd {
     margin: 0 0 15px;
     padding: 0 15px;
 }
-
-dl dd> :first-child {
+dl dd > :first-child {
     margin-top: 0;
 }
-
-dl dd> :last-child {
+dl dd > :last-child {
     margin-bottom: 0;
 }
 
@@ -259,63 +230,50 @@ blockquote {
     padding: 0 15px;
     color: #777777;
 }
-
-blockquote> :first-child {
+blockquote > :first-child {
     margin-top: 0;
 }
-
-blockquote> :last-child {
+blockquote > :last-child {
     margin-bottom: 0;
 }
 
 table {
     padding: 0;
 }
-
 table tr {
     border-top: 1px solid #cccccc;
     background-color: white;
     margin: 0;
     padding: 0;
 }
-
 table tr:nth-child(2n) {
     background-color: #f8f8f8;
 }
-
 table tr th {
     font-weight: bold;
-    background-color: #8ec3f8;
     border: 1px solid #cccccc;
     text-align: left;
     margin: 0;
     padding: 6px 13px;
+    background-color: #a5cef7;
 }
-
 table tr td {
     border: 1px solid #cccccc;
     text-align: left;
     margin: 0;
     padding: 6px 13px;
 }
-
-table td code {
-    background: transparent;
-    border: none;
-    color: red;
-}
-
 table tr th :first-child,
 table tr td :first-child {
     margin-top: 0;
 }
-
 table tr th :last-child,
 table tr td :last-child {
     margin-bottom: 0;
 }
 
-img, video {
+img,
+video {
     max-width: 100%;
     border: none;
 }
@@ -324,8 +282,7 @@ span.frame {
     display: block;
     overflow: hidden;
 }
-
-span.frame>span {
+span.frame > span {
     border: 1px solid #dddddd;
     display: block;
     float: left;
@@ -334,74 +291,62 @@ span.frame>span {
     padding: 7px;
     width: auto;
 }
-
 span.frame span img {
     display: block;
     float: left;
 }
-
 span.frame span span {
     clear: both;
     color: #333333;
     display: block;
     padding: 5px 0 0;
 }
-
 span.align-center {
     display: block;
     overflow: hidden;
     clear: both;
 }
-
-span.align-center>span {
+span.align-center > span {
     display: block;
     overflow: hidden;
     margin: 13px auto 0;
     text-align: center;
 }
-
 span.align-center span img {
     margin: 0 auto;
     text-align: center;
 }
-
 span.align-right {
     display: block;
     overflow: hidden;
     clear: both;
 }
-
-span.align-right>span {
+span.align-right > span {
     display: block;
     overflow: hidden;
     margin: 13px 0 0;
     text-align: right;
 }
-
 span.align-right span img {
     margin: 0;
     text-align: right;
 }
-
 span.float-left {
     display: block;
     margin-right: 13px;
     overflow: hidden;
     float: left;
 }
-
 span.float-left span {
     margin: 13px 0 0;
 }
-
 span.float-right {
     display: block;
     margin-left: 13px;
     overflow: hidden;
     float: right;
 }
-
-span.float-right>span {
+span.float-right > span {
     display: block;
     overflow: hidden;
     margin: 13px auto 0;
@@ -410,12 +355,11 @@ span.float-right>span {
 
 code,
 tt {
-    margin: 0 2px;
-    padding: 0 5px;
-    white-space: pre-wrap;
-    border: 1px solid #eaeaea;
-    background-color: #f8f8f8;
-    border-radius: 3px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.9em;
+    background: #f1eff1;
+    border-radius: 4px;
+    padding: 0.2em 0.4em;
 }
 
 pre code {
@@ -429,7 +373,7 @@ pre code {
 .highlight pre {
     background-color: #f8f8f8;
     border: 1px solid #cccccc;
-    font-size: 11px;
+    font-size: 13px;
     line-height: 19px;
     overflow: auto;
     padding: 6px 10px;
@@ -437,30 +381,83 @@ pre code {
 }
 
 pre {
-    background-color: #f8f8f8;
-    border: 1px solid #cccccc;
-    font-size: 11px;
+    background-color: #e6e6e6;
+    color: black;
+    border: 1px solid #5e5e5e;
+    font-size: 13px;
     line-height: 19px;
     overflow: auto;
     padding: 6px 10px;
     border-radius: 3px;
 }
-
 pre code,
 pre tt {
-    white-space: pre-wrap;
     background-color: transparent;
     border: none;
 }
+pre a {
+    color: black;
+    text-decoration: none;
+}
 
 p code {
-    background: transparent;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+ul code {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+li code {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+/* Mermaid.jsのシンタックスエラーの描画を回避 */
+.mermaid .error-icon {
+    display: none; /* アイコンを非表示にする */
+}
+.mermaid .error-text {
+    display: none;
+}
+
+/* 画像プレビューモーダル用 */
+img#img-preview,
+video#img-preview {
+    max-height: 80vh;
+}
+
+img,
+video {
+    max-width: 100%;
     border: none;
-    color: red;
+}
+
+pre[class*="language-"] {
+    margin: 0;
+}
+
+.katex-display {
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    font-size: 1.3em;
+    padding-bottom: 5px;
+}
+
+.katex-display > .katex {
+    text-align: left;
+    margin-left: 3%;
 }
 
 .head1 {
     font-size: 32px;
+    margin-bottom: -1%;
     border-bottom: solid 3px #d7d7d7;
 }
 
@@ -468,63 +465,9 @@ p code {
     font-size: 20px;
     color: black;
     margin-top: 2%;
-    padding: 0.1em 0.3em;
+    padding: 0.3em 0.4em;
     background: #ebe8e8;
     border-left: solid 5px #426f9c;
     border-bottom: solid 3px #d7d7d7;
-}
-
-summary {
-    list-style: none;
-    /* デフォルトの矢印を非表示 */
-    cursor: pointer;
-}
-
-summary::-webkit-details-marker {
-    display: none;
-    /* ChromeなどWebkit系ブラウザ対応 */
-}
-
-details>summary {
-    position: relative;
-    padding-left: 1.5em;
-}
-
-details>summary::before {
-    content: "▶";
-    /* 未展開時のアイコン */
-    position: absolute;
-    left: 0;
-    top: 0;
-    transform: rotate(0deg);
-    transition: transform 0.2s ease;
-}
-
-details[open]>summary::before {
-    transform: rotate(90deg);
-    /* 展開時に90度矢印を下に変更 */
-}
-
-.box.note {
-    border-left: 4px solid #4caf50;
-    background: #e8f5e9;
-    padding: 0.5em;
-    margin: 1em 0;
-}
-
-.box.note summary {
-    font-size: large;
-    border-bottom: 1px solid #cccccc;
-}
-
-.box.warning {
-    border-left: 4px solid #f44336;
-    background: #ffebee;
-    padding: 0.5em;
-    margin: 1em 0;
-}
-
-.box.warning summary {
-    font-size: large;
-    border-bottom: 1px solid #cccccc;
+    border-radius: 6px;
 }
