@@ -1,92 +1,92 @@
 :root {
-    font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
-    font-weight: 400;
-    color-scheme: light;
-    color: #212121;
-    font-synthesis: none;
-    text-rendering: optimizeLegibility;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    background-color: #2e2e2e;
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-weight: 400;
+  color-scheme: light;
+  color: #212121;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #2e2e2e;
 }
 
 button {
-    border-radius: 5px;
-    border: 1px solid transparent;
-    padding: 0.6em 1.2em;
-    font-size: 1.0em;
-    font-weight: 500;
-    font-family: inherit;
-    transition: border-color 0.25s;
-    color: #ffffff;
-    background-color: #5f5f5f;
-    box-shadow: 0 2px 2px rgba(0, 0, 0, 0.2);
+  border-radius: 5px;
+  border: 1px solid transparent;
+  padding: 0.6em 1.2em;
+  font-size: 1em;
+  font-weight: 500;
+  font-family: inherit;
+  transition: border-color 0.25s;
+  color: #ffffff;
+  background-color: #5f5f5f;
+  box-shadow: 0 2px 2px rgba(0, 0, 0, 0.2);
 }
 
 button {
-    cursor: pointer;
+  cursor: pointer;
 }
 
 button:hover {
-    border-color: #396cd8;
+  border-color: #396cd8;
 }
 
 button:active {
-    border-color: #396cd8;
-    background-color: #e8e8e8;
+  border-color: #396cd8;
+  background-color: #e8e8e8;
 }
 
 input[type="text"]:focus,
 input[type="number"]:focus {
-    outline: none;
-    border-color: #007BFF;
-    box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
 }
 
 .pointer {
-    cursor: pointer;
+  cursor: pointer;
 }
 
 .btn-head-image {
-    width: 40px;
-    height: 30px;
-    font-size: 14px;
-    box-shadow: 3px 3px 5px 0 rgba(75, 75, 75, 0.5);
-    background: white;
-    color: #fff;
-    padding: 3px 3px;
-    text-decoration: none;
-    border: 1px;
-    border-radius: 5px;
-    transition-property: opacity;
-    -webkit-transition-property: opacity;
-    transition-duration: .5s;
-    -webkit-transition-duration: .5s;
-    margin-top: 3px;
-    margin-bottom: 3px;
-    margin-right: 10px;
-    margin-left: 5px;
-    text-align: center;
-    border-radius: 15px;
-    transition: background-color 0.3s;
+  width: 40px;
+  height: 30px;
+  font-size: 14px;
+  box-shadow: 3px 3px 5px 0 rgba(75, 75, 75, 0.5);
+  background: white;
+  color: #fff;
+  padding: 3px 3px;
+  text-decoration: none;
+  border: 1px;
+  border-radius: 5px;
+  transition-property: opacity;
+  -webkit-transition-property: opacity;
+  transition-duration: 0.5s;
+  -webkit-transition-duration: 0.5s;
+  margin-top: 3px;
+  margin-bottom: 3px;
+  margin-right: 10px;
+  margin-left: 5px;
+  text-align: center;
+  border-radius: 15px;
+  transition: background-color 0.3s;
 }
 
 .btn-head-image:hover {
-    background: rgb(192, 192, 192);
+  background: rgb(192, 192, 192);
 }
 
 .btn-img {
-    border: none;
-    box-shadow: none;
-    width: 24px;
+  border: none;
+  box-shadow: none;
+  width: 24px;
 }
 
 .input-tools {
-    position: absolute;
-    display: grid;
-    bottom: 10%;
-    overflow: scroll;
-    scrollbar-width: none; /* Firefox */
+  position: absolute;
+  display: grid;
+  bottom: 10%;
+  overflow: scroll;
+  scrollbar-width: none; /* Firefox */
 }
 
 .input-tools::-webkit-scrollbar {
@@ -94,134 +94,134 @@ input[type="number"]:focus {
 }
 
 .btn-input-tools {
-    width: 40px;
-    height: 30px;
-    padding: 3px 3px;
-    box-shadow: 3px 3px 5px 0 rgba(75, 75, 75, 0.5);
-    background: white;
-    color: #fff;
-    text-decoration: none;
-    transition-property: opacity;
-    -webkit-transition-property: opacity;
-    transition-duration: .5s;
-    -webkit-transition-duration: .5s;
-    text-align: center;
-    margin: 5px 7px 12px 5px;
-    border-radius: 7px;
-    transition: background-color 0.3s;
+  width: 40px;
+  height: 30px;
+  padding: 3px 3px;
+  box-shadow: 3px 3px 5px 0 rgba(75, 75, 75, 0.5);
+  background: white;
+  color: #fff;
+  text-decoration: none;
+  transition-property: opacity;
+  -webkit-transition-property: opacity;
+  transition-duration: 0.5s;
+  -webkit-transition-duration: 0.5s;
+  text-align: center;
+  margin: 5px 7px 12px 5px;
+  border-radius: 7px;
+  transition: background-color 0.3s;
 }
 
 .btn-input-tools-img {
-    border: none;
-    box-shadow: none;
-    width: 22px;
+  border: none;
+  box-shadow: none;
+  width: 22px;
 }
 
 .modal-h2 {
-    text-align: center;
+  text-align: center;
 }
 
 .code-container {
-    position: relative;
-    margin-bottom: 1.5em;
-    border-radius: 6px;
-    overflow: hidden;
-    background: #f5f5f5;
-    font-size: 0.9em;
-    line-height: 1.5;
+  position: relative;
+  margin-bottom: 1.5em;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #f5f5f5;
+  font-size: 0.9em;
+  line-height: 1.5;
 }
 
 .code-container pre {
-    margin: 0;
-    padding: 1em;
-    overflow-x: auto;
+  margin: 0;
+  padding: 1em;
+  overflow-x: auto;
 }
 
 .copy-btn {
-    position: absolute;
-    top: 0.7em;
-    right: 0.5em;
-    background-color: #5e5e5e;
-    color: white;
-    border: none;
-    padding: 0.3em 0.6em;
-    border-radius: 4px;
-    font-size: 0.75em;
-    cursor: pointer;
-    opacity: 0.8;
-    transition: opacity 0.2s ease-in-out;
-    z-index: 2;
+  position: absolute;
+  top: 0.7em;
+  right: 0.5em;
+  background-color: #5e5e5e;
+  color: white;
+  border: none;
+  padding: 0.3em 0.6em;
+  border-radius: 4px;
+  font-size: 0.75em;
+  cursor: pointer;
+  opacity: 0.8;
+  transition: opacity 0.2s ease-in-out;
+  z-index: 2;
 }
 
 .copy-tooltip {
-    position: absolute;
-    top: 0em;
-    right: 0.5em;
-    background: #57a53f;
-    color: white;
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-size: 0.95em;
-    opacity: 1.0;
-    pointer-events: none;
-    z-index: 3;
-    transition: opacity 0.3s ease;
+  position: absolute;
+  top: 0em;
+  right: 0.5em;
+  background: #57a53f;
+  color: white;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.95em;
+  opacity: 1;
+  pointer-events: none;
+  z-index: 3;
+  transition: opacity 0.3s ease;
 }
 
 summary {
-    list-style: none; /* デフォルトの矢印を非表示 */
-    cursor: pointer;
+  list-style: none; /* デフォルトの矢印を非表示 */
+  cursor: pointer;
 }
 
 summary::-webkit-details-marker {
-    display: none; /* ChromeなどWebkit系ブラウザ対応 */
+  display: none; /* ChromeなどWebkit系ブラウザ対応 */
 }
 
 details > summary {
-    position: relative;
-    padding-left: 1.5em;
+  position: relative;
+  padding-left: 1.5em;
 }
 
 details > summary::before {
-    content: "▶"; /* 未展開時のアイコン */
-    position: absolute;
-    left: 0;
-    top: 0;
-    transform: rotate(0deg);
-    transition: transform 0.2s ease;
+  content: "▶"; /* 未展開時のアイコン */
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform: rotate(0deg);
+  transition: transform 0.2s ease;
 }
 
 details[open] > summary::before {
-    transform: rotate(90deg); /* 展開時に90度矢印を下に変更 */
+  transform: rotate(90deg); /* 展開時に90度矢印を下に変更 */
 }
 
 .box.note {
-    border-left: 4px solid #4caf50;
-    background: #e8f5e9;
-    padding: 0.5em;
-    margin: 1em 0;
+  border-left: 4px solid #4caf50;
+  background: #e8f5e9;
+  padding: 0.5em;
+  margin: 1em 0;
 }
 
 .box.note summary {
-    font-size: large;
-    border-bottom: 1px solid #cccccc;
+  font-size: large;
+  border-bottom: 1px solid #cccccc;
 }
 
 .box.warning {
-    border-left: 4px solid #f44336;
-    background: #ffebee;
-    padding: 0.5em;
-    margin: 1em 0;
+  border-left: 4px solid #f44336;
+  background: #ffebee;
+  padding: 0.5em;
+  margin: 1em 0;
 }
 
 .box.warning summary {
-    font-size: large;
-    border-bottom: 1px solid #cccccc;
+  font-size: large;
+  border-bottom: 1px solid #cccccc;
 }
 
 .preview-area {
-    overflow-y: auto;
-    border-radius: 5px;
-    padding: 0 20px;
-    background-color: #ffffff;
+  overflow-y: auto;
+  border-radius: 5px;
+  padding: 0 20px;
+  background-color: #ffffff;
 }

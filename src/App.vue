@@ -1,13 +1,9 @@
 <script setup lang="ts">
 import Editor from "./Editor.vue";
-import { message } from '@tauri-apps/plugin-dialog';
-
+import { message } from "@tauri-apps/plugin-dialog";
 
 async function openVersion() {
-  await message(
-    `Ageha Editor: Version ${__APP_VERSION__}`,
-    { title: "Version", kind: "info" }
-  );
+  await message(`Ageha Editor: Version ${__APP_VERSION__}`, { title: "Version", kind: "info" });
 }
 </script>
 

@@ -2,7 +2,7 @@ import rawKatex from "katex/dist/katex.min.css?raw";
 import rawMermaid from "mermaid/dist/mermaid.min.js?raw";
 
 export function createHtml(html: string, style: string): string {
-    const htmlEmbed = `<!DOCTYPE html>
+  const htmlEmbed = `<!DOCTYPE html>
     <html>
     <head>
     <meta charset="UTF-8" />
@@ -46,6 +46,6 @@ export function createHtml(html: string, style: string): string {
             }
         });
     </script>
-    </html>`
-    return htmlEmbed;
-};
+    </html>`;
+  return htmlEmbed;
+}
