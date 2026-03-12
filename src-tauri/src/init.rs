@@ -580,21 +580,42 @@ fn create_default_slide_css(file_path: PathBuf) -> io::Result<()> {
     let css = r#"/* Ageha Editor のスライド用カスタム CSS
  *
  * このファイルは組み込みテーマ `ageha-slide` のあとに読み込まれます。
- * 次のようなセレクタを書いて見た目を上書きできます。
- *   section
- *   section.lead
- *   h1, h2
- *   img, video
- *   .mermaid-slide
+ *
+ * ── CSS カスタムプロパティでカラーを一括変更 ──────────────────────────────
+ * テーマ内で定義されている変数を上書きするだけで配色を変えられます:
+ *   --p    プライマリアクセント (初期値: #4361ee)
+ *   --p2   セカンダリアクセント (初期値: #06b6d4)
+ *   --pg   グラデーション (初期値: linear-gradient(90deg, var(--p), var(--p2)))
+ *   --ink  本文テキスト色       (初期値: #0f172a)
+ *
+ * ── 使えるセレクタ例 ──────────────────────────────────────────────────────
+ *   section            通常スライドの背景・文字
+ *   section.lead       タイトルスライド
+ *   h1, h2             見出し
+ *   img, video         メディア
+ *   .mermaid-slide     Mermaid ダイアグラムコンテナ
  */
 
-/* 例
+/* 例1: アクセントカラーをエメラルド系に変更
 section {
-  background: linear-gradient(160deg, #fffdf8 0%, #f6efe3 100%);
+  --p:  #059669;
+  --p2: #0ea5e9;
+}
+*/
+
+/* 例2: リードスライドの背景を暖色系ダークに変更
+section.lead {
+  background: linear-gradient(145deg, #3b0764 0%, #6b21a8 52%, #1e1b4b 100%);
+}
+*/
+
+/* 例3: 通常スライドを白ベースのクリーンなデザインに
+section {
+  background: #ffffff;
 }
 
-section.lead h1 {
-  color: #7c3f00;
+section::before {
+  opacity: 0.9;
 }
 */
 "#;

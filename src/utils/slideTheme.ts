@@ -6,52 +6,56 @@ export const AGEHA_SLIDE_THEME = String.raw`/*
  */
 
 section {
+  /* ── Design tokens ──────────────────────────────────────────────────────── *
+   * CSS カスタムプロパティで上書きすることで手軽にカラーを変更できます。    *
+   * 例: ageha-slide.css に  section { --p: #e11d48; --p2: #f59e0b; }        *
+   * ──────────────────────────────────────────────────────────────────────── */
+  --p:   #4361ee;                                  /* primary accent */
+  --p2:  #06b6d4;                                  /* secondary accent */
+  --pg:  linear-gradient(90deg, var(--p), var(--p2));
+  --ink: #0f172a;                                  /* body text */
+  --ink2: rgba(15, 23, 42, 0.56);                  /* muted text */
+  --surf: rgba(255, 255, 255, 0.88);               /* card surface */
+  --bdr: rgba(67, 97, 238, 0.12);                  /* border */
+  --shd: 0 16px 40px rgba(15, 23, 42, 0.1);        /* shadow */
+
   width: 1280px;
   height: 720px;
-  padding: 68px 84px 64px;
+  padding: 64px 80px 56px;
   box-sizing: border-box;
   overflow: hidden;
   position: relative;
   font-family: "Aptos", "Segoe UI", "Hiragino Sans", "Yu Gothic UI", sans-serif;
-  font-size: 30px;
-  line-height: 1.5;
-  color: #1a2a38;
-  background:
-    radial-gradient(circle at top right, rgba(82, 184, 169, 0.2), transparent 24%),
-    radial-gradient(circle at 12% 10%, rgba(112, 156, 255, 0.16), transparent 20%),
-    linear-gradient(160deg, #fcfdff 0%, #f3f7fb 54%, #e8eef5 100%);
+  font-size: 29px;
+  line-height: 1.55;
+  color: var(--ink);
+  background: linear-gradient(150deg, #f7f9ff 0%, #f0f4ff 55%, #eaefff 100%);
 }
 
+/* Left accent bar */
 section::before {
   content: "";
   position: absolute;
-  inset: 0;
-  background:
-    linear-gradient(90deg, rgba(28, 55, 84, 0.035) 0 1px, transparent 1px 100%),
-    linear-gradient(rgba(28, 55, 84, 0.03) 0 1px, transparent 1px 100%);
-  background-size: 96px 96px;
-  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.26), transparent 70%);
+  left: 0;
+  top: 48px;
+  bottom: 48px;
+  width: 4px;
+  border-radius: 0 4px 4px 0;
+  background: var(--pg);
+  opacity: 0.65;
   pointer-events: none;
 }
 
+/* Page number */
 section::after {
   content: attr(data-marpit-pagination);
   position: absolute;
-  right: 46px;
-  bottom: 28px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 2.6em;
-  padding: 0.18em 0.7em;
-  font-size: 0.52em;
+  right: 44px;
+  bottom: 26px;
+  padding: 0;
+  font-size: 0.46em;
   font-weight: 700;
-  letter-spacing: 0.08em;
-  color: rgba(16, 40, 60, 0.76);
-  background: rgba(255, 255, 255, 0.82);
-  border: 1px solid rgba(104, 144, 182, 0.18);
-  border-radius: 999px;
-  backdrop-filter: blur(8px);
+  color: var(--ink2);
 }
 
 h1,
@@ -72,29 +76,29 @@ figure {
 }
 
 h1 {
-  margin: 0 0 24px;
-  max-width: 11.5em;
-  font-size: 2.26em;
-  line-height: 1.02;
+  margin: 0 0 20px;
+  max-width: 12em;
+  font-size: 2.2em;
+  line-height: 1.05;
   font-weight: 800;
-  letter-spacing: -0.045em;
-  color: #17314a;
+  letter-spacing: -0.04em;
+  color: #1e1b4b;
   text-wrap: balance;
 }
 
 h2 {
-  margin: 0 0 18px;
-  font-size: 1.34em;
-  font-weight: 760;
-  letter-spacing: -0.03em;
-  color: #12696a;
+  margin: 0 0 16px;
+  font-size: 1.3em;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #0369a1;
 }
 
 h3,
 h4,
 h5,
 h6 {
-  color: #32506a;
+  color: #334155;
 }
 
 h1 + h2,
@@ -102,7 +106,7 @@ h1 + p,
 h1 + ul,
 h1 + ol {
   position: relative;
-  margin-top: 18px;
+  margin-top: 16px;
 }
 
 h1 + h2::before,
@@ -111,38 +115,38 @@ h1 + ul::before,
 h1 + ol::before {
   content: "";
   display: block;
-  width: 120px;
-  height: 6px;
-  margin-bottom: 20px;
+  width: 100px;
+  height: 5px;
+  margin-bottom: 18px;
   border-radius: 999px;
-  background: linear-gradient(90deg, #52b8a9, #709cff);
+  background: var(--pg);
 }
 
 p,
 li {
-  font-size: 0.94em;
-  color: rgba(26, 42, 56, 0.9);
+  font-size: 0.93em;
+  color: rgba(15, 23, 42, 0.88);
 }
 
 strong {
-  color: #0f5b63;
-  font-weight: 760;
+  color: #1e1b4b;
+  font-weight: 800;
 }
 
 a {
-  color: #195fbe;
-  text-decoration-color: rgba(25, 95, 190, 0.35);
+  color: var(--p);
+  text-decoration-color: rgba(67, 97, 238, 0.32);
 }
 
 blockquote {
-  margin: 24px 0;
-  padding: 18px 22px;
-  color: #30516a;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(245, 249, 253, 0.95));
-  border: 1px solid rgba(104, 144, 182, 0.14);
-  border-left: 6px solid rgba(82, 184, 169, 0.76);
-  border-radius: 22px;
-  box-shadow: 0 20px 48px rgba(28, 55, 84, 0.12);
+  margin: 20px 0;
+  padding: 16px 20px;
+  color: #334155;
+  background: var(--surf);
+  border: 1px solid var(--bdr);
+  border-left: 5px solid var(--p);
+  border-radius: 0 14px 14px 0;
+  box-shadow: var(--shd);
 }
 
 ul,
@@ -151,63 +155,61 @@ ol {
 }
 
 li::marker {
-  color: #2ca58d;
+  color: var(--p);
 }
 
 table {
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
-  background: rgba(255, 255, 255, 0.88);
-  border: 1px solid rgba(104, 144, 182, 0.14);
-  border-radius: 22px;
+  background: var(--surf);
+  border: 1px solid var(--bdr);
+  border-radius: 16px;
   overflow: hidden;
-  box-shadow: 0 26px 54px rgba(28, 55, 84, 0.12);
+  box-shadow: var(--shd);
 }
 
 thead th {
-  padding: 15px 18px;
-  color: #f7fcff;
-  background: linear-gradient(90deg, #0f6b78, #13817c 55%, #145a88);
+  padding: 14px 16px;
+  color: #fff;
+  background: linear-gradient(90deg, #2b2d8f, #0c6ea8);
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 tbody td {
-  padding: 13px 18px;
-  color: rgba(26, 42, 56, 0.92);
-  border-top: 1px solid rgba(109, 144, 179, 0.12);
+  padding: 12px 16px;
+  color: rgba(15, 23, 42, 0.9);
+  border-top: 1px solid var(--bdr);
 }
 
 tbody tr:nth-child(even) td {
-  background: rgba(104, 144, 182, 0.05);
+  background: rgba(67, 97, 238, 0.04);
 }
 
 code {
-  padding: 0.16em 0.46em;
+  padding: 0.14em 0.44em;
   font-family: "Cascadia Code", "Consolas", monospace;
-  font-size: 0.82em;
-  color: #15405a;
-  background: rgba(109, 144, 179, 0.12);
-  border: 1px solid rgba(109, 144, 179, 0.12);
-  border-radius: 10px;
+  font-size: 0.8em;
+  color: #2563eb;
+  background: rgba(67, 97, 238, 0.08);
+  border: 1px solid rgba(67, 97, 238, 0.14);
+  border-radius: 8px;
 }
 
 pre {
   padding: 20px 24px;
-  color: #f5f7fb;
-  background:
-    linear-gradient(180deg, rgba(18, 33, 49, 0.98), rgba(13, 25, 38, 0.98)),
-    linear-gradient(90deg, rgba(82, 184, 169, 0.08), rgba(112, 156, 255, 0.08));
-  border: 1px solid rgba(83, 110, 138, 0.16);
-  border-radius: 22px;
-  box-shadow: 0 28px 54px rgba(24, 44, 66, 0.2);
+  color: #e2e8f0;
+  background: #0f172a;
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  border-radius: 16px;
+  box-shadow: var(--shd);
 }
 
 pre code {
   padding: 0;
   color: inherit;
-  border: 0;
   background: transparent;
+  border: 0;
 }
 
 img,
@@ -218,25 +220,26 @@ video {
   max-height: 460px;
   margin: 0 auto;
   object-fit: contain;
-  border-radius: 22px;
+  border-radius: 16px;
 }
 
 img,
 video {
-  box-shadow: 0 28px 58px rgba(28, 55, 84, 0.14);
-  border: 1px solid rgba(104, 144, 182, 0.14);
+  box-shadow: var(--shd);
+  border: 1px solid var(--bdr);
   background: rgba(255, 255, 255, 0.72);
 }
 
 hr {
   border: 0;
   height: 1px;
-  margin: 30px 0;
-  background: linear-gradient(90deg, transparent, rgba(82, 184, 169, 0.82), transparent);
+  margin: 28px 0;
+  background: var(--pg);
+  opacity: 0.3;
 }
 
 .katex-display {
-  margin: 0.7em 0;
+  margin: 0.6em 0;
   overflow-x: auto;
   overflow-y: hidden;
 }
@@ -244,56 +247,92 @@ hr {
 .mermaid-slide {
   display: flex;
   justify-content: center;
-  padding: 16px;
-  background: rgba(255, 255, 255, 0.72);
-  border: 1px solid rgba(104, 144, 182, 0.14);
-  border-radius: 22px;
-  box-shadow: 0 22px 50px rgba(28, 55, 84, 0.1);
+  padding: 14px;
+  background: var(--surf);
+  border: 1px solid var(--bdr);
+  border-radius: 16px;
+  box-shadow: var(--shd);
 }
 
 .mermaid-slide svg {
   max-width: 100%;
   height: auto;
-  filter: drop-shadow(0 16px 30px rgba(28, 55, 84, 0.12));
 }
 
 header,
 footer {
   position: absolute;
-  left: 84px;
-  right: 84px;
+  left: 80px;
+  right: 80px;
   z-index: 1;
-  font-size: 0.5em;
-  letter-spacing: 0.12em;
+  font-size: 0.46em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: rgba(34, 61, 84, 0.46);
+  color: var(--ink2);
 }
 
 header {
-  top: 28px;
+  top: 24px;
 }
 
 footer {
-  bottom: 28px;
+  bottom: 24px;
 }
 
+/* ── Lead / title slide ─────────────────────────────────────────────────── */
 section.lead {
   justify-content: center;
-  background:
-    radial-gradient(circle at 85% 14%, rgba(82, 184, 169, 0.22), transparent 20%),
-    radial-gradient(circle at 16% 18%, rgba(112, 156, 255, 0.18), transparent 18%),
-    linear-gradient(160deg, #fdfefe 0%, #eef4fb 52%, #e0ebf5 100%);
+  background: linear-gradient(145deg, #1a1a3e 0%, #1e3564 52%, #0c2040 100%);
+  color: #f0f4ff;
+}
+
+section.lead::before {
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  opacity: 1;
 }
 
 section.lead h1 {
-  max-width: 9.5em;
-  font-size: 2.5em;
+  width: 100%;
+  max-width: 100%;
+  font-size: 2.6em;
+  color: #fff;
+  text-align: center;
+  align-self: center;
 }
 
-section.lead h1 + p,
-section.lead h1 + h2 {
-  max-width: 18em;
-  font-size: 1em;
-  color: rgba(26, 42, 56, 0.72);
+section.lead h1 + h2,
+section.lead h1 + p {
+  width: 100%;
+  max-width: 100%;
+  font-size: 0.96em;
+  color: rgba(224, 231, 255, 0.72);
+  text-align: center;
+}
+
+section.lead h1 + h2::before,
+section.lead h1 + p::before,
+section.lead h1 + ul::before,
+section.lead h1 + ol::before {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+section.lead p,
+section.lead li {
+  color: rgba(224, 231, 255, 0.82);
+}
+
+section.lead strong {
+  color: #fff;
+}
+
+section.lead a {
+  color: var(--p2);
+}
+
+section.lead::after {
+  color: rgba(224, 231, 255, 0.36);
 }
 `;
