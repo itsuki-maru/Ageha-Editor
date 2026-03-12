@@ -9,6 +9,7 @@ const STATE_KEY = "localState@v1";
 const DEFAULT_STATE: LocalStrageItem = {
   isPreviewFromLocalStrage: true,
   isShowToolsFromLocalStrage: true,
+  isVimModeFromLocalStrage: false,
 };
 
 // HMR/多重init防止
@@ -73,7 +74,10 @@ export const useLocalStorageStore = defineStore({
   id: "localStorage",
   state: (): LocalStrageItem => ({ ...DEFAULT_STATE }),
   getters: {
-    isLoggedIn: (s) => !!s.isPreviewFromLocalStrage && !!s.isShowToolsFromLocalStrage,
+    isLoggedIn: (s) =>
+      !!s.isPreviewFromLocalStrage &&
+      !!s.isShowToolsFromLocalStrage &&
+      !!s.isVimModeFromLocalStrage,
   },
   actions: {
     async init(): Promise<void> {
@@ -91,6 +95,7 @@ export const useLocalStorageStore = defineStore({
           const plain: LocalStrageItem = {
             isPreviewFromLocalStrage: state.isPreviewFromLocalStrage,
             isShowToolsFromLocalStrage: state.isShowToolsFromLocalStrage,
+            isVimModeFromLocalStrage: state.isVimModeFromLocalStrage,
           };
           await writeState(plain);
           notifyPeers(plain);
@@ -105,7 +110,8 @@ export const useLocalStorageStore = defineStore({
         const s = this.$state;
         if (
           s.isPreviewFromLocalStrage === next.isPreviewFromLocalStrage &&
-          s.isShowToolsFromLocalStrage === next.isShowToolsFromLocalStrage
+          s.isShowToolsFromLocalStrage === next.isShowToolsFromLocalStrage &&
+          s.isVimModeFromLocalStrage === next.isVimModeFromLocalStrage
         )
           return;
         this.$patch(next);
@@ -118,6 +124,9 @@ export const useLocalStorageStore = defineStore({
     },
     setMarkdownTools(isMarkdownTools: boolean | null) {
       this.isShowToolsFromLocalStrage = isMarkdownTools;
+    },
+    setVimMode(isVimMode: boolean | null) {
+      this.isVimModeFromLocalStrage = isVimMode;
     },
 
     // クリア

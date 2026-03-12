@@ -15,6 +15,7 @@ import * as ace from "ace-builds";
 import "ace-builds/src-noconflict/ext-searchbox"; // Ctrl+Fで検索ボックスを使用するために必要なモジュール
 import "ace-builds/src-noconflict/mode-markdown"; // Aceでマークダウンを使用するためのモジュール
 import "ace-builds/src-noconflict/theme-monokai"; // Aceのテーマのモジュール
+import "ace-builds/src-noconflict/keybinding-vim"; // VimキーバインディングのAceモジュール
 import {
   videoToken,
   detailsToken,
@@ -285,11 +286,13 @@ watch(editorContent, (newEditorContent) => {
 // ローカルストレージ情報ストア
 const isShowTools = ref<boolean | null>(null);
 const isPreview = ref<boolean | null>(null);
+const isVimMode = ref<boolean | null>(null);
 const localStorageItem = useLocalStorageStore();
 onMounted(async () => {
   await localStorageItem.init();
   isShowTools.value = localStorageItem.isShowToolsFromLocalStrage;
   isPreview.value = localStorageItem.isPreviewFromLocalStrage;
+  isVimMode.value = localStorageItem.isVimModeFromLocalStrage;
 });
 
 // マークダウン記号入力ボタンの表示非表示切替
@@ -314,6 +317,25 @@ const handlePreview = (): void => {
   }
 };
 
+// VimモードのON/OFF切替
+const handleVimMode = (): void => {
+  if (isVimMode.value) {
+    isVimMode.value = false;
+    handleMessageModal("Vimモードをオフにしました");
+    localStorage.setItem("isVimMode", "false");
+    if (editor) {
+      editor.setKeyboardHandler(null);
+    }
+  } else {
+    isVimMode.value = true;
+    handleMessageModal("Vimモードをオンにしました");
+    localStorage.setItem("isVimMode", "true");
+    if (editor) {
+      editor.setKeyboardHandler("ace/keyboard/vim");
+    }
+  }
+};
+
 // HTML描画後にAceエディタを反映
 onMounted(() => {
   // Aceの設定
@@ -324,6 +346,20 @@ onMounted(() => {
     editor.setFontSize(16);
     // 80文字の縦ラインを消す
     editor.setShowPrintMargin(false);
+
+    // Vimモードの適用
+    if (isVimMode.value) {
+      editor.setKeyboardHandler("ace/keyboard/vim");
+    }
+
+    // Vim の :wq / :w コマンドをカスタマイズ
+    const vimApi = ace.require("ace/keyboard/vim");
+    vimApi.CodeMirror.Vim.defineEx("wq", "wq", () => {
+      fileSave();
+    });
+    vimApi.CodeMirror.Vim.defineEx("write", "w", () => {
+      fileSave();
+    });
   }
   // editorの変更を監視
   editor.on("change", () => {
@@ -540,6 +576,11 @@ const handleKeyDown = (event: KeyboardEvent) => {
     openNewInstance();
   } else if (event.ctrlKey && event.key === "m") {
     drawMermaid();
+
+    // Vimモード切り替え
+  } else if (event.ctrlKey && event.key === ",") {
+    event.preventDefault();
+    handleVimMode();
 
     // Escapeキーでモーダルウィンドウをクローズ
   } else if (event.key === "Escape") {
@@ -810,19 +851,19 @@ async function printPreviewWindow(htmlBody: string) {
                         button.copy-btn {
                         display: none !important;
                         }
-                        
+
                         iframe {
                             display: none !important;
                         }
                     }
-                    
+
                     html {
                         transform: scale(0.9);
                     }
                 </style>
-                
+
             </head>
-            
+
             <body>${rendered}</body>
         </html>
     `,
@@ -861,7 +902,7 @@ async function openWindowViewer(htmlBody: string) {
                 <link rel="stylesheet" href="katex.css">
                 <style>${rustArgsStore.rustArgsData.css_data}</style>
             </head>
-            
+
             <body>${rendered}</body>
             <style>
                 body {

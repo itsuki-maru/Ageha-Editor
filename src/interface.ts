@@ -2,6 +2,7 @@
 export interface LocalStrageItem {
   isShowToolsFromLocalStrage: boolean | null;
   isPreviewFromLocalStrage: boolean | null;
+  isVimModeFromLocalStrage: boolean | null;
 }
 
 export interface StatusCode {
