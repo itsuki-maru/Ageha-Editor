@@ -5,23 +5,30 @@ use std::fs;
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 
+/// ユーザーごとの設定保存先 `~/.ageha` を解決し、
+/// 存在しなければ初回起動時に必要なファイル群ごと作成する。
 pub fn get_application_user_setup_path() -> PathBuf {
     let home_dir = home_dir().expect("User home directory get error.");
     let setup_file_dir = home_dir.join(".ageha");
     if !setup_file_dir.exists() {
+        // 初回起動時は設定ディレクトリ自体を作る。
         fs::create_dir(&setup_file_dir).expect("Directory `~/.ageha` create error.");
+        // ディレクトリ作成後に設定 JSON と既定 CSS をそろえる。
         read_or_create_json_env(setup_file_dir.clone());
     }
     setup_file_dir
 }
 
 pub fn create_default_env(application_user_setting_dir: PathBuf) -> ApplicationInitSetup {
-    // ユーザー入力から取得
+    // ユーザーが手で編集しやすいように、
+    // 設定 JSON と CSS ファイルは同じ設定ディレクトリ配下へ置く。
     let css_file_path = application_user_setting_dir.join("ageha.css");
+    let slide_css_file_path = application_user_setting_dir.join("ageha-slide.css");
     let rust_log = "ageha=error".to_string();
 
     ApplicationInitSetup {
         css_file_path: css_file_path.to_string_lossy().into_owned(),
+        slide_css_file_path: slide_css_file_path.to_string_lossy().into_owned(),
         rust_log: rust_log,
     }
 }
@@ -30,7 +37,8 @@ pub fn read_or_create_json_env(setup_file_dir: PathBuf) -> ApplicationInitSetup 
     let setup_recover_path = setup_file_dir.clone();
     let env_json_path = setup_file_dir.join("ageha.env.json");
 
-    // JSONデータが存在しない場合の処理
+    // 初回起動時は設定 JSON 自体が存在しないため、
+    // まずは既定値を書き出してから通常の読み込みフローへ進める。
     if !env_json_path.exists() {
         let default_env = create_default_env(setup_file_dir);
         let _ = write_to_json_file(env_json_path.clone(), &default_env.clone());
@@ -39,6 +47,7 @@ pub fn read_or_create_json_env(setup_file_dir: PathBuf) -> ApplicationInitSetup 
     let load_json_data: ApplicationInitSetup = match read_to_json_data(&env_json_path) {
         Ok(load_json_env) => load_json_env,
         Err(_) => {
+            // 壊れた JSON が残っている場合は一度削除し、既定値で再生成する。
             let result = fs::remove_file(env_json_path);
             match result {
                 Ok(_) => read_or_create_json_env(setup_recover_path),
@@ -47,22 +56,30 @@ pub fn read_or_create_json_env(setup_file_dir: PathBuf) -> ApplicationInitSetup 
         }
     };
 
-    // CSSファイルが存在しない場合の処理
+    // CSS ファイルだけ消されているケースでは、
+    // 設定 JSON は残しつつ編集用の雛形 CSS を再生成する。
     let css_path = Path::new(&load_json_data.css_file_path);
     if !css_path.exists() {
         let _ = create_default_css(css_path.to_path_buf());
+    }
+
+    let slide_css_path = Path::new(&load_json_data.slide_css_file_path);
+    if !slide_css_path.exists() {
+        let _ = create_default_slide_css(slide_css_path.to_path_buf());
     }
 
     load_json_data
 }
 
 fn write_to_json_file<T: Serialize>(file_path: PathBuf, data: &T) -> io::Result<()> {
+    // JSON は人が読めるよう pretty 形式で保存する。
     let file = fs::File::create(file_path).expect("`ageha.env.json` fs create error.");
     serde_json::to_writer_pretty(file, data).expect("`ageha.env.json` write error.");
     Ok(())
 }
 
 fn read_to_json_data<T: for<'de> Deserialize<'de>>(file_path: &PathBuf) -> io::Result<T> {
+    // 既存設定を汎用的に読み込めるようジェネリクスで実装している。
     let file = fs::File::open(file_path)?;
     let reader = io::BufReader::new(file);
     let data = serde_json::from_reader(reader)?;
@@ -70,6 +87,8 @@ fn read_to_json_data<T: for<'de> Deserialize<'de>>(file_path: &PathBuf) -> io::R
 }
 
 fn create_default_css(file_path: PathBuf) -> io::Result<()> {
+    // 通常 Markdown 用の既定 CSS も外部ファイルとして作っておき、
+    // アプリ外のエディタから直接調整できるようにしている。
     let css = r#"
     @page {
         size: A4;
@@ -548,7 +567,39 @@ fn create_default_css(file_path: PathBuf) -> io::Result<()> {
       border-radius: 6px;
     }
     "#;
+    // 既定 CSS を新規作成し、以後はユーザーが自由に編集できるようにする。
     let file = fs::File::create(file_path).expect("`ageha.css` fs create error.");
+    let mut writer = io::BufWriter::new(file);
+    write!(writer, "{}", css)?;
+    Ok(())
+}
+
+fn create_default_slide_css(file_path: PathBuf) -> io::Result<()> {
+    // スライド用 CSS はユーザーが上書き前提で触る設定なので、
+    // 空ファイルではなく使い方が伝わるサンプル付きで生成する。
+    let css = r#"/* Ageha Editor のスライド用カスタム CSS
+ *
+ * このファイルは組み込みテーマ `ageha-slide` のあとに読み込まれます。
+ * 次のようなセレクタを書いて見た目を上書きできます。
+ *   section
+ *   section.lead
+ *   h1, h2
+ *   img, video
+ *   .mermaid-slide
+ */
+
+/* 例
+section {
+  background: linear-gradient(160deg, #fffdf8 0%, #f6efe3 100%);
+}
+
+section.lead h1 {
+  color: #7c3f00;
+}
+*/
+"#;
+    // スライド用 CSS も別ファイルとして切り出し、再起動後に読み込ませる。
+    let file = fs::File::create(file_path).expect("`ageha-slide.css` fs create error.");
     let mut writer = io::BufWriter::new(file);
     write!(writer, "{}", css)?;
     Ok(())

@@ -1,3 +1,6 @@
+/* 通常の Markdown プレビューで使うベーススタイル。
+ * GitHub 風の読みやすい見た目を土台として採用している。
+ */
 body {
   font-family: Helvetica, arial, sans-serif;
   font-size: 14px;

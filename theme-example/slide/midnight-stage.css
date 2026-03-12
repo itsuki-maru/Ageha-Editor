@@ -1,0 +1,118 @@
+/* Midnight Stage
+ * Dark keynote-style overrides for ageha-slide.
+ */
+
+section {
+  color: #eef6fb;
+  background:
+    radial-gradient(circle at top right, rgba(83, 204, 186, 0.2), transparent 24%),
+    radial-gradient(circle at left 10%, rgba(126, 153, 255, 0.16), transparent 18%),
+    linear-gradient(160deg, #08131f 0%, #0f2030 52%, #132b3f 100%);
+}
+
+section::before {
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.045) 0 1px, transparent 1px 100%),
+    linear-gradient(rgba(255, 255, 255, 0.04) 0 1px, transparent 1px 100%);
+  background-size: 96px 96px;
+}
+
+section::after {
+  color: rgba(240, 248, 252, 0.92);
+  background: rgba(8, 19, 31, 0.4);
+  border-color: rgba(126, 153, 255, 0.18);
+}
+
+h1 {
+  color: #f8fcff;
+}
+
+h2 {
+  color: #6ee7d7;
+}
+
+h3,
+h4,
+h5,
+h6,
+p,
+li {
+  color: rgba(238, 246, 251, 0.92);
+}
+
+h1 + h2::before,
+h1 + p::before,
+h1 + ul::before,
+h1 + ol::before {
+  background: linear-gradient(90deg, #53ccba, #7e99ff);
+}
+
+strong {
+  color: #c8fff2;
+}
+
+a {
+  color: #9fd2ff;
+  text-decoration-color: rgba(159, 210, 255, 0.45);
+}
+
+blockquote {
+  color: #d4e7f1;
+  background: linear-gradient(180deg, rgba(17, 39, 58, 0.92), rgba(12, 28, 44, 0.9));
+  border-color: rgba(83, 204, 186, 0.18);
+  border-left-color: rgba(83, 204, 186, 0.84);
+}
+
+table {
+  background: rgba(11, 24, 38, 0.82);
+  border-color: rgba(126, 153, 255, 0.14);
+}
+
+thead th {
+  background: linear-gradient(90deg, #0b8c98, #456de0);
+}
+
+tbody td {
+  color: rgba(238, 246, 251, 0.92);
+  border-top-color: rgba(126, 153, 255, 0.12);
+}
+
+tbody tr:nth-child(even) td {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+code {
+  color: #dbf3ff;
+  background: rgba(126, 153, 255, 0.15);
+  border-color: rgba(126, 153, 255, 0.15);
+}
+
+pre {
+  background:
+    linear-gradient(180deg, rgba(10, 19, 29, 0.98), rgba(7, 14, 23, 0.98)),
+    linear-gradient(90deg, rgba(83, 204, 186, 0.08), rgba(126, 153, 255, 0.08));
+  border-color: rgba(148, 163, 184, 0.16);
+}
+
+img,
+video {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.mermaid-slide {
+  background: rgba(10, 21, 33, 0.56);
+  border-color: rgba(148, 163, 184, 0.16);
+}
+
+header,
+footer {
+  color: rgba(238, 246, 251, 0.54);
+}
+
+section.lead {
+  background:
+    radial-gradient(circle at top right, rgba(83, 204, 186, 0.26), transparent 22%),
+    radial-gradient(circle at left 10%, rgba(126, 153, 255, 0.2), transparent 18%),
+    linear-gradient(160deg, #07101a 0%, #0b1826 58%, #0f2a3c 100%);
+}

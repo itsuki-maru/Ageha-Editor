@@ -1,20 +1,24 @@
 import { defineStore } from "pinia";
 import { load, type Store as TauriStore } from "@tauri-apps/plugin-store";
-import type { LocalStrageItem } from "../interface";
+import type { LocalStorageItem } from "../interface";
 
+// プレビュー表示状態や Vim モードなど、
+// 軽量な UI 設定を保存しつつ複数ウィンドウ間でも同期するストア。
 // plugin-storeの設定
 const FILE_NAME = "settings.json";
 const STATE_KEY = "localState@v1";
 
-const DEFAULT_STATE: LocalStrageItem = {
-  isPreviewFromLocalStrage: true,
-  isShowToolsFromLocalStrage: true,
-  isVimModeFromLocalStrage: false,
+const DEFAULT_STATE: LocalStorageItem = {
+  isPreviewFromLocalStorage: true,
+  isShowToolsFromLocalStorage: true,
+  isVimModeFromLocalStorage: false,
 };
 
 // HMR/多重init防止
 let wired = false;
 
+// BroadcastChannel を使うことで、
+// Rust 側の追加 IPC を増やさずにウィンドウ間同期を実現している。
 const bc =
   typeof window !== "undefined" && "BroadcastChannel" in window
     ? new BroadcastChannel("local-store-channel")
@@ -32,10 +36,11 @@ function getStore(): Promise<TauriStore> {
 }
 
 // 不足フィールド補完付き正規化
-function normalize(input: unknown): LocalStrageItem {
+function normalize(input: unknown): LocalStorageItem {
   try {
+    // 旧フォーマットや欠落キーがあっても既定値で補完する。
     const obj = (typeof input === "string" ? JSON.parse(input) : input) ?? {};
-    return { ...DEFAULT_STATE, ...(obj as Partial<LocalStrageItem>) };
+    return { ...DEFAULT_STATE, ...(obj as Partial<LocalStorageItem>) };
   } catch {
     // 壊れたJSONは破棄してデフォルト値へ戻す
     return { ...DEFAULT_STATE };
@@ -43,10 +48,11 @@ function normalize(input: unknown): LocalStrageItem {
 }
 
 // 読み込み
-async function readState(): Promise<LocalStrageItem> {
+async function readState(): Promise<LocalStorageItem> {
   try {
     const store = await getStore();
     const raw = await store.get<string | object | null>(STATE_KEY);
+    // plugin-store からは文字列・オブジェクトどちらも返り得るため normalize を通す。
     return normalize(raw ?? null);
   } catch {
     return { ...DEFAULT_STATE };
@@ -54,8 +60,9 @@ async function readState(): Promise<LocalStrageItem> {
 }
 
 // 書き込み（autoSaveの設定のためsave()は不要）
-async function writeState(state: LocalStrageItem): Promise<void> {
+async function writeState(state: LocalStorageItem): Promise<void> {
   const store = await getStore();
+  // autoSave が有効なので set だけで保存予約まで行われる。
   await store.set(STATE_KEY, state);
 }
 
@@ -66,19 +73,13 @@ async function deleteState(): Promise<void> {
 }
 
 // 他WebViewへ更新通知
-function notifyPeers(payload: LocalStrageItem) {
+function notifyPeers(payload: LocalStorageItem) {
   bc?.postMessage({ type: "local:update", state: payload });
 }
 
 export const useLocalStorageStore = defineStore({
   id: "localStorage",
-  state: (): LocalStrageItem => ({ ...DEFAULT_STATE }),
-  getters: {
-    isLoggedIn: (s) =>
-      !!s.isPreviewFromLocalStrage &&
-      !!s.isShowToolsFromLocalStrage &&
-      !!s.isVimModeFromLocalStrage,
-  },
+  state: (): LocalStorageItem => ({ ...DEFAULT_STATE }),
   actions: {
     async init(): Promise<void> {
       // 復元
@@ -92,11 +93,12 @@ export const useLocalStorageStore = defineStore({
       // 変更検知と自動保存
       this.$subscribe(
         async (_mutation, state) => {
-          const plain: LocalStrageItem = {
-            isPreviewFromLocalStrage: state.isPreviewFromLocalStrage,
-            isShowToolsFromLocalStrage: state.isShowToolsFromLocalStrage,
-            isVimModeFromLocalStrage: state.isVimModeFromLocalStrage,
+          const plain: LocalStorageItem = {
+            isPreviewFromLocalStorage: state.isPreviewFromLocalStorage,
+            isShowToolsFromLocalStorage: state.isShowToolsFromLocalStorage,
+            isVimModeFromLocalStorage: state.isVimModeFromLocalStorage,
           };
+          // Store 全体ではなく、永続化したい項目だけを明示的に抽出する。
           await writeState(plain);
           notifyPeers(plain);
         },
@@ -109,24 +111,25 @@ export const useLocalStorageStore = defineStore({
         const next = normalize(e.data.state);
         const s = this.$state;
         if (
-          s.isPreviewFromLocalStrage === next.isPreviewFromLocalStrage &&
-          s.isShowToolsFromLocalStrage === next.isShowToolsFromLocalStrage &&
-          s.isVimModeFromLocalStrage === next.isVimModeFromLocalStrage
+          s.isPreviewFromLocalStorage === next.isPreviewFromLocalStorage &&
+          s.isShowToolsFromLocalStorage === next.isShowToolsFromLocalStorage &&
+          s.isVimModeFromLocalStorage === next.isVimModeFromLocalStorage
         )
           return;
+        // 他ウィンドウ側で変化があった場合だけ自分の state を更新する。
         this.$patch(next);
       });
     },
 
     // 値の更新
     setPreview(isPreview: boolean | null) {
-      this.isPreviewFromLocalStrage = isPreview;
+      this.isPreviewFromLocalStorage = isPreview;
     },
     setMarkdownTools(isMarkdownTools: boolean | null) {
-      this.isShowToolsFromLocalStrage = isMarkdownTools;
+      this.isShowToolsFromLocalStorage = isMarkdownTools;
     },
     setVimMode(isVimMode: boolean | null) {
-      this.isVimModeFromLocalStrage = isVimMode;
+      this.isVimModeFromLocalStorage = isVimMode;
     },
 
     // クリア

@@ -1,49 +1,52 @@
-// Prevents additional console window on Windows in release, DO NOT REMOVE!!
+// Windows の release ビルドで余計なコンソールウィンドウを出さないための設定。
+// ここを削除すると配布時の見た目に影響するので残しておく。
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use std::env;
 use tracing::info;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
-use crate::config::CONFIG;
-mod config;
 mod init;
 mod schema;
 
+// デスクトップ版アプリケーションの実行開始地点。
+// 設定ファイル、ログ設定、起動引数を整えたあとで Tauri 本体へ処理を渡す。
 fn main() {
-    // 初期化処理（引数の取得と環境変数の設定）
+    // 初期化処理（設定ディレクトリ/ファイルの作成）
     let app_setup_path = init::get_application_user_setup_path();
     let default_env = init::read_or_create_json_env(app_setup_path);
 
-    unsafe {
-        env::set_var("CSS_PATH", default_env.css_file_path);
-        env::set_var("RUST_LOG", default_env.rust_log);
-    } // info, debug, error 開発時は適宜変更
-
     // 引数の処理
     let args: Vec<String> = env::args().collect();
-    if args.len() > 1 {
-        let file_path = &args[1];
-        unsafe {
-            env::set_var("LAUNCH_ARGS_FILE_PATH", file_path);
-        }
+    // 先頭引数があれば起動時に開く対象ファイルとして採用する。
+    let args_file_path = if args.len() > 1 {
+        args[1].clone()
     } else {
-        unsafe {
-            env::set_var("LAUNCH_ARGS_FILE_PATH", "".to_string());
-        }
-    }
+        String::new()
+    };
+
+    // CSS の実パスは設定ファイルから取得し、run 関数へそのまま渡す。
+    let css_file_path = default_env.css_file_path.clone();
+    let slide_css_file_path = default_env.slide_css_file_path.clone();
 
     // ログ設定
+    unsafe {
+        env::set_var("RUST_LOG", &default_env.rust_log);
+    }
+
     tracing_subscriber::registry()
         .with(
+            // 環境変数が無ければ設定ファイル側の既定ログレベルを使う。
             tracing_subscriber::EnvFilter::try_from_default_env()
                 .unwrap_or_else(|_e| "ageha=error".into()),
         )
         .with(tracing_subscriber::fmt::layer())
         .init();
 
-    info!("Launch args file: {}", &CONFIG.args_file_path);
-    info!("Launch CSS file: {}", &CONFIG.css_file_path);
+    info!("Launch args file: {}", &args_file_path);
+    info!("Launch CSS file: {}", &css_file_path);
+    info!("Launch slide CSS file: {}", &slide_css_file_path);
 
-    ageha_lib::run()
+    // 準備が終わったら Tauri ランタイムの起動へ処理を引き渡す。
+    ageha_lib::run(args_file_path, css_file_path, slide_css_file_path);
 }

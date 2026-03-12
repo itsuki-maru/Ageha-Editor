@@ -1,0 +1,93 @@
+/* Paper Copper
+ * Warm editorial slide overrides for ageha-slide.
+ */
+
+section {
+  color: #38261d;
+  background:
+    radial-gradient(circle at top right, rgba(194, 124, 56, 0.14), transparent 24%),
+    radial-gradient(circle at left 12%, rgba(124, 65, 28, 0.08), transparent 18%),
+    linear-gradient(160deg, #fffaf2 0%, #f6ecdf 55%, #eddcc8 100%);
+}
+
+section::before {
+  background:
+    linear-gradient(90deg, rgba(89, 49, 23, 0.03) 0 1px, transparent 1px 100%),
+    linear-gradient(rgba(89, 49, 23, 0.025) 0 1px, transparent 1px 100%);
+  background-size: 110px 110px;
+}
+
+section::after {
+  color: rgba(85, 54, 35, 0.72);
+  background: rgba(255, 250, 243, 0.82);
+  border-color: rgba(146, 92, 51, 0.2);
+}
+
+h1 {
+  color: #5c3116;
+}
+
+h2 {
+  color: #8f4a1f;
+}
+
+h1 + h2::before,
+h1 + p::before,
+h1 + ul::before,
+h1 + ol::before {
+  background: linear-gradient(90deg, #d28a49, #8f4a1f);
+}
+
+strong {
+  color: #8f4a1f;
+}
+
+a {
+  color: #9d3c17;
+  text-decoration-color: rgba(157, 60, 23, 0.32);
+}
+
+blockquote {
+  color: #6d4a37;
+  background: rgba(255, 252, 248, 0.88);
+  border-left-color: rgba(210, 138, 73, 0.84);
+}
+
+table {
+  background: rgba(255, 252, 248, 0.92);
+  border-color: rgba(143, 74, 31, 0.12);
+}
+
+thead th {
+  background: linear-gradient(90deg, #8f4a1f, #bf743d);
+}
+
+tbody tr:nth-child(even) td {
+  background: rgba(191, 116, 61, 0.06);
+}
+
+code {
+  color: #6b3517;
+  background: rgba(191, 116, 61, 0.12);
+  border-color: rgba(191, 116, 61, 0.12);
+}
+
+pre {
+  background:
+    linear-gradient(180deg, rgba(61, 38, 27, 0.98), rgba(46, 29, 21, 0.98)),
+    linear-gradient(90deg, rgba(210, 138, 73, 0.08), rgba(255, 211, 163, 0.06));
+}
+
+.mermaid-slide {
+  background: rgba(255, 249, 242, 0.78);
+}
+
+section.lead {
+  background:
+    radial-gradient(circle at top right, rgba(210, 138, 73, 0.24), transparent 22%),
+    linear-gradient(160deg, #fffdf9 0%, #f4e7d6 55%, #ead7bf 100%);
+}
+
+section.lead h1 {
+  color: #713817;
+}

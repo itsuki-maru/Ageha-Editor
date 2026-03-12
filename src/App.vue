@@ -2,6 +2,8 @@
 import Editor from "./Editor.vue";
 import { message } from "@tauri-apps/plugin-dialog";
 
+// ルートコンポーネントではアプリ全体の外枠だけを担当し、
+// 実際の編集機能は Editor.vue 側へ委譲する。
 async function openVersion() {
   await message(`Ageha Editor: Version ${__APP_VERSION__}`, { title: "Version", kind: "info" });
 }

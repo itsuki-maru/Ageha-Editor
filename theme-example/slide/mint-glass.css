@@ -1,0 +1,102 @@
+/* Mint Glass
+ * Airy, bright, glassmorphism-like overrides for ageha-slide.
+ */
+
+section {
+  color: #173447;
+  background:
+    radial-gradient(circle at top right, rgba(91, 214, 187, 0.22), transparent 24%),
+    radial-gradient(circle at left 8%, rgba(117, 161, 255, 0.18), transparent 18%),
+    linear-gradient(160deg, #fbfeff 0%, #edf8f8 52%, #e3f0f7 100%);
+}
+
+section::before {
+  background:
+    linear-gradient(90deg, rgba(23, 52, 71, 0.028) 0 1px, transparent 1px 100%),
+    linear-gradient(rgba(23, 52, 71, 0.024) 0 1px, transparent 1px 100%);
+  background-size: 88px 88px;
+}
+
+section::after {
+  color: rgba(18, 58, 67, 0.76);
+  background: rgba(255, 255, 255, 0.7);
+  border-color: rgba(69, 141, 160, 0.16);
+}
+
+h1 {
+  color: #123a43;
+}
+
+h2 {
+  color: #0f7d7c;
+}
+
+h3,
+h4,
+h5,
+h6 {
+  color: #275877;
+}
+
+h1 + h2::before,
+h1 + p::before,
+h1 + ul::before,
+h1 + ol::before {
+  background: linear-gradient(90deg, #59d6bb, #75a1ff);
+}
+
+strong {
+  color: #0f7d7c;
+}
+
+blockquote,
+table,
+.mermaid-slide {
+  background: rgba(255, 255, 255, 0.64);
+  backdrop-filter: blur(16px);
+}
+
+blockquote {
+  color: #336177;
+  border-left-color: rgba(89, 214, 187, 0.88);
+}
+
+table {
+  border-color: rgba(74, 132, 151, 0.12);
+}
+
+thead th {
+  background: linear-gradient(90deg, #10939a, #4c7ee6);
+}
+
+tbody tr:nth-child(even) td {
+  background: rgba(117, 161, 255, 0.05);
+}
+
+code {
+  color: #11435d;
+  background: rgba(117, 161, 255, 0.1);
+  border-color: rgba(117, 161, 255, 0.1);
+}
+
+pre {
+  background:
+    linear-gradient(180deg, rgba(16, 34, 51, 0.96), rgba(11, 24, 36, 0.96)),
+    linear-gradient(90deg, rgba(89, 214, 187, 0.08), rgba(117, 161, 255, 0.08));
+}
+
+img,
+video {
+  border-color: rgba(74, 132, 151, 0.12);
+}
+
+section.lead {
+  background:
+    radial-gradient(circle at top right, rgba(89, 214, 187, 0.22), transparent 22%),
+    radial-gradient(circle at left 12%, rgba(117, 161, 255, 0.18), transparent 18%),
+    linear-gradient(160deg, #ffffff 0%, #eefbfb 58%, #dff1fb 100%);
+}
+
+section.lead h1 {
+  color: #124753;
+}

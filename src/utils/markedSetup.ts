@@ -1,15 +1,23 @@
-import { marked, Renderer } from "marked";
+import { Renderer, marked } from "marked";
 import type { Token, Tokens } from "marked";
 import katex from "katex";
+import { toPreviewAssetUrl } from "@/utils/assetPaths";
+
+// Markdown モード専用の marked 拡張とレンダラ差し替えをここへ集約している。
+// Ageha 独自記法もこのファイルを起点にパースされる。
+// NOTE: Marked.js のカスタム拡張トークンは TokenizerAndRendererExtension 型と
+// 互換性がない部分があるため（tokenizer が null を返す、renderer の引数型が異なる等）、
+// 拡張トークンの型は明示的にキャストして使用している。
 
 // videoトークンの型定義
 interface CustomVideoToken {
-  type: "video" | Token["type"]; // 既存の型に "video"を追加
+  type: "video" | Token["type"];
   href: string;
   text: string;
 }
 
-// カスタムトークン"video"の定義（型は緩くanyとする）
+// カスタムトークン"video"の定義
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const videoToken: any = {
   name: "video",
   level: "inline",
@@ -21,11 +29,11 @@ const videoToken: any = {
     const match = rule.exec(src);
     if (match) {
       return {
-        type: "video", // カスタムトークンタイプ
+        type: "video",
         raw: match[0],
         text: match[1],
         href: match[2],
-      } as CustomVideoToken; // 型アサーション
+      } as CustomVideoToken;
     }
     return null;
   },
@@ -36,12 +44,13 @@ const videoToken: any = {
 
 // カスタムトークンの型定義 YouTubeのみ埋め込みを実現
 interface CustomYouTubeToken {
-  type: "youtube" | Token["type"]; // 既存の型に "youtube"を追加
+  type: "youtube" | Token["type"];
   href: string;
   text: string;
 }
 
-// カスタムトークン"youtube"の定義（型は緩くanyとする）
+// カスタムトークン"youtube"の定義
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const youtubeToken: any = {
   name: "youtube",
   level: "inline",
@@ -55,16 +64,15 @@ const youtubeToken: any = {
       const id = extractYouTubeId(match[2]);
       if (!id) return null;
       return {
-        type: "youtube", // カスタムトークンタイプ
+        type: "youtube",
         raw: match[0],
         text: id,
         href: match[2],
-      } as CustomYouTubeToken; // 型アサーション
+      } as CustomYouTubeToken;
     }
     return null;
   },
   renderer(token: CustomYouTubeToken) {
-    // 生iframeではなく、自前テンプレートにする（例：Web Component）
     return `<app-youtube video-id="${token.text}" data-src="${token.href}"></app-youtube>`;
   },
 };
@@ -84,7 +92,6 @@ function extractYouTubeId(rawUrl: string): string | null {
     ];
     if (!allowYouTubeList.includes(host)) return null;
 
-    // shorts / watch / youtu.be に対応
     if (host === "youtu.be") {
       const id = url.pathname.slice(1);
       return ID_RE.test(id) ? id : null;
@@ -119,12 +126,13 @@ interface CustomDetailsToken {
 function createNestedTokenizer(typeName: "details" | "note" | "warning") {
   return {
     name: typeName,
-    level: "block",
+    level: "block" as const,
     start(src: string) {
       const re = new RegExp(`^:::${typeName}\\s`, "m");
       return src.match(re)?.index;
     },
     tokenizer(src: string, _tokens: Token[]): CustomDetailsToken | null {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const self = this as any;
       if (!src.startsWith(`:::${typeName}`)) return null;
 
@@ -132,6 +140,8 @@ function createNestedTokenizer(typeName: "details" | "note" | "warning") {
       let nestLevel = 0;
       let endIndex = -1;
 
+      // `:::note` のような独自ブロックは入れ子を許可しているため、
+      // 対になる閉じフェンスが見つかるまでネスト数を数えて走査する。
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i].trim();
         if (/^:::(\w+)/.test(line)) {
@@ -180,52 +190,33 @@ const warningToken = createNestedTokenizer("warning");
 
 // markedのスラッグ化機能をカスタマイズ
 const renderer = new Renderer();
+let activeMarkdownFilePath = "";
+
+function setMarkedRendererFileContext(filePath: string) {
+  activeMarkdownFilePath = filePath;
+}
 
 // ヘッダーを定義
 renderer.heading = function (tokens: Tokens.Heading) {
-  return `<h${tokens.depth} class="head${tokens.depth}">${tokens.text}</h${tokens.depth}>\n`; // class属性のCSSはトップレベル（App.vue）で定義
+  return `<h${tokens.depth} class="head${tokens.depth}">${tokens.text}</h${tokens.depth}>\n`;
 };
 
-// [テキスト](URL)で定義された外部リンクを別タブで開かせるカスタムレンダラ設定
-// 元のlink関数を保存
+// 外部リンクを別タブで開かせるカスタムレンダラ設定
 const originalLinkRenderer = renderer.link.bind(renderer);
 
-// link関数をオーバーライド
 renderer.link = (tokens: Tokens.Link) => {
-  // 外部リンクかどうかをチェック
   const isExternal = /^https?:\/\//.test(tokens.href!);
-  let isLocal = false;
-  let isPDFHref = false;
   const html = originalLinkRenderer(tokens);
   if (isExternal) {
-    if (isLocal && isPDFHref) {
-      return html.replace(
-        /^<a /,
-        '<a target="_blank" rel="noopener noreferrer" title="PDFリンク" ',
-      );
-    }
-    // 外部リンクの場合、targetとrel属性を追加
     return html.replace(/^<a /, '<a target="_blank" rel="noopener noreferrer" title="外部リンク" ');
-  } else {
-    // 内部リンクかつPDFの場合
-    if (isPDFHref) {
-      return html.replace(
-        /^<a /,
-        '<a target="_blank" rel="noopener noreferrer" title="PDFリンク" ',
-      );
-    }
-    // 内部リンクの場合、元の処理を使用
-    return originalLinkRenderer(tokens);
   }
+  return html;
 };
 
-// mermaidの処理
+// mermaid / コードブロックの処理
 renderer.code = (tokens: Tokens.Code) => {
-  // mermaidの処理
   if (tokens.lang == "mermaid") {
     return '<pre class="mermaid">' + escapeHtml(tokens.text) + "\n</pre>";
-
-    // 通常のコードブロック + コピー機能
   } else {
     const id = `code-${Math.random().toString(36).substr(2, 9)}`;
     const escapedCode = escapeHtml(tokens.text);
@@ -236,6 +227,24 @@ renderer.code = (tokens: Tokens.Code) => {
         </div>
         `;
   }
+};
+
+renderer.image = (tokens: Tokens.Image) => {
+  let width = "";
+  let href = tokens.href;
+  const text = tokens.text;
+  const match = tokens.href.match(/\s*=(\d+)(x)?$/);
+
+  if (match) {
+    width = match[1];
+    href = href.replace(/\s*=.*$/, "");
+  }
+
+  const widthAttr = width ? ` width="${width}px"` : "";
+  // 通常の Markdown プレビューはメイン WebView 上で描画されるため、
+  // 画像は convertFileSrc ベースの URL のままでも表示できる。
+  const previewHref = toPreviewAssetUrl(href, activeMarkdownFilePath);
+  return `<img src="${previewHref}" alt="${text}" ${widthAttr}>`;
 };
 
 // HTMLエスケープ関数
@@ -250,20 +259,21 @@ function escapeHtml(html: string) {
 
 // カスタムトークンの型定義
 interface CustomKatexToken {
-  type: "math" | Token["type"]; // 既存の型に "math"を追加
+  type: "math" | Token["type"];
   text: string;
   displayMode: boolean;
 }
 
-const mathExtentionToken: any = {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mathExtensionToken: any = {
   name: "math",
   level: "inline",
   start(src: string) {
     return src.match(/\$+/)?.index;
   },
   tokenizer(src: string, _tokens: Token[]): CustomKatexToken | null {
-    const blockMath = /^\$\$([^$]+)\$\$/; // $$...$$
-    const inlineMath = /^\$([^$\n]+)\$/; // $...$
+    const blockMath = /^\$\$([^$]+)\$\$/;
+    const inlineMath = /^\$([^$\n]+)\$/;
 
     const blockMatch = blockMath.exec(src);
     if (blockMatch) {
@@ -285,14 +295,14 @@ const mathExtentionToken: any = {
     }
     return null;
   },
-  renderer(token: any) {
+  renderer(token: CustomKatexToken) {
     try {
       return katex.renderToString(token.text, {
         throwOnError: false,
         displayMode: token.displayMode,
         output: "html",
       });
-    } catch (error) {
+    } catch {
       return token.text;
     }
   },
@@ -300,11 +310,11 @@ const mathExtentionToken: any = {
 
 // カスタムトークンpagebreakの型定義
 interface CustomPagebreakToken {
-  type: "pagebreak" | Token["type"]; // 既存の型に "video"を追加
+  type: "pagebreak" | Token["type"];
   text: string;
 }
 
-// カスタムトークン"pagebreak"の定義（型は緩くanyとする）
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const PageBreakToken: any = {
   name: "pagebreak",
   level: "inline",
@@ -316,15 +326,14 @@ const PageBreakToken: any = {
     const match = rule.exec(src);
     if (match) {
       return {
-        type: "pagebreak", // カスタムトークンタイプ
+        type: "pagebreak",
         raw: match[0],
         text: match[1],
-        href: match[2],
-      } as CustomPagebreakToken; // 型アサーション
+      } as CustomPagebreakToken;
     }
     return null;
   },
-  renderer(__token: CustomPagebreakToken) {
+  renderer(_token: CustomPagebreakToken) {
     return `<div class="pagebreak"></div>`;
   },
 };
@@ -355,9 +364,10 @@ export {
   detailsToken,
   noteToken,
   warningToken,
-  mathExtentionToken,
+  mathExtensionToken,
   PageBreakToken,
   renderer,
   youtubeToken,
   renderIframe,
+  setMarkedRendererFileContext,
 };
