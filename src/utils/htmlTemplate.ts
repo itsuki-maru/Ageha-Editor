@@ -93,7 +93,6 @@ export function createSlideHtmlDocument(
       ${extraStyle}
     </style>
     <style>${style}</style>
-    <style>${userStyle}</style>
     <style>${scopedUserStyle}</style>
     </head>
     <body>${html}</body>
