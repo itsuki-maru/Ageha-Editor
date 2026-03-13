@@ -131,7 +131,7 @@ export function useMarkdownPreview(
     try {
       // スライドは Marp で HTML/CSS を生成し、さらに Mermaid を SVG 化してから iframe へ渡す。
       const renderedSlides = await renderSlides(md, filePath);
-      const mermaidHtml = await renderMermaidToSvg(renderedSlides.html);
+      const mermaidHtml = await renderSlideMermaidToSvg(renderedSlides.html);
 
       if (currentSequence !== renderSequence) {
         // もっと新しい描画要求が来ていれば古い結果で上書きしない。
@@ -184,22 +184,31 @@ export function useMarkdownPreview(
     }
   }
 
+  // 通常 Markdown 用: marked が出力する `.mermaid` ブロックを SVG へ差し替える。
+  // useExport からも呼ばれるため公開する。
   async function renderMermaidToSvg(html: string): Promise<string> {
     const container = document.createElement("div");
     container.innerHTML = html;
     let index = 0;
 
-    // 通常 Markdown では `.mermaid` ブロックがそのまま残るので直接差し替える。
-    const markdownBlocks = container.querySelectorAll<HTMLElement>(".mermaid");
-    for (const block of Array.from(markdownBlocks)) {
+    const blocks = container.querySelectorAll<HTMLElement>(".mermaid");
+    for (const block of Array.from(blocks)) {
       const code = block.textContent ?? "";
       const { svg } = await mermaid.render(`print-graph-${index++}`, code);
       block.outerHTML = svg;
     }
 
-    // スライド側は fenced code のまま残るため、親の pre ごと置き換える。
-    const slideBlocks = container.querySelectorAll<HTMLElement>("code.language-mermaid");
-    for (const codeBlock of Array.from(slideBlocks)) {
+    return container.innerHTML;
+  }
+
+  // スライド用: Marp が出力する fenced code (`code.language-mermaid`) を SVG へ差し替える。
+  async function renderSlideMermaidToSvg(html: string): Promise<string> {
+    const container = document.createElement("div");
+    container.innerHTML = html;
+    let index = 0;
+
+    const blocks = container.querySelectorAll<HTMLElement>("code.language-mermaid");
+    for (const codeBlock of Array.from(blocks)) {
       const code = codeBlock.textContent ?? "";
       const { svg } = await mermaid.render(`slide-graph-${index++}`, code);
       const pre = codeBlock.closest("pre");
