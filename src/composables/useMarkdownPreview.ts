@@ -173,7 +173,7 @@ export function useMarkdownPreview(
 
   async function drawMermaid() {
     if (documentMode.value === "slides") {
-      // スライドモードの Mermaid は renderMermaidToSvg 側が受け持つ。
+      // スライドモードの Mermaid は renderSlideMermaidToSvg 側が受け持つ。
       return;
     }
 

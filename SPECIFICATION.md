@@ -139,7 +139,7 @@ Ageha-Editor/
 │  │   └─ Editor.vue              │◄─►  lib.rs          │  │
 │  │       ├─ ToolbarButtons.vue  │IPC│  handler/        │  │
 │  │       ├─ MarkdownTools.vue   │  │   ├─ file.rs     │  │
-│  │       ├─ HelpModal.vue       │  │   └─ spawn.rs    │  │
+│  │       ├─ HelpModal.vue       │  │   └─ spawn_self.rs│  │
 │  │       └─ MessageModal.vue    │  │  config.rs       │  │
 │  │                              │  │  schema.rs       │  │
 │  │  Composables                 │  │  utils.rs        │  │

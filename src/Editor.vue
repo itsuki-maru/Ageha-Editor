@@ -254,6 +254,7 @@ useKeyboardShortcuts({
   readImage,
   printOut,
   exportHtml,
+  openViewer,
   togglePreview: handlePreview,
   toggleInputTool: handleInputTool,
   toggleHelp: () => {

@@ -8,6 +8,7 @@ export interface ShortcutActions {
   readImage: () => void;
   printOut: () => void;
   exportHtml: () => void;
+  openViewer: () => void;
   togglePreview: () => void;
   toggleInputTool: () => void;
   toggleHelp: () => void;
@@ -41,6 +42,10 @@ export function useKeyboardShortcuts(actions: ShortcutActions) {
         case "h":
           event.preventDefault();
           actions.toggleHelp();
+          return;
+        case "w":
+          event.preventDefault();
+          actions.openViewer();
           return;
         case "n":
           event.preventDefault();
