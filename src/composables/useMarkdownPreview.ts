@@ -85,62 +85,29 @@ export function useMarkdownPreview(
   const myXss = new FilterXSS(xssOptions);
 
   let renderSequence = 0;
+  let slideDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 
   watch(
     [editorContent, activeFilePath],
     async ([md, filePath]) => {
-      const currentSequence = ++renderSequence;
       // frontmatter の変更もあり得るため、本文が変わるたびにモードを再判定する。
       const nextMode = detectDocumentMode(md);
       documentMode.value = nextMode;
 
       if (nextMode === "slides") {
-        try {
-          // スライドは Marp で HTML/CSS を生成し、さらに Mermaid を SVG 化してから iframe へ渡す。
-          const renderedSlides = await renderSlides(md, filePath);
-          const mermaidHtml = await renderMermaidToSvg(renderedSlides.html);
-
-          if (currentSequence !== renderSequence) {
-            // もっと新しい描画要求が来ていれば古い結果で上書きしない。
-            return;
-          }
-
-          slideRender.value = {
-            ...renderedSlides,
-            html: mermaidHtml,
-          };
-          previewFrameHtml.value = createSlideHtmlDocument(mermaidHtml, renderedSlides.css, {
-            title: "Ageha Editor Slides Preview",
-            userStyle: slideCustomCss.value,
-          });
-          parsedHtml.value = "";
-        } catch (error) {
-          console.error("Slide render failed:", error);
-
-          if (currentSequence !== renderSequence) {
-            // エラー時も同様に、古い描画要求の結果は捨てる。
-            return;
-          }
-
-          // 画面が真っ白にならないよう、最低限のエラー表示用スライドを返す。
-          const fallbackHtml = `<section class="slide-render-error"><h2>Slide Preview Error</h2><p>スライドの描画に失敗しました。</p></section>`;
-          slideRender.value = {
-            mode: "slides",
-            html: fallbackHtml,
-            css: "body{margin:0;background:#0f172a;color:#fff;font-family:sans-serif;} section{padding:40px;}",
-            metadata: { slideCount: 0 },
-          };
-          previewFrameHtml.value = createSlideHtmlDocument(fallbackHtml, slideRender.value.css, {
-            title: "Ageha Editor Slides Preview",
-            userStyle: slideCustomCss.value,
-          });
-          parsedHtml.value = "";
+        // Marp レンダリングは重いため、連続入力中は実行を遅延させる。
+        if (slideDebounceTimer !== null) {
+          clearTimeout(slideDebounceTimer);
         }
-
+        slideDebounceTimer = setTimeout(() => {
+          slideDebounceTimer = null;
+          renderSlideContent(md, filePath);
+        }, 300);
         return;
       }
 
       // 通常 Markdown は従来どおり marked + XSS のパイプラインで描画する。
+      const currentSequence = ++renderSequence;
       setMarkedRendererFileContext(filePath);
       const markdownWithEmbeddedImages = await embedLocalImageSources(md, filePath);
       const options: MarkedOptions = { async: false };
@@ -158,6 +125,51 @@ export function useMarkdownPreview(
     },
     { flush: "post", immediate: true },
   );
+
+  async function renderSlideContent(md: string, filePath: string) {
+    const currentSequence = ++renderSequence;
+    try {
+      // スライドは Marp で HTML/CSS を生成し、さらに Mermaid を SVG 化してから iframe へ渡す。
+      const renderedSlides = await renderSlides(md, filePath);
+      const mermaidHtml = await renderMermaidToSvg(renderedSlides.html);
+
+      if (currentSequence !== renderSequence) {
+        // もっと新しい描画要求が来ていれば古い結果で上書きしない。
+        return;
+      }
+
+      slideRender.value = {
+        ...renderedSlides,
+        html: mermaidHtml,
+      };
+      previewFrameHtml.value = createSlideHtmlDocument(mermaidHtml, renderedSlides.css, {
+        title: "Ageha Editor Slides Preview",
+        userStyle: slideCustomCss.value,
+      });
+      parsedHtml.value = "";
+    } catch (error) {
+      console.error("Slide render failed:", error);
+
+      if (currentSequence !== renderSequence) {
+        // エラー時も同様に、古い描画要求の結果は捨てる。
+        return;
+      }
+
+      // 画面が真っ白にならないよう、最低限のエラー表示用スライドを返す。
+      const fallbackHtml = `<section class="slide-render-error"><h2>Slide Preview Error</h2><p>スライドの描画に失敗しました。</p></section>`;
+      slideRender.value = {
+        mode: "slides",
+        html: fallbackHtml,
+        css: "body{margin:0;background:#0f172a;color:#fff;font-family:sans-serif;} section{padding:40px;}",
+        metadata: { slideCount: 0 },
+      };
+      previewFrameHtml.value = createSlideHtmlDocument(fallbackHtml, slideRender.value.css, {
+        title: "Ageha Editor Slides Preview",
+        userStyle: slideCustomCss.value,
+      });
+      parsedHtml.value = "";
+    }
+  }
 
   async function drawMermaid() {
     if (documentMode.value === "slides") {
