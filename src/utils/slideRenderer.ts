@@ -48,9 +48,26 @@ async function getMarp(): Promise<MarpInstance> {
   return marpInstancePromise;
 }
 
+// 直前の呼び出し結果を保持する1スロットキャッシュ。
+// ファイル単位の data URL 変換は embeddedAssetUrlCache で済んでいるが、
+// regex マッチと文字列組み立ては毎回走るため、入力が変わっていなければスキップする。
+// アンドゥ操作や再フォーカス時など、同一内容で再レンダリングされるケースに効く。
+type AssetCacheEntry = { markdown: string; filePath: string; result: string };
+let assetPreprocessCache: AssetCacheEntry | null = null;
+
 async function preprocessSlideAssets(markdown: string, activeFilePath: string): Promise<string> {
+  if (
+    assetPreprocessCache &&
+    assetPreprocessCache.markdown === markdown &&
+    assetPreprocessCache.filePath === activeFilePath
+  ) {
+    return assetPreprocessCache.result;
+  }
+
   // スライドは独立 HTML として扱うため、画像 URL を先に解決しておく。
-  return embedLocalImageSources(markdown, activeFilePath);
+  const result = await embedLocalImageSources(markdown, activeFilePath);
+  assetPreprocessCache = { markdown, filePath: activeFilePath, result };
+  return result;
 }
 
 function countSlides(html: string): number {

@@ -133,9 +133,19 @@ function escapeHtml(value: string): string {
     .replace(/'/g, "&#39;");
 }
 
+// ユーザー CSS のスコープ変換結果をキャッシュする。
+// slideCustomCss はアプリ起動時に一度だけ読み込まれ、セッション中は変化しないため、
+// 同じ入力に対して CSSStyleSheet のパースが繰り返し走るのを防ぐ。
+const scopedStyleCache = new Map<string, string>();
+
 function buildScopedSlideUserStyle(userStyle: string): string {
   if (!userStyle.trim() || typeof CSSStyleSheet === "undefined") {
     return "";
+  }
+
+  const cached = scopedStyleCache.get(userStyle);
+  if (cached !== undefined) {
+    return cached;
   }
 
   try {
@@ -144,10 +154,12 @@ function buildScopedSlideUserStyle(userStyle: string): string {
     // そのため、ユーザー CSS を Marp の DOM 構造に合わせて再スコープ化する。
     const sheet = new CSSStyleSheet();
     sheet.replaceSync(userStyle);
-    return Array.from(sheet.cssRules)
+    const result = Array.from(sheet.cssRules)
       .map((rule) => scopeSlideCssRule(rule))
       .filter((ruleText) => ruleText.length > 0)
       .join("\n");
+    scopedStyleCache.set(userStyle, result);
+    return result;
   } catch (error) {
     console.warn("Failed to scope slide user CSS overrides.", error);
     return "";
