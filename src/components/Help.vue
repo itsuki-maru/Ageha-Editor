@@ -2,7 +2,10 @@
 import { onMounted, nextTick } from "vue";
 import Prism from "prismjs";
 import "prismjs/themes/prism-okaidia.css";
+import { copyElementText } from "@/utils/clipboard";
 
+// ヘルプ本文はほぼ静的な内容なので、
+// このコンポーネントではコードハイライトとコピー補助だけを担当する。
 const highlight = async () => {
   await nextTick();
   Prism.highlightAll();
@@ -10,30 +13,10 @@ const highlight = async () => {
 
 onMounted(highlight);
 
-// codeタグのコピー機能
 function copyClipBoard(codeId: string) {
-  let element = document.getElementById(codeId);
-  if (!element || !element.textContent) return;
-
-  navigator.clipboard.writeText(element.textContent);
-
-  // すでにメッセージがあれば削除
-  const existingTooltip = element.parentElement?.querySelector(".copy-tooltip");
-  if (existingTooltip) existingTooltip.remove();
-
-  // メッセージを作成
-  const tooltip = document.createElement("div");
-  tooltip.textContent = "コピーしました";
-  tooltip.className = "copy-tooltip";
-
-  // ボタンの親要素（code-container）に追加
-  element.parentElement?.appendChild(tooltip);
-
-  // 一定時間後に非表示
-  setTimeout(() => {
-    tooltip.style.opacity = "0";
-    setTimeout(() => tooltip.remove(), 300);
-  }, 1000);
+  const element = document.getElementById(codeId);
+  if (!element) return;
+  copyElementText(element);
 }
 </script>
 
@@ -43,12 +26,52 @@ function copyClipBoard(codeId: string) {
     「<strong>マークダウン</strong>」は特定の記号と組み合わせることで文書を整形する手法であり、<strong>Wikipedia</strong>などで使用されているこの形式は、インターネットやイントラネット上で共有・公開される文書の作成に適しています。まずはマークダウン文書をコピー＆ペーストで簡単に作成してみましょう。
   </p>
 
+  <h2 id="slide-sample" style="margin-top: 4%">スライド文書を作成</h2>
+  <p>
+    Ageha Editor は文書先頭の frontmatter に
+    <code>marp: true</code> を書くと、スライドモードとしてプレビューします。スライドの区切りは
+    <code>---</code> を使います。
+  </p>
+  <p>
+    スライド専用の見た目は、ユーザー設定フォルダ内の <code>~/.ageha/ageha-slide.css</code> を編集すると上書きできます。この CSS はプレビュー、別ウィンドウ表示、HTML 出力、印刷に共通で反映されます。
+  </p>
+
+  <div class="code-container" style="position: relative">
+    <button
+      class="copy-btn"
+      data-target="help-slide"
+      style="position: absolute; top: 5px; right: 5px; z-index: 1"
+      @click="copyClipBoard('help-slide')"
+    >
+      コピー
+    </button>
+    <pre><code id="help-slide" class="language-markdown">---
+marp: true
+---
+
+# Ageha Slide
+
+- VSCode の Marp に近い記法で作成
+- Mermaid と数式にも対応
+
+---
+
+## 2枚目のスライド
+
+```mermaid
+graph LR
+  Plan --> Build --> Present
+```
+
+$$E = mc^2$$</code></pre>
+  </div>
+
   <div class="code-container" style="position: relative">
     <button
       class="copy-btn"
       data-target="help-title"
       style="position: absolute; top: 5px; right: 5px; z-index: 1"
-      v-on:click="copyClipBoard('help-title')"
+      @click="copyClipBoard('help-title')"
     >
       コピー
     </button>
@@ -64,7 +87,7 @@ function copyClipBoard(codeId: string) {
       class="copy-btn"
       data-target="help-what-markdown"
       style="position: absolute; top: 5px; right: 5px; z-index: 1"
-      v-on:click="copyClipBoard('help-what-markdown')"
+      @click="copyClipBoard('help-what-markdown')"
     >
       コピー
     </button>
@@ -133,7 +156,7 @@ function copyClipBoard(codeId: string) {
       class="copy-btn"
       data-target="help-header"
       style="position: absolute; top: 5px; right: 5px; z-index: 1"
-      v-on:click="copyClipBoard('help-header')"
+      @click="copyClipBoard('help-header')"
     >
       コピー
     </button>
@@ -158,7 +181,7 @@ function copyClipBoard(codeId: string) {
       class="copy-btn"
       data-target="help-bold"
       style="position: absolute; top: 5px; right: 5px; z-index: 1"
-      v-on:click="copyClipBoard('help-bold')"
+      @click="copyClipBoard('help-bold')"
     >
       コピー
     </button>
@@ -177,7 +200,7 @@ function copyClipBoard(codeId: string) {
       class="copy-btn"
       data-target="help-list"
       style="position: absolute; top: 5px; right: 5px; z-index: 1"
-      v-on:click="copyClipBoard('help-list')"
+      @click="copyClipBoard('help-list')"
     >
       コピー
     </button>
@@ -217,7 +240,7 @@ function copyClipBoard(codeId: string) {
       class="copy-btn"
       data-target="help-number-list"
       style="position: absolute; top: 5px; right: 5px; z-index: 1"
-      v-on:click="copyClipBoard('help-number-list')"
+      @click="copyClipBoard('help-number-list')"
     >
       コピー
     </button>
@@ -258,7 +281,7 @@ function copyClipBoard(codeId: string) {
       class="copy-btn"
       data-target="help-table"
       style="position: absolute; top: 5px; right: 5px; z-index: 1"
-      v-on:click="copyClipBoard('help-table')"
+      @click="copyClipBoard('help-table')"
     >
       コピー
     </button>
@@ -301,7 +324,7 @@ function copyClipBoard(codeId: string) {
       class="copy-btn"
       data-target="help-markup"
       style="position: absolute; top: 5px; right: 5px; z-index: 1"
-      v-on:click="copyClipBoard('help-markup')"
+      @click="copyClipBoard('help-markup')"
     >
       コピー
     </button>

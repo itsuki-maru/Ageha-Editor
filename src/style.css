@@ -1,3 +1,6 @@
+/* アプリ全体の外枠や共通 UI に適用するグローバルスタイル。
+ * エディタ本文そのものではなく、シェル部分の見た目をここで整える。
+ */
 :root {
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
   font-weight: 400;
@@ -84,7 +87,7 @@ input[type="number"]:focus {
 .input-tools {
   position: absolute;
   display: grid;
-  bottom: 10%;
+  bottom: 15%;
   overflow: scroll;
   scrollbar-width: none; /* Firefox */
 }

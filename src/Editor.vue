@@ -1,1026 +1,294 @@
 <script setup lang="ts">
-import { open, save, confirm } from "@tauri-apps/plugin-dialog";
+import { computed, onMounted, ref, watch } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { ref, onMounted, onUnmounted, onBeforeUnmount, watch } from "vue";
-import { convertFileSrc } from "@tauri-apps/api/core";
-import type { Ref } from "vue";
-import { FilterXSS, getDefaultWhiteList } from "xss";
-import type { IFilterXSSOptions } from "xss";
-import { marked } from "marked";
-import type { MarkedOptions, Tokens } from "marked";
-import type { ResponseTextData, DiffEditorData, StatusCode } from "./interface";
-import * as ace from "ace-builds";
-import "ace-builds/src-noconflict/ext-searchbox"; // Ctrl+Fで検索ボックスを使用するために必要なモジュール
-import "ace-builds/src-noconflict/mode-markdown"; // Aceでマークダウンを使用するためのモジュール
-import "ace-builds/src-noconflict/theme-monokai"; // Aceのテーマのモジュール
-import "ace-builds/src-noconflict/keybinding-vim"; // VimキーバインディングのAceモジュール
-import {
-  videoToken,
-  detailsToken,
-  noteToken,
-  warningToken,
-  mathExtentionToken,
-  PageBreakToken,
-  youtubeToken,
-  renderIframe,
-  renderer,
-} from "./utils/markedSetup";
-import { createHtml } from "./utils/htmlTemplate";
 import "katex/dist/katex.min.css";
-import mermaid from "mermaid";
-import Help from "@/components/Help.vue";
+
+import { useAceEditor } from "@/composables/useAceEditor";
+import { useFileOperations } from "@/composables/useFileOperations";
+import { useMarkdownPreview } from "@/composables/useMarkdownPreview";
+import { useExport } from "@/composables/useExport";
+import { useKeyboardShortcuts } from "@/composables/useKeyboardShortcuts";
+import { useScrollSync } from "@/composables/useScrollSync";
+import { useWindowSize } from "@/composables/useWindowSize";
+
+import ToolbarButtons from "@/components/ToolbarButtons.vue";
+import MarkdownTools from "@/components/MarkdownTools.vue";
+import HelpModal from "@/components/HelpModal.vue";
+import MessageModal from "@/components/MessageModal.vue";
+
+import { handleCopyButtonClick } from "@/utils/clipboard";
 import { useLocalStorageStore } from "./stores/localStorages";
 import { useRustArgsInitStore } from "./stores/appInits";
+import { EDITOR_FOCUS_DELAY_MS, IMAGE_FILE_EXTENSIONS, TEXT_FILE_EXTENSIONS } from "./constants";
 
+// このコンポーネントがアプリ本体であり、
+// エディタ・プレビュー・保存・出力まわりの処理を組み合わせて画面を構成する。
+// ---- Stores ----
 const rustArgsStore = useRustArgsInitStore();
+const localStorageItem = useLocalStorageStore();
 
-// ウィンドウ起動後にRustバックエンドに起動時の引数状況を要求
+// ---- UI 状態 ----
+const isShowTools = ref<boolean | null>(null);
+const isPreview = ref<boolean | null>(null);
+const isVimMode = ref<boolean | null>(null);
+const showHelp = ref(false);
+const isMessageModal = ref(false);
+const messageText = ref("");
+
+function showMessage(message: string) {
+  // どの処理からでも同じ手順でメッセージモーダルを開けるようにしている。
+  messageText.value = message;
+  isMessageModal.value = true;
+}
+
+// ---- ウィンドウサイズ ----
+const { isHeightScreen, divHeight } = useWindowSize();
+
+// ---- テンプレート refs ----
+const editorRef = ref<HTMLDivElement | null>(null);
+const previewArea = ref<HTMLElement | null>(null);
+
+// ---- エディタ内容の管理 ----
+const editorContent = ref("");
+const slideCustomCss = computed(() => rustArgsStore.rustArgsData.slide_css_data);
+
+// ---- ファイル操作 ----
+const {
+  activeFilePath,
+  fileOpen,
+  fileSave,
+  saveHtmlFile,
+  confirmUnsaved,
+  readFile,
+  loadContent,
+  trackChange,
+  selectFile,
+} = useFileOperations(
+  () => aceEditor.getValue(),
+  (text: string) => {
+    editorContent.value = text;
+  },
+  showMessage,
+);
+
+// ---- Ace エディタ ----
+const aceEditor = useAceEditor(editorRef, {
+  vimMode: isVimMode,
+  onSave: () => fileSave(),
+  onChange: (value: string) => {
+    if (value !== editorContent.value) {
+      editorContent.value = value;
+    }
+  },
+});
+
+// editorContent の変化を Ace エディタに反映
+watch(editorContent, (newContent) => {
+  // 変更差分の検知を更新する。
+  trackChange(newContent);
+  // 外部から本文が差し替わった場合でも Ace 側と表示内容がずれないようにする。
+  aceEditor.setValue(newContent);
+  // 最新の本文は起動引数ストアにも残し、再利用しやすくする。
+  rustArgsStore.rustArgsData.text_data = newContent;
+});
+
+// ---- マークダウンプレビュー ----
+const { parsedHtml, previewFrameHtml, documentMode, slideRender, drawMermaid, renderMermaidToSvg } =
+  useMarkdownPreview(editorContent, activeFilePath, slideCustomCss);
+const previewTitle = computed(() => (documentMode.value === "slides" ? "Slides" : "Preview"));
+const isScrollSyncEnabled = computed(() => documentMode.value === "markdown");
+
+// editorContent 変化時に Mermaid を再描画
+watch(editorContent, () => {
+  // Markdown モード時だけ drawMermaid 内で再描画される。
+  drawMermaid();
+});
+
+// ---- エクスポート ----
+const { printOut, exportHtml, openViewer } = useExport(
+  editorContent,
+  documentMode,
+  parsedHtml,
+  previewFrameHtml,
+  slideRender,
+  () => rustArgsStore.rustArgsData.css_data,
+  () => rustArgsStore.rustArgsData.slide_css_data,
+  renderMermaidToSvg,
+  saveHtmlFile,
+  showMessage,
+);
+
+// ---- スクロール同期 ----
+useScrollSync(
+  () => aceEditor.getSession(),
+  () => aceEditor.getRenderer(),
+  previewArea,
+  isScrollSyncEnabled,
+);
+
+// ---- ローカルストレージ初期化 ----
+onMounted(async () => {
+  // 前回保存した UI 設定を最初に復元する。
+  await localStorageItem.init();
+  isShowTools.value = localStorageItem.isShowToolsFromLocalStorage;
+  isPreview.value = localStorageItem.isPreviewFromLocalStorage;
+  isVimMode.value = localStorageItem.isVimModeFromLocalStorage;
+});
+
+// ---- 起動時のファイル読み込み ----
 onMounted(async () => {
   try {
     const textData = rustArgsStore.rustArgsData.text_data;
-    activeFilePath.value = rustArgsStore.rustArgsData.file_abs_path;
-    editorContent.value = textData;
-    diffEditorRef.value.oldEditorContent = textData;
-    diffEditorRef.value.newEdirotContent = textData;
-    // エディタレンダリング後にフォーカス
-    setTimeout(() => {
-      editor.focus();
-    }, 250);
-  } catch (error) {}
+    const filePath = rustArgsStore.rustArgsData.file_abs_path;
+    if (textData || filePath) {
+      // 起動時に指定された文書があれば、その内容をそのまま編集対象として読み込む。
+      loadContent(textData, filePath);
+      editorContent.value = textData;
+    }
+    // 初期描画直後は Ace がまだ安定していないため、少し待ってからフォーカスする。
+    setTimeout(() => aceEditor.focus(), EDITOR_FOCUS_DELAY_MS);
+  } catch (error) {
+    console.error("Failed to initialize editor with launch args:", error);
+  }
 });
 
-// imgタグをオーバーライド
-renderer.image = (tokens: Tokens.Image) => {
-  let width = "";
-  let href = tokens.href;
-  let text = tokens.text;
-  const match = tokens.href.match(/\s*=(\d+)(x)?$/);
-  if (match) {
-    width = match[1];
-    href = href.replace(/\s*=.*$/, "");
-  }
-  const widthAttr = width ? ` width="${width}px"` : "";
-
-  // 相対パスが指定された場合、絶対パスに変換してレンダリングするカスタマイズ
-  // セキュリティ上、`./`のみを許可
-  if (!href.startsWith("http://") && !href.startsWith("https://")) {
-    if (href.startsWith("./") || href.startsWith(".\\")) {
-      // 現在選択されているマークダウンファイルを起点に絶対パスに変換
-      const trimSavePath = activeFilePath.value.replace(/\*/g, "");
-      const fileParentPath = getParentPath(trimSavePath);
-      href = href.replace(/^./, fileParentPath);
-    }
-    href = convertFileSrc(href);
-    return `<img src="${href}" alt="${text}" ${widthAttr}>`;
-  }
-  return `<img src="${href}" alt="${text}" ${widthAttr}>`;
-};
-
-// codeタグにコピー機能を実装
+// ---- コピーボタンのグローバルクリックハンドラ ----
 onMounted(() => {
   document.addEventListener("click", (e) => {
     const target = e.target as HTMLElement;
     if (target.classList.contains("copy-btn")) {
-      const codeId = target.dataset.target;
-      const codeElem = document.getElementById(codeId || "");
-      if (codeElem) {
-        navigator.clipboard.writeText(codeElem.textContent || "");
-        // すでにメッセージがあれば削除
-        const existingTooltip = target.parentElement?.querySelector(".copy-tooltip");
-        if (existingTooltip) existingTooltip.remove();
-        // メッセージを作成
-        const tooltip = document.createElement("div");
-        tooltip.textContent = "コピーしました";
-        tooltip.className = "copy-tooltip";
-        // ボタンの親要素（code-container）に追加
-        target.parentElement?.appendChild(tooltip);
-        // 一定時間後に非表示
-        setTimeout(() => {
-          tooltip.style.opacity = "0";
-          setTimeout(() => tooltip.remove(), 300);
-        }, 1000);
-      }
+      // v-html 経由で描画されたコピー用ボタンもここで拾って処理する。
+      handleCopyButtonClick(target);
     }
   });
 });
 
-// 親ディレクトリを取得
-function getParentPath(filePath: string) {
-  // 最後の`/`を見つける
-  let lastSlashIndex = filePath.lastIndexOf("/");
-  // `/`が見つからない場合
-  if (lastSlashIndex === -1) {
-    // 区切り文字を`\`に変えて再度試みる
-    lastSlashIndex = filePath.lastIndexOf("\\");
-    if (lastSlashIndex === -1) {
-      return "";
+// ---- ウィンドウクローズ時の確認 ----
+onMounted(async () => {
+  await getCurrentWindow().onCloseRequested(async (event) => {
+    if (!(await confirmUnsaved())) {
+      // ユーザーがキャンセルした場合はクローズ自体を止める。
+      event.preventDefault();
     }
-  }
-  // 最後の`/`若しくは`\`までの文字列を返す
-  return filePath.substring(0, lastSlashIndex);
-}
+  });
+});
 
+// ---- ドラッグ＆ドロップ ----
 listen("tauri://drag-drop", async (event) => {
-  const allowTextFiles = ["md", "txt"];
-
-  const allowImageExtentions = [
-    "jpg",
-    "JPG",
-    "jpeg",
-    "JPEG",
-    "png",
-    "PNG",
-    "svg",
-    "svg",
-    "webp",
-    "WEBP",
-  ];
-
   const paths = (event.payload as { paths: string[] }).paths;
+  // いったん先頭の 1 ファイルだけを対象にする。
   const dropFilePath = paths[0];
-  const fileExtention = dropFilePath?.split(".").pop();
-  if (!fileExtention) return;
+  const extension = dropFilePath?.split(".").pop()?.toLowerCase();
+  if (!extension) return;
 
-  // 拡張子が.mdならファイルオープン
-  if (allowTextFiles.includes(fileExtention)) {
-    // 変更フラグにより未保存警告
-    if (isEdit.value) {
-      const confirmation = await confirm("ファイルが保存されていません。よろしいですか??", {
-        title: "保存の確認",
-        kind: "warning",
-      });
-      if (!confirmation) return;
-    }
+  if ((TEXT_FILE_EXTENSIONS as readonly string[]).includes(extension)) {
+    if (!(await confirmUnsaved())) return;
 
-    const textData = await callRustReadMarkdownFile(dropFilePath);
-
-    // 変更フラグをfalse
-    isEdit.value = false;
-    if (textData || textData === "") {
+    const textData = await readFile(dropFilePath);
+    if (textData !== undefined) {
+      // テキスト系ファイルはそのまま開き直す扱いにする。
+      loadContent(textData, dropFilePath);
       editorContent.value = textData;
-      diffEditorRef.value.oldEditorContent = textData;
-      diffEditorRef.value.newEdirotContent = textData;
-
-      // ストアの情報を更新
       rustArgsStore.rustArgsData.text_data = textData;
       rustArgsStore.rustArgsData.file_abs_path = dropFilePath;
     }
-    activeFilePath.value = dropFilePath;
   }
 
-  // 拡張子が画像形式なら画像挿入
-  if (allowImageExtentions.includes(fileExtention)) {
+  if ((IMAGE_FILE_EXTENSIONS as readonly string[]).includes(extension)) {
+    // 画像ファイルは本文へ Markdown 記法として挿入する。
     const replacePath = dropFilePath?.replace(/\\/g, "/");
     const fileName = getFileName(replacePath);
-    const imageUrlMarkdown = `![${fileName}](${replacePath})`;
-    insertMarkdown(imageUrlMarkdown);
-    return;
-  } else {
-    return;
+    aceEditor.insertAtCursor(`![${fileName}](${replacePath})`);
   }
 });
 
-// ウィンドウクローズ時の処理追加
-onMounted(async () => {
-  await getCurrentWindow().onCloseRequested(async (event) => {
-    // 未保存のテキストが存在する場合の終了確認
-    if (isEdit.value) {
-      const confirmation = await confirm("ファイルが保存されていません。よろしいですか??", {
-        title: "終了の確認",
-        kind: "warning",
-      });
-      if (!confirmation) {
-        event.preventDefault();
-      }
-    }
-  });
-});
-
-// Window titleの変更処理
-async function updateTitle(newTitle: string) {
-  const window = getCurrentWindow();
-  await window.setTitle(newTitle);
+// ---- トグルハンドラ ----
+function handleInputTool() {
+  // 画面状態と永続化ストアを同時に更新する。
+  isShowTools.value = !isShowTools.value;
+  localStorageItem.setMarkdownTools(isShowTools.value);
 }
 
-// Mermaidの初期読み込みを阻止（MarkedによるHTMLレンダリング後にinitで読み込み）
-mermaid.initialize({
-  startOnLoad: false,
-  theme: "default",
-});
-
-// markedの設定をカスタマイズ
-marked.setOptions({
-  renderer,
-  async: false,
-});
-
-// Markedにカスタムトークンを追加
-marked.use({
-  extensions: [
-    videoToken,
-    detailsToken,
-    noteToken,
-    warningToken,
-    mathExtentionToken,
-    PageBreakToken,
-    youtubeToken,
-  ],
-});
-
-// XSSフィルタの設定をカスタマイズする
-let xssOptions: IFilterXSSOptions = {
-  whiteList: {
-    ...getDefaultWhiteList(), // デフォルトの許可リストを維持
-    h1: ["id", "class"], // h1-h6タグのid属性を許可 h1-h2のclass属性を許可
-    h2: ["id", "class"],
-    h3: ["id"],
-    h4: ["id"],
-    h5: ["id"],
-    h6: ["id"],
-    pre: ["class"],
-    a: ["target", "rel", "href", "title"],
-    button: ["class", "data-target"],
-    code: ["id", "class"],
-    div: ["class"],
-    p: ["class"],
-    span: ["class", "aria-hidden", "style"],
-    "app-youtube": ["video-id", "data-src"],
-  },
-  // iframeの確認（念のため、iframeはここで不許可）
-  onTag(tag, _html) {
-    if (tag === "iframe") return "Not Allow iframe ";
-  },
-  // Katexでサニタイズされてしまうスタイルを再定義
-  css: {
-    whiteList: {
-      height: true,
-      "margin-right": true,
-      top: true,
-      width: true,
-      "margin-left": true,
-      left: true,
-      right: true,
-      bottom: true,
-    },
-  },
-};
-const myXss = new FilterXSS(xssOptions);
-
-// Aceエディタを定義
-const editorRef = ref<HTMLDivElement | null>(null);
-let editor: any | null = null;
-
-// editorContent（bodyの要素）の変化を監視
-const editorContent = ref<string>("");
-watch(editorContent, (newEditorContent) => {
-  diffEditorRef.value.newEdirotContent = newEditorContent;
-  if (editor && editor.getValue() !== newEditorContent) {
-    editor.setValue(newEditorContent, 1);
-    // ストアの情報を更新
-    rustArgsStore.rustArgsData.text_data = newEditorContent;
-  }
-});
-
-// ローカルストレージ情報ストア
-const isShowTools = ref<boolean | null>(null);
-const isPreview = ref<boolean | null>(null);
-const isVimMode = ref<boolean | null>(null);
-const localStorageItem = useLocalStorageStore();
-onMounted(async () => {
-  await localStorageItem.init();
-  isShowTools.value = localStorageItem.isShowToolsFromLocalStrage;
-  isPreview.value = localStorageItem.isPreviewFromLocalStrage;
-  isVimMode.value = localStorageItem.isVimModeFromLocalStrage;
-});
-
-// マークダウン記号入力ボタンの表示非表示切替
-const handleInputTool = (): void => {
-  if (isShowTools.value) {
-    isShowTools.value = false;
-    localStorageItem.setMarkdownTools(false);
-  } else {
-    isShowTools.value = true;
-    localStorageItem.setMarkdownTools(true);
-  }
-};
-
-// マークダウンプレビューの表示非表示切替
-const handlePreview = (): void => {
-  if (isPreview.value) {
-    isPreview.value = false;
-    localStorageItem.setPreview(false);
-  } else {
-    isPreview.value = true;
-    localStorageItem.setPreview(true);
-  }
-};
-
-// VimモードのON/OFF切替
-const handleVimMode = (): void => {
-  if (isVimMode.value) {
-    isVimMode.value = false;
-    handleMessageModal("Vimモードをオフにしました");
-    localStorage.setItem("isVimMode", "false");
-    if (editor) {
-      editor.setKeyboardHandler(null);
-    }
-  } else {
-    isVimMode.value = true;
-    handleMessageModal("Vimモードをオンにしました");
-    localStorage.setItem("isVimMode", "true");
-    if (editor) {
-      editor.setKeyboardHandler("ace/keyboard/vim");
-    }
-  }
-};
-
-// HTML描画後にAceエディタを反映
-onMounted(() => {
-  // Aceの設定
-  if (editorRef.value) {
-    editor = ace.edit(editorRef.value);
-    editor.getSession().setMode("ace/mode/markdown");
-    editor.getSession().setUseWrapMode(true);
-    editor.setFontSize(16);
-    // 80文字の縦ラインを消す
-    editor.setShowPrintMargin(false);
-
-    // Vimモードの適用
-    if (isVimMode.value) {
-      editor.setKeyboardHandler("ace/keyboard/vim");
-    }
-
-    // Vim の :wq / :w コマンドをカスタマイズ
-    const vimApi = ace.require("ace/keyboard/vim");
-    vimApi.CodeMirror.Vim.defineEx("wq", "wq", () => {
-      fileSave();
-    });
-    vimApi.CodeMirror.Vim.defineEx("write", "w", () => {
-      fileSave();
-    });
-  }
-  // editorの変更を監視
-  editor.on("change", () => {
-    // mermaid.jsによるフロー図レンダリング
-    drawMermaid();
-    const newValue = editor.getValue();
-    if (newValue !== editorContent.value) {
-      editorContent.value = newValue;
-    }
-  });
-
-  let isEditorScrolling = false;
-  let isPreviewScrolling = false;
-  if (isEditorScrolling) {
-  } // ビルドエラー回避
-
-  // editorからpreviewへのスクロールの同期
-  // previewからeditorの同期は不可（画像の差分を微調整するため）
-  editor.getSession().on("changeScrollTop", function () {
-    if (isPreviewScrolling) return;
-
-    const editorScroll = editor.getSession().getScrollTop();
-    const editorMaxScroll =
-      editor.renderer.layerConfig.maxHeight - editor.renderer.$size.scrollerHeight;
-    const preview = document.getElementById("result")!;
-    if (!preview) return;
-
-    const previewMaxScroll = preview.scrollHeight - preview.clientHeight;
-
-    isEditorScrolling = true;
-    preview.scrollTop = (editorScroll / editorMaxScroll) * previewMaxScroll;
-    setTimeout(() => (isEditorScrolling = false), 50);
-  });
-});
-
-// Mermaid.jsのエラーハンドリング
-async function drawMermaid() {
-  try {
-    await mermaid.init();
-  } catch (error) {
-    console.error("Mermaid.js Syntax Error.");
-  }
+function handlePreview() {
+  // プレビューの表示状態は次回起動時にも復元したいので保存しておく。
+  isPreview.value = !isPreview.value;
+  localStorageItem.setPreview(isPreview.value);
 }
 
-onUnmounted(() => {
-  if (editor) {
-    editor.destroy();
-  }
-});
-
-// ヘルプモーダルの描画
-const showHelpContent = ref(false);
-const handleHelpModal = (): void => {
-  if (showHelpContent.value) {
-    showHelpContent.value = false;
-  } else {
-    showHelpContent.value = true;
-  }
-};
-
-// ヘルプモーダル表示時に灰色の部分のクリック時にもヘルプモーダルを閉じる処理
-// HTMLが描画後に組み込む（onmoutedを利用）
-onMounted(() => {
-  // オーバレイとヘルプの内容を取得
-  const helpModal = document.getElementById("overlay-help");
-  const helpModalContent = document.getElementById("content-help");
-  // 灰色部分クリック時にクローズ処理がなされるようにイベント設定
-  if (helpModal) {
-    helpModal.addEventListener("click", function (_event) {
-      if (showHelpContent.value === true) {
-        showHelpContent.value = false;
-      } else {
-        return;
-      }
-    });
-  }
-  // 灰色の部分以外（content-help）をクリックした時にはイベント伝搬を止め、クローズさせない
-  if (helpModalContent) {
-    helpModalContent.addEventListener("click", function (event) {
-      event.stopPropagation();
-    });
-  }
-});
-
-const parsedHtml = ref<string>("");
-
-// マークダウンからHTMLへのパース処理
-watch(
-  editorContent,
-  (md) => {
-    const options: MarkedOptions = { async: false };
-    const htmlStr = marked.parse(md, options);
-    const cleanHtml = myXss.process(htmlStr as string);
-    parsedHtml.value = renderIframe(cleanHtml);
-  },
-  { flush: "post" }, // DOM更新後に走らせて描画と競合しにくくする
-);
-
-// スクロール同期の設定
-const formArea: Ref<HTMLElement | null> = ref(null);
-const previewArea: Ref<HTMLElement | null> = ref(null);
-onMounted(() => {
-  formArea.value?.addEventListener("scroll", function (this: HTMLElement) {
-    if (previewArea.value && this.scrollTop !== undefined) {
-      previewArea.value.scrollTop = this.scrollTop;
-    }
-  });
-
-  previewArea.value?.addEventListener("scroll", function (this: HTMLElement) {
-    if (formArea.value && this.scrollTop !== undefined) {
-      formArea.value.scrollTop = this.scrollTop;
-    }
-  });
-});
-
-// メッセージ表示モーダル機能
-const isMessageModal = ref(false);
-const messageText = ref("");
-const handleMessageModal = (message: string): void => {
-  if (!isMessageModal.value) {
-    messageText.value = message;
-    isMessageModal.value = true;
-  } else {
-    isMessageModal.value = false;
-    messageText.value = "";
-  }
-};
-
-// ウィンドウサイズでエディタのサイズを自動調整
-function useWindowSize() {
-  const width = ref(window.innerWidth);
-  const height = ref(window.innerHeight);
-
-  const updateSize = () => {
-    width.value = window.innerWidth;
-    height.value = window.innerHeight;
-  };
-  onMounted(() => {
-    window.addEventListener("resize", updateSize);
-  });
-
-  onBeforeUnmount(() => {
-    window.removeEventListener("resize", updateSize);
-  });
-  return { width, height };
+function handleVimMode() {
+  // UI 状態と Ace のキーバインドを同じタイミングで切り替える。
+  isVimMode.value = !isVimMode.value;
+  localStorageItem.setVimMode(isVimMode.value);
+  aceEditor.setVimMode(isVimMode.value!);
+  showMessage(isVimMode.value ? "Vimモードをオンにしました" : "Vimモードをオフにしました");
 }
 
-const { height } = useWindowSize();
-const isHeightScreen = ref(false);
-const divHeight = ref(0);
-if (height.value > 850) {
-  isHeightScreen.value = true;
-  divHeight.value = height.value * 0.8;
-} else if (height.value > 400) {
-  isHeightScreen.value = false;
-  divHeight.value = height.value * 0.69;
+// ---- 画像ファイル読み込み ----
+async function readImage() {
+  const imageFilePath = await selectFile("Image File", ["png", "jpg", "jpeg", "svg"]);
+  if (!imageFilePath) return;
+  // 選んだ画像は絶対パス付き Markdown 画像記法で挿入する。
+  const fileName = getFileName(imageFilePath);
+  aceEditor.insertAtCursor(`![${fileName}](${imageFilePath})`);
 }
 
-watch(height, (newHeight) => {
-  if (newHeight > 800) {
-    isHeightScreen.value = true;
-    divHeight.value = newHeight * 0.8;
-  } else {
-    isHeightScreen.value = false;
-    divHeight.value = newHeight * 0.69;
-  }
-});
-
-// ショートカットキーを追加
-const handleKeyDown = (event: KeyboardEvent) => {
-  // プレビューの表示非表示
-  if (event.ctrlKey && event.key === "o") {
-    event.preventDefault();
-    fileOpen();
-
-    // 保存
-  } else if (event.ctrlKey && event.key === "s") {
-    event.preventDefault();
-    fileSave();
-
-    // 画像ファイル取得
-  } else if (event.ctrlKey && event.key === "r") {
-    event.preventDefault();
-    readImage();
-
-    // 印刷
-  } else if (event.ctrlKey && event.altKey && event.key === "p") {
-    event.preventDefault();
-    printOut();
-
-    // HTML出力
-  } else if (event.ctrlKey && event.altKey && event.key === "f") {
-    event.preventDefault();
-    printOutHtml();
-
-    // プレビュー切り替え
-  } else if (event.ctrlKey && event.altKey && event.key === "/") {
-    event.preventDefault();
-    handlePreview();
-
-    // マークダウン入力ツール
-  } else if (event.ctrlKey && event.altKey && event.key === "i") {
-    event.preventDefault();
-    handleInputTool();
-
-    // ヘルプモーダル
-  } else if (event.ctrlKey && event.altKey && event.key === "h") {
-    event.preventDefault();
-    handleHelpModal();
-
-    // 新規エディタ起動
-  } else if (event.ctrlKey && event.altKey && event.key === "n") {
-    event.preventDefault();
-    openNewInstance();
-  } else if (event.ctrlKey && event.key === "m") {
-    drawMermaid();
-
-    // Vimモード切り替え
-  } else if (event.ctrlKey && event.key === ",") {
-    event.preventDefault();
-    handleVimMode();
-
-    // Escapeキーでモーダルウィンドウをクローズ
-  } else if (event.key === "Escape") {
-    event.preventDefault();
-    if (isMessageModal.value) {
-      isMessageModal.value = false;
-    }
-    if (showHelpContent.value) {
-      showHelpContent.value = false;
-    }
-  }
-};
-
-// コンポーネントマウント時にイベントリスナーを追加
-onMounted(() => {
-  window.addEventListener("keydown", handleKeyDown);
-});
-
-// コンポーネントがアンマウントされた際にイベントリスナーを削除
-onUnmounted(() => {
-  window.removeEventListener("keydown", handleKeyDown);
-});
-
-// マークダウン記号をエディタに挿入
-function insertMarkdown(text: string) {
-  const corsorPosition = editor.getCursorPosition();
-  editor.session.insert(corsorPosition, text);
-  editor.focus();
-}
-
-// 編集中のアクティブファイル
-const activeFilePath = ref("");
-watch(activeFilePath, async () => {
-  if (activeFilePath.value === "") {
-    await updateTitle("Ageha");
-  } else {
-    await updateTitle(activeFilePath.value);
-  }
-});
-// 初期ファイル読み込み情報を保持
-const diffEditor: DiffEditorData = {
-  newEdirotContent: "",
-  oldEditorContent: "",
-};
-const diffEditorRef = ref<DiffEditorData>(diffEditor);
-
-// 読み取ったファイル内容の初期状態との変更を監視
-const isEdit = ref(false); // 変更フラグ
-watch(
-  () => [diffEditorRef.value.oldEditorContent, diffEditorRef.value.newEdirotContent],
-  ([oldVal, newVal]) => {
-    if (oldVal === newVal) {
-      if (activeFilePath.value.includes("*")) {
-        activeFilePath.value = activeFilePath.value.replace(/\*/g, "");
-        isEdit.value = false;
-      }
-    } else if (oldVal !== newVal) {
-      if (!activeFilePath.value.includes("*")) {
-        activeFilePath.value = `*${activeFilePath.value}`;
-        isEdit.value = true;
-      }
-    }
-  },
-);
-
-// ファイルを開く
-const fileOpen = async () => {
-  // 変更フラグにより未保存警告
-  if (isEdit.value) {
-    const confirmation = await confirm("ファイルが保存されていません。よろしいですか??", {
-      title: "保存の確認",
-      kind: "warning",
-    });
-    if (!confirmation) return;
-  }
-
-  const filePath = await selectFile("Markdown File", ["md", "txt"]);
-  if (!filePath) return;
-
-  const textData = await callRustReadMarkdownFile(filePath);
-  if (textData || textData === "") {
-    editorContent.value = textData;
-    diffEditorRef.value.oldEditorContent = textData;
-    diffEditorRef.value.newEdirotContent = textData;
-    activeFilePath.value = filePath;
-
-    // ストアの情報を更新
-    rustArgsStore.rustArgsData.text_data = textData;
-    rustArgsStore.rustArgsData.file_abs_path = filePath;
-  }
-  isEdit.value = false;
-};
-
-// Rust側でのマークダウンファイル取得処理
-async function callRustReadMarkdownFile(filePath: string) {
-  try {
-    const response: ResponseTextData = await invoke("read_file", { targetFile: filePath });
-    return response.text_data;
-  } catch (error) {
-    console.error(error);
-  }
-}
-
-// 別プロセスを起動
+// ---- 新規インスタンス起動 ----
 async function openNewInstance() {
+  // 実行ファイル自身をもう一度起動して新しいウィンドウを開く。
   await invoke("spawn_self", { args: ["--new-window"] });
 }
 
-// 新規ファイルの保存処理
-async function newWriteSave(filePath: string, fileData: string) {
-  // Rust側で保存処理
-  const status = await callRustSaveFile(filePath, fileData);
-  if (status.status_code === 200) {
-    activeFilePath.value = filePath;
-    return true;
-  } else {
-    return false;
-  }
-}
-
-// ファイルの上書き保存処理
-async function overWriteSave() {
-  // Rust側で保存処理
-  const trimSavePath = activeFilePath.value.replace(/\*/g, "");
-  const status = await callRustSaveFile(trimSavePath, editor.getValue());
-  if (status.status_code === 200) {
-    activeFilePath.value = trimSavePath;
-    return true;
-  } else {
-    return false;
-  }
-}
-
-// ファイル選択ダイアログ起動
-async function selectFile(name: string, extentions: string[]) {
-  try {
-    const selectedFilePath = await open({
-      directory: false,
-      multiple: false,
-      filters: [{ name: name, extensions: extentions }],
-    });
-    if (!selectedFilePath) return;
-    return selectedFilePath;
-  } catch (error) {
-    console.error(error);
-    handleMessageModal("ファイル選択時にエラーが発生しました");
-  }
-}
-
-// マークダウンファイル保存
-const fileSave = async () => {
-  const markdownText = editor.getValue();
-  // 新規ファイル保存
-  if (activeFilePath.value === "*" || (markdownText === "" && activeFilePath.value === "")) {
-    const saveNewPath = await saveNewFile();
-    if (saveNewPath) {
-      const isSaved = await newWriteSave(saveNewPath, markdownText);
-      if (!isSaved) return;
-    }
-
-    // 上書き保存
-  } else {
-    const isSaved = await overWriteSave();
-    if (!isSaved) return;
-  }
-
-  // 変更フラグをfalse
-  isEdit.value = false;
-};
-
-// HTMLファイル保存
-const htmlFileSave = async () => {
-  const saveNewPath = await saveNewHtmlFile();
-  const options: MarkedOptions = { async: false };
-  const htmlStr = await marked.parse(editorContent.value, options);
-  const mermaidRenderHtml = await renderMermaidToSvg(htmlStr);
-  const html = createHtml(mermaidRenderHtml, rustArgsStore.rustArgsData.css_data);
-  if (saveNewPath) {
-    const isSaved = await newWriteSave(saveNewPath, html);
-    if (!isSaved) return;
-  }
-};
-
-// Rust側での保存処理
-async function callRustSaveFile(
-  saveFileParh: string,
-  markdown_text_data: string,
-): Promise<StatusCode> {
-  try {
-    const response: StatusCode = await invoke("save_file", {
-      savePath: saveFileParh,
-      markdownTextData: markdown_text_data,
-    });
-    return response;
-  } catch (error) {
-    const errorStatus: StatusCode = {
-      status_code: 500,
-      message: `${error}`,
-    };
-    return errorStatus;
-  }
-}
-
-// 新規ファイル保存ダイアログ
-async function saveNewFile(): Promise<string | null> {
-  const path = await save({
-    filters: [{ name: "markdowntext", extensions: ["md"] }],
-  });
-  return path;
-}
-
-// 新規HTMLファイル保存ダイアログ
-async function saveNewHtmlFile(): Promise<string | null> {
-  const path = await save({
-    filters: [{ name: "html", extensions: ["html"] }],
-  });
-  return path;
-}
-
-// 出力処理の開始
-const printOut = () => {
-  printPreviewWindow(parsedHtml.value);
-};
-
-// HTML出力開始
-const printOutHtml = () => {
-  htmlFileSave();
-};
-
-// Mermaid.jsの事前レンダリング
-async function renderMermaidToSvg(html: string): Promise<string> {
-  const container = document.createElement("div");
-  container.innerHTML = html;
-  const blocks = container.querySelectorAll<HTMLElement>(".mermaid");
-  let i = 0;
-
-  for (const block of Array.from(blocks)) {
-    const code = block.textContent ?? "";
-    const { svg } = await mermaid.render(`print-graph-${i++}`, code);
-    // SVGで置換
-    block.outerHTML = svg;
-  }
-  return container.innerHTML;
-}
-
-// OSのプリント出力を起動
-async function printPreviewWindow(htmlBody: string) {
-  if (editorContent.value === "") {
-    handleMessageModal("入力がありません。");
-    return;
-  }
-
-  // 事前にmermaidの記述をSVGへ変換
-  const rendered = await renderMermaidToSvg(htmlBody);
-
-  // 印刷ウィンドウに投入
-  const printWindow = window.open("", "_blank", "width=800,height=600");
-  if (!printWindow) return;
-  printWindow.document.writeln(
-    `
-        <html>
-            <head>
-                <meta charset="UTF-8">
-                <title>印刷</title>
-                <link rel="stylesheet" href="katex.css">
-                <style>${rustArgsStore.rustArgsData.css_data}
-                    @media print {
-                        button.copy-btn {
-                        display: none !important;
-                        }
-
-                        iframe {
-                            display: none !important;
-                        }
-                    }
-
-                    html {
-                        transform: scale(0.9);
-                    }
-                </style>
-
-            </head>
-
-            <body>${rendered}</body>
-        </html>
-    `,
-  );
-  printWindow.document.close();
-  printWindow.onload = () => {
-    printWindow.focus();
-    printWindow.print();
-    printWindow.close();
-  };
-}
-
-const openWindowViewerCall = () => {
-  openWindowViewer(parsedHtml.value);
-};
-
-// プレビューウィンドウ起動
-async function openWindowViewer(htmlBody: string) {
-  if (editorContent.value === "") {
-    handleMessageModal("入力がありません。");
-    return;
-  }
-
-  // 事前にmermaidの記述をSVGへ変換
-  const rendered = await renderMermaidToSvg(htmlBody);
-
-  // ビューアウィンドウに投入
-  const viewerWindow = window.open("", "_blank", "width=1000,height=700");
-  if (!viewerWindow) return;
-  viewerWindow.document.writeln(
-    `
-        <html>
-            <head>
-                <meta charset="UTF-8">
-                <title>Ageha Editor Viewer</title>
-                <link rel="stylesheet" href="katex.css">
-                <style>${rustArgsStore.rustArgsData.css_data}</style>
-            </head>
-
-            <body>${rendered}</body>
-            <style>
-                body {
-                    margin-top: 0;
-                }
-            </style>
-            <script src="preview.js"><\/script>
-        </html>
-    `,
-  );
-}
-
-// 画像ファイルパスを取得
-const readImage = async () => {
-  const imageFilePath = await selectFile("Image File", ["png", "jpg", "jpeg", "svg"]);
-  if (!imageFilePath) return;
-  const fileName = getFileName(imageFilePath);
-  const imageUrlMarkdown = `![${fileName}](${imageFilePath})`;
-  insertMarkdown(imageUrlMarkdown);
-};
-
-// ファイル名を取得
+// ---- ユーティリティ ----
 function getFileName(path: string): string {
+  // Windows / POSIX どちらの区切り文字でも末尾ファイル名を取り出せるようにする。
   const segments = path.split(/[/\\]/);
   return segments[segments.length - 1];
 }
+
+// ---- キーボードショートカット ----
+useKeyboardShortcuts({
+  fileOpen,
+  fileSave,
+  readImage,
+  printOut,
+  exportHtml,
+  openViewer,
+  togglePreview: handlePreview,
+  toggleInputTool: handleInputTool,
+  toggleHelp: () => {
+    showHelp.value = !showHelp.value;
+  },
+  openNewInstance,
+  drawMermaid,
+  toggleVimMode: handleVimMode,
+  closeModals: () => {
+    isMessageModal.value = false;
+    showHelp.value = false;
+  },
+});
 </script>
 
 <template>
   <!-- 機能ボタン -->
-  <div id="btn-head-zone">
-    <div id="btn-head-left">
-      <button
-        class="btn-head-image"
-        title="ファイルを開く&#10;ショートカット: Ctrl + o"
-        v-on:click="fileOpen()"
-      >
-        <img src="/file_open_24.png" class="btn-img" alt="file_open_24.png" />
-      </button>
-      <button
-        class="btn-head-image"
-        title="保存&#10;ショートカット: Ctrl + s"
-        v-on:click="fileSave()"
-      >
-        <img src="/file_save_24.png" class="btn-img" alt="file_save_24.png" />
-      </button>
-      <button
-        class="btn-head-image"
-        title="画像読み込み&#10;ショートカット: Ctrl + r"
-        v-on:click="readImage()"
-      >
-        <img src="/smartphone_line24.png" class="btn-img" alt="smartphone_line24.png" />
-      </button>
-      <button
-        class="btn-head-image"
-        title="出力（PDFまたは紙）&#10;ショートカット: Ctrl + Alt + p"
-        v-on:click="printOut()"
-      >
-        <img src="/print_24.png" class="btn-img" alt="print_24.png" />
-      </button>
-      <button
-        class="btn-head-image"
-        title="HTML出力&#10;ショートカット: Ctrl + Alt + f"
-        v-on:click="printOutHtml()"
-      >
-        <img src="/html_24.png" class="btn-img" alt="print_24.png" />
-      </button>
-      <button
-        v-if="isPreview"
-        class="btn-head-image"
-        title="プレビュー切り替え&#10;ショートカット: Ctrl + Alt + /"
-        v-on:click="handlePreview()"
-      >
-        <img src="/preview_off_24.png" class="btn-img" alt="preview_off_24.png" />
-      </button>
-      <button
-        v-else
-        class="btn-head-image"
-        title="プレビュー切り替え&#10;ショートカット: Ctrl + Alt + /"
-        v-on:click="handlePreview()"
-      >
-        <img src="/preview_on_24.png" class="btn-img" alt="preview_on_24.png" />
-      </button>
-      <button
-        class="btn-head-image"
-        title="マークダウン入力ツール&#10;ショートカット: Ctrl + Alt + i"
-        v-on:click="handleInputTool()"
-      >
-        <img src="/markdown_24.png" class="btn-img" alt="markdown_24.png" />
-      </button>
-      <button
-        class="btn-head-image"
-        title="別ウィンドウ&#10;ショートカット: Ctrl + Alt + w"
-        v-on:click="openWindowViewerCall()"
-      >
-        <img src="/new_window_fill24.png" class="btn-img" alt="new_window_fill24.png" />
-      </button>
-    </div>
-    <div id="btn-head-right">
-      <button
-        class="btn-head-image"
-        title="新しいエディターを起動&#10;ショートカット: Ctrl + Alt + n"
-        v-on:click="openNewInstance()"
-      >
-        <img src="/new_editor_24.png" class="btn-img" alt="new_editor_24.png" />
-      </button>
-      <button
-        class="btn-head-image"
-        title="書き方のヘルプを表示&#10;ショートカット: Ctrl + Alt + h"
-        v-on:click="handleHelpModal"
-      >
-        <img src="/help_24.png" class="btn-img" alt="help_24.png" />
-      </button>
-    </div>
-  </div>
+  <ToolbarButtons
+    :is-preview="isPreview"
+    :document-mode="documentMode"
+    @file-open="fileOpen"
+    @file-save="fileSave"
+    @read-image="readImage"
+    @print-out="printOut"
+    @export-html="exportHtml"
+    @toggle-preview="handlePreview"
+    @toggle-tools="handleInputTool"
+    @open-viewer="openViewer"
+    @new-instance="openNewInstance"
+    @show-help="showHelp = true"
+  />
 
   <!-- エディタとプレビュー -->
-  <div class="contants-area" :style="{ height: divHeight + 'px' }">
+  <div class="contents-area" :style="{ height: divHeight + 'px' }">
     <!-- エディター -->
     <div
       class="left-area-isprev"
@@ -1041,190 +309,48 @@ function getFileName(path: string): string {
     <!-- プレビュー -->
     <div class="right-area-preview" v-if="isPreview">
       <div class="right-h3">
-        <h3 class="editor-and-preview-title" id="title_h3_2">Preview</h3>
+        <h3 class="editor-and-preview-title" id="title_h3_2">{{ previewTitle }}</h3>
       </div>
-      <div class="preview-area" id="result" ref="previewArea" :style="{ height: divHeight + 'px' }">
-        <section class="markdown-body" v-html="parsedHtml"></section>
+      <div
+        class="preview-area"
+        :class="{ 'slide-preview-host': documentMode === 'slides' }"
+        id="result"
+        ref="previewArea"
+        :style="{ height: divHeight + 'px' }"
+      >
+        <iframe
+          v-if="documentMode === 'slides'"
+          class="slide-preview-frame"
+          :srcdoc="previewFrameHtml"
+          title="Slide preview"
+        ></iframe>
+        <section v-else class="markdown-body" v-html="parsedHtml"></section>
       </div>
     </div>
   </div>
 
   <!-- マークダウン入力支援ボタン -->
-  <div
-    class="input-tools"
+  <MarkdownTools
     v-show="isShowTools"
-    :style="[
-      isPreview ? { right: '54%' } : { right: '6%' },
-      isHeightScreen ? { height: '60%' } : { height: '50%' },
-    ]"
-  >
-    <button
-      class="btn-input-tools"
-      title="# を挿入&#10;一番大きい見出し"
-      v-on:click="insertMarkdown('# ')"
-    >
-      <img src="/format_h1_24.png" class="btn-input-tools-img" alt="format_h1_24.png" />
-    </button>
-    <button
-      class="btn-input-tools"
-      title="## を挿入&#10;二番目に大きい見出し"
-      v-on:click="insertMarkdown('## ')"
-    >
-      <img src="/format_h2_24.png" class="btn-input-tools-img" alt="format_h2_24.png" />
-    </button>
-    <button
-      class="btn-input-tools"
-      title="### を挿入&#10;三番目に大きい見出し"
-      v-on:click="insertMarkdown('### ')"
-    >
-      <img src="/format_h3_24.png" class="btn-input-tools-img" alt="format_h3_24.png" />
-    </button>
-    <button
-      class="btn-input-tools"
-      title="** を挿入&#10;文字を ** で囲むと太字で協調"
-      v-on:click="insertMarkdown('**')"
-    >
-      <img src="/format_bold_24.png" class="btn-input-tools-img" alt="format_bold_24.png" />
-    </button>
-    <button class="btn-input-tools" title="- を挿入" v-on:click="insertMarkdown('- ')">
-      <img
-        src="/format_list_bulleted_24.png"
-        class="btn-input-tools-img"
-        alt="format_list_bulleted_24.png"
-      />
-    </button>
-    <button class="btn-input-tools" title="1. を挿入" v-on:click="insertMarkdown('1. ')">
-      <img
-        src="/format_list_numbered_24.png"
-        class="btn-input-tools-img"
-        alt="format_list_numbered_24.png"
-      />
-    </button>
-    <button class="btn-input-tools" title="|を挿入" v-on:click="insertMarkdown('|')">
-      <img src="/table_24.png" class="btn-input-tools-img" alt="table_24.png" />
-    </button>
-    <button class="btn-input-tools" title="---を挿入" v-on:click="insertMarkdown('---')">
-      <img src="/more_horiz_24.png" class="btn-input-tools-img" alt="more_horiz_24.png" />
-    </button>
-    <button class="btn-input-tools" title="~を挿入" v-on:click="insertMarkdown('~')">
-      <img src="/strikethrough_24.png" class="btn-input-tools-img" alt="strikethrough_24.png" />
-    </button>
-    <button class="btn-input-tools" title="```を挿入" v-on:click="insertMarkdown('```')">
-      <img src="/code_24.png" class="btn-input-tools-img" alt="code_24.png" />
-    </button>
-    <button class="btn-input-tools" title="`を挿入" v-on:click="insertMarkdown('`')">
-      <img src="/ink_highlighter_24.png" class="btn-input-tools-img" alt="ink_highlighter_24.png" />
-    </button>
-    <button class="btn-input-tools" title=">を挿入" v-on:click="insertMarkdown('>')">
-      <img src="/chat_24.png" class="btn-input-tools-img" alt="chat_24.png" />
-    </button>
-    <button
-      class="btn-input-tools"
-      title="[Title](URL)を挿入"
-      v-on:click="insertMarkdown('[Title](URL)')"
-    >
-      <img src="/link_24.png" class="btn-input-tools-img" alt="link_24.png" />
-    </button>
-    <button
-      class="btn-input-tools"
-      title=":::detailsを挿入"
-      v-on:click="insertMarkdown(':::details タイトル\n非表示にする内容\n:::')"
-    >
-      <img src="/more_24.png" class="btn-input-tools-img" alt="more_24.png" />
-    </button>
-    <button
-      class="btn-input-tools"
-      title=":::noteを挿入"
-      v-on:click="insertMarkdown(':::note タイトル\n内容\n:::')"
-    >
-      <img src="/info_24.png" class="btn-input-tools-img" alt="info_24.png" />
-    </button>
-    <button
-      class="btn-input-tools"
-      title=":::warningを挿入"
-      v-on:click="insertMarkdown(':::warning タイトル\n内容\n:::')"
-    >
-      <img src="/warning_24.png" class="btn-input-tools-img" alt="warning_24.png" />
-    </button>
-    <button class="btn-input-tools" title="$$を挿入" v-on:click="insertMarkdown('$$\n数式\n$$')">
-      <img src="/math24.png" class="btn-input-tools-img" alt="math24.png" />
-    </button>
-    <button
-      class="btn-input-tools"
-      title="@@@（改ページ）を挿入"
-      v-on:click="insertMarkdown('@@@')"
-    >
-      <img src="/keyboard_return_24.png" class="btn-input-tools-img" alt="keyboard_return_24.png" />
-    </button>
-    <button
-      class="btn-input-tools"
-      title="[](tel:+81)を挿入&#10;0 を省略した番号をハイフンなしで入力&#10;例）080-1234-5678 => +818012345678"
-      v-on:click="insertMarkdown('[](tel:+81)')"
-    >
-      <img src="/tel_24.png" class="btn-input-tools-img" alt="tel_24.png" />
-    </button>
-    <button
-      class="btn-input-tools"
-      title="[](mailto:)を挿入&#10;mailto:maru@example.com のようにメールアドレスを入力"
-      v-on:click="insertMarkdown('[](mailto:)')"
-    >
-      <img src="/mail_24.png" class="btn-input-tools-img" alt="mail_24.png" />
-    </button>
-  </div>
+    :is-preview="isPreview"
+    :is-height-screen="isHeightScreen"
+    @insert="aceEditor.insertAtCursor"
+  />
 
   <!-- ヘルプモーダル -->
-  <transition>
-    <div id="overlay-help" v-show="showHelpContent">
-      <div id="content-help">
-        <Help></Help>
-        <button class="btn-help-close" v-on:click="handleHelpModal()">閉じる</button>
-      </div>
-    </div>
-  </transition>
+  <HelpModal :visible="showHelp" @close="showHelp = false" />
 
-  <!-- 各種メッセージモーダル -->
-  <div id="overlay-message" v-show="isMessageModal">
-    <div id="content-message">
-      <h2 class="modal-h2">メッセージ</h2>
-      <div class="input-text-zone">
-        <p>
-          <strong>{{ messageText }}</strong>
-        </p>
-      </div>
-      <div class="btn-close">
-        <button id="message-close-btn" v-on:click="handleMessageModal('No Message')">閉じる</button>
-      </div>
-    </div>
-  </div>
+  <!-- メッセージモーダル -->
+  <MessageModal :visible="isMessageModal" :message="messageText" @close="isMessageModal = false" />
 </template>
 
 <style scoped>
 h3 {
-  /* h3タグのテキストを左寄せにする */
   text-align: left;
   margin-bottom: 0;
 }
 
-#btn-head-zone {
-  display: flex;
-  justify-content: space-between;
-}
-
-#btn-head-left {
-  display: flex;
-}
-
-.v-enter-active,
-.v-leave-active {
-  transition: all 0.3s ease-in-out;
-}
-
-.v-enter-from,
-.v-leave-to {
-  opacity: 0;
-}
-
-.contants-area {
+.contents-area {
   display: flex;
 }
 
@@ -1269,7 +395,7 @@ h3#title_h3_1:after {
   border-bottom: solid 3px rgb(17, 105, 86);
 }
 
-/* Aceエディタの上にモーダルを出した際の崩れ（スクロールバーが前面に現れる）を解消 */
+/* Aceエディタの上にモーダルを出した際の崩れを解消 */
 .ace_editor {
   z-index: 0;
   height: 100%;
@@ -1330,56 +456,27 @@ h3#title_h3_2:after {
   height: 100%;
 }
 
-/* ヘルプモーダル */
-#overlay-help {
-  z-index: 1;
-  position: fixed;
-  top: 0;
-  left: 0;
-  height: 100%;
-  width: 100%;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.preview-area {
+  overflow-y: auto;
+  border-radius: 5px;
+  padding: 0 20px;
+  background-color: #ffffff;
 }
 
-/* ヘルプモーダルのコンテンツ */
-#content-help {
-  z-index: 2;
-  height: 100%;
-  width: 70%;
-  padding: 1em;
-  margin-left: 47%;
-  background: #fff;
-  overflow-y: scroll;
+.slide-preview-host {
+  padding: 0;
+  overflow: hidden;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(234, 242, 250, 0.92)),
+    #eff4f9;
 }
 
-/* メッセージモーダル */
-#overlay-message {
-  z-index: 3;
-  position: fixed;
-  top: 0;
-  left: 0;
+.slide-preview-frame {
+  display: block;
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-#content-message {
-  z-index: 4;
-  width: 30%;
-  padding: 1em;
-  background: whitesmoke;
-  border-radius: 10px;
-  text-align: center;
-}
-
-.btn-help-close {
-  font-size: 12px;
-  margin-bottom: 15px;
+  border: 0;
+  background: #f4f7fb;
+  border-radius: 5px;
 }
 </style>

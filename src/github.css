@@ -1,3 +1,6 @@
+/* 通常の Markdown プレビューで使うベーススタイル。
+ * GitHub 風の読みやすい見た目を土台として採用している。
+ */
 body {
   font-family: Helvetica, arial, sans-serif;
   font-size: 14px;
@@ -454,9 +457,8 @@ pre[class*="language-"] {
 }
 
 .head1 {
-  font-size: 32px;
-  margin-bottom: -1%;
-  border-bottom: solid 3px #d7d7d7;
+  font-size: 34px;
+  margin-bottom: 8px;
 }
 
 .head2 {
