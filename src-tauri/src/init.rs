@@ -551,9 +551,8 @@ fn create_default_css(file_path: PathBuf) -> io::Result<()> {
     }
 
     .head1 {
-      font-size: 32px;
-      margin-bottom: -1%;
-      border-bottom: solid 3px #d7d7d7;
+      font-size: 34px;
+      margin-bottom: 8px;
     }
 
     .head2 {

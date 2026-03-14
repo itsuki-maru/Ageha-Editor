@@ -133,7 +133,7 @@ defineEmits<{
   align-items: center;
   justify-content: center;
   min-width: 94px;
-  padding: 0.35em 0.85em;
+  padding: 0.38em 0.85em 0.35em 0.85em;
   border-radius: 999px;
   font-size: 0.78rem;
   font-weight: 700;
