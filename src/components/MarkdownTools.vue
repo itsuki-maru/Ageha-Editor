@@ -74,11 +74,7 @@ function insert(text: string) {
       <img src="/code_24.png" class="btn-input-tools-img" alt="code_24.png" />
     </button>
     <button class="btn-input-tools" title="`を挿入" @click="insert('`')">
-      <img
-        src="/ink_highlighter_24.png"
-        class="btn-input-tools-img"
-        alt="ink_highlighter_24.png"
-      />
+      <img src="/ink_highlighter_24.png" class="btn-input-tools-img" alt="ink_highlighter_24.png" />
     </button>
     <button class="btn-input-tools" title=">を挿入" @click="insert('>')">
       <img src="/chat_24.png" class="btn-input-tools-img" alt="chat_24.png" />
@@ -111,11 +107,7 @@ function insert(text: string) {
       <img src="/math24.png" class="btn-input-tools-img" alt="math24.png" />
     </button>
     <button class="btn-input-tools" title="@@@（改ページ）を挿入" @click="insert('@@@')">
-      <img
-        src="/keyboard_return_24.png"
-        class="btn-input-tools-img"
-        alt="keyboard_return_24.png"
-      />
+      <img src="/keyboard_return_24.png" class="btn-input-tools-img" alt="keyboard_return_24.png" />
     </button>
     <button
       class="btn-input-tools"
@@ -130,6 +122,17 @@ function insert(text: string) {
       @click="insert('[](mailto:)')"
     >
       <img src="/mail_24.png" class="btn-input-tools-img" alt="mail_24.png" />
+    </button>
+    <button
+      class="btn-input-tools"
+      title="スライドモードに変更&#10; marp: true を挿入"
+      @click="insert('---\nmarp: true\n\n---')"
+    >
+      <img
+        src="/wallpaper_slideshow_24.png"
+        class="btn-input-tools-img"
+        alt="wallpaper_slideshow_24.png"
+      />
     </button>
   </div>
 </template>

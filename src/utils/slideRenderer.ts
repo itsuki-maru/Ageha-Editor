@@ -34,7 +34,10 @@ export async function renderSlides(
   // frontmatter に theme / size / math が未指定なら Ageha 固定値を補完する。
   const normalizedMarkdown = normalizeSlideMarkdown(markdown);
   // ローカル画像を data URL に変換しておく（srcdoc や別ウィンドウで参照切れを防ぐ）。
-  const markdownWithResolvedAssets = await preprocessSlideAssets(normalizedMarkdown, activeFilePath);
+  const markdownWithResolvedAssets = await preprocessSlideAssets(
+    normalizedMarkdown,
+    activeFilePath,
+  );
   // Marp 本体のレンダリングを実行する（同期処理）。
   const rendered = marp.render(markdownWithResolvedAssets);
 

@@ -25,6 +25,9 @@ section {
   box-sizing: border-box;
   overflow: hidden;
   position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
   font-family: "Aptos", "Segoe UI", "Hiragino Sans", "Yu Gothic UI", sans-serif;
   font-size: 29px;
   line-height: 1.55;
@@ -32,21 +35,21 @@ section {
   background: linear-gradient(150deg, #f7f9ff 0%, #f0f4ff 55%, #eaefff 100%);
 }
 
-/* Left accent bar */
+/* 画面左側のアクセント縦線 */
 section::before {
   content: "";
   position: absolute;
   left: 0;
   top: 48px;
   bottom: 48px;
-  width: 4px;
+  width: 10px;
   border-radius: 0 4px 4px 0;
   background: var(--pg);
   opacity: 0.65;
   pointer-events: none;
 }
 
-/* Page number */
+/* ページ番号 */
 section::after {
   content: attr(data-marpit-pagination);
   position: absolute;
@@ -77,8 +80,7 @@ figure {
 
 h1 {
   margin: 0 0 20px;
-  max-width: 12em;
-  font-size: 2.2em;
+  font-size: 1.8em;
   line-height: 1.05;
   font-weight: 800;
   letter-spacing: -0.04em;
@@ -91,7 +93,7 @@ h2 {
   font-size: 1.3em;
   font-weight: 700;
   letter-spacing: -0.02em;
-  color: #0369a1;
+  color: #1e1b4b;
 }
 
 h3,
