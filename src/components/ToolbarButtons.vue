@@ -26,14 +26,6 @@ defineEmits<{
 
 <template>
   <div class="top-right-zone">
-    <button
-      class="btn-head-text"
-      :class="{ 'btn-vim-active': isVimMode }"
-      title="Vimモード切り替え&#10;ショートカット: Ctrl + ,"
-      @click="$emit('toggle-vim-mode')"
-    >
-      Vim
-    </button>
     <span class="mode-badge" :class="`mode-${documentMode}`">
       {{ documentMode === "slides" ? "Slides" : "Markdown" }}
     </span>
@@ -104,6 +96,14 @@ defineEmits<{
         @click="$emit('open-viewer')"
       >
         <img src="/new_window_fill24.png" class="btn-img" alt="new_window_fill24.png" />
+      </button>
+      <button
+        class="btn-head-image btn-toggle-vim"
+        :class="{ 'btn-vim-active': isVimMode }"
+        title="Vimモード切り替え&#10;ショートカット: Ctrl + ,"
+        @click="$emit('toggle-vim-mode')"
+      >
+        Vim
       </button>
     </div>
     <div id="btn-head-right">
@@ -208,5 +208,27 @@ defineEmits<{
 .mode-slides {
   color: #f5fffb;
   background: linear-gradient(135deg, #116956, #2c8f77);
+}
+
+.btn-toggle-vim {
+  color: black;
+  font-weight: bold;
+  font-size: 0.72rem;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    color 0.15s,
+    border-color 0.15s;
+}
+
+.btn-vim-active {
+  background: linear-gradient(135deg, #116956, #2c8f77);
+  color: #ffffff;
+  border-color: #2c8f77;
+}
+
+.btn-vim-active:hover {
+  background: linear-gradient(135deg, #0e5a49, #247a65);
+  color: #ffffff;
 }
 </style>

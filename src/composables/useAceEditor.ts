@@ -28,10 +28,7 @@ export interface UseAceEditorOptions {
  * @param editorRef - エディタをマウントする div 要素への ref
  * @param options - 保存コールバック、変更コールバック、Vim モード初期値
  */
-export function useAceEditor(
-  editorRef: Ref<HTMLDivElement | null>,
-  options: UseAceEditorOptions,
-) {
+export function useAceEditor(editorRef: Ref<HTMLDivElement | null>, options: UseAceEditorOptions) {
   // Ace インスタンスは shallowRef で保持し、内部プロパティの深い追跡を避ける。
   const editor = shallowRef<Ace.Editor | null>(null);
 
