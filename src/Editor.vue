@@ -222,7 +222,6 @@ function handleVimMode() {
   isVimMode.value = !isVimMode.value;
   localStorageItem.setVimMode(isVimMode.value);
   aceEditor.setVimMode(isVimMode.value!);
-  showMessage(isVimMode.value ? "Vimモードをオンにしました" : "Vimモードをオフにしました");
 }
 
 // ---- 画像ファイル読み込み ----
@@ -274,6 +273,7 @@ useKeyboardShortcuts({
   <!-- 機能ボタン -->
   <ToolbarButtons
     :is-preview="isPreview"
+    :is-vim-mode="isVimMode"
     :document-mode="documentMode"
     @file-open="fileOpen"
     @file-save="fileSave"
@@ -285,6 +285,7 @@ useKeyboardShortcuts({
     @open-viewer="openViewer"
     @new-instance="openNewInstance"
     @show-help="showHelp = true"
+    @toggle-vim-mode="handleVimMode"
   />
 
   <!-- エディタとプレビュー -->
@@ -467,8 +468,7 @@ h3#title_h3_2:after {
   padding: 0;
   overflow: hidden;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(234, 242, 250, 0.92)),
-    #eff4f9;
+    linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(234, 242, 250, 0.92)), #eff4f9;
 }
 
 .slide-preview-frame {

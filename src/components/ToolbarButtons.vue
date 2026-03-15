@@ -5,6 +5,7 @@ import type { DocumentMode } from "@/interface";
 // 実際の処理内容は Editor.vue 側でまとめて制御する構成にしている。
 defineProps<{
   isPreview: boolean | null;
+  isVimMode: boolean | null;
   documentMode: DocumentMode;
 }>();
 
@@ -19,13 +20,24 @@ defineEmits<{
   "open-viewer": [];
   "new-instance": [];
   "show-help": [];
+  "toggle-vim-mode": [];
 }>();
 </script>
 
 <template>
-  <span class="mode-badge" :class="`mode-${documentMode}`">
-    {{ documentMode === "slides" ? "Slides" : "Markdown" }}
-  </span>
+  <div class="top-right-zone">
+    <button
+      class="btn-head-text"
+      :class="{ 'btn-vim-active': isVimMode }"
+      title="Vimモード切り替え&#10;ショートカット: Ctrl + ,"
+      @click="$emit('toggle-vim-mode')"
+    >
+      Vim
+    </button>
+    <span class="mode-badge" :class="`mode-${documentMode}`">
+      {{ documentMode === "slides" ? "Slides" : "Markdown" }}
+    </span>
+  </div>
   <div id="btn-head-zone">
     <div id="btn-head-left">
       <button
@@ -124,22 +136,68 @@ defineEmits<{
   align-items: center;
 }
 
-.mode-badge {
+.top-right-zone {
   position: fixed;
   top: 12px;
   right: 14px;
   z-index: 30;
   display: inline-flex;
   align-items: center;
+  gap: 8px;
+  margin-right: 10px;
+}
+
+.mode-badge {
+  display: inline-flex;
+  align-items: center;
   justify-content: center;
   min-width: 94px;
-  padding: 0.38em 0.85em 0.35em 0.85em;
-  border-radius: 999px;
-  font-size: 0.78rem;
+  height: 36px;
+  padding: 0 4px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 5px;
+  font-size: 0.72rem;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+}
+
+.btn-head-text {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  height: 36px;
+  padding: 0 8px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 5px;
+  background: transparent;
+  color: #c0c0c0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    color 0.15s,
+    border-color 0.15s;
+}
+
+.btn-head-text:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.45);
+}
+
+.btn-vim-active {
+  background: linear-gradient(135deg, #116956, #2c8f77);
+  color: #ffffff;
+  border-color: #2c8f77;
+}
+
+.btn-vim-active:hover {
+  background: linear-gradient(135deg, #0e5a49, #247a65);
+  color: #ffffff;
 }
 
 .mode-markdown {
