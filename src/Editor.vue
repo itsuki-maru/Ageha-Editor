@@ -148,7 +148,11 @@ onMounted(async () => {
       editorContent.value = textData;
     }
     // 初期描画直後は Ace がまだ安定していないため、少し待ってからフォーカスする。
-    setTimeout(() => aceEditor.focus(), EDITOR_FOCUS_DELAY_MS);
+    setTimeout(() => {
+      aceEditor.focus();
+      // 前回のVimモードの状態を反映
+      aceEditor.setVimMode(isVimMode.value!);
+    }, EDITOR_FOCUS_DELAY_MS);
   } catch (error) {
     console.error("Failed to initialize editor with launch args:", error);
   }

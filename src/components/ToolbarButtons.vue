@@ -152,7 +152,7 @@ defineEmits<{
   align-items: center;
   justify-content: center;
   min-width: 94px;
-  height: 36px;
+  height: 26px;
   padding: 0 4px;
   border: 1px solid rgba(255, 255, 255, 0.25);
   border-radius: 5px;
