@@ -5,7 +5,10 @@ mod schema;
 mod utils;
 
 use config::AppConfig;
-use handler::file::{read_binary_file_data_url, read_file, request_launch_args, save_file};
+use handler::file::{
+    delete_file, read_binary_file_data_url, read_file, request_launch_args, save_file,
+    save_temp_html,
+};
 use handler::spawn_self::spawn_self;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -39,6 +42,8 @@ pub fn run(args_file_path: String, css_file_path: String, slide_css_file_path: S
             read_binary_file_data_url,
             read_file,
             save_file,
+            save_temp_html,
+            delete_file,
             request_launch_args,
             spawn_self,
         ])

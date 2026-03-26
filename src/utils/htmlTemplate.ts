@@ -307,7 +307,6 @@ const SLIDESHOW_SCRIPT = `
         e.preventDefault(); showSlide(current + 1); break;
       case 'ArrowLeft': case 'ArrowUp':
         e.preventDefault(); showSlide(current - 1); break;
-      case 'Escape': window.close(); break;
       case 'Home': e.preventDefault(); showSlide(0); break;
       case 'End': e.preventDefault(); showSlide(slides.length - 1); break;
     }
@@ -339,7 +338,6 @@ const SLIDESHOW_SCRIPT = `
  *   ArrowRight / ArrowDown / Space: 次のスライド
  *   ArrowLeft / ArrowUp           : 前のスライド
  *   Home / End                    : 最初 / 最後のスライド
- *   Escape                        : ウィンドウを閉じる
  *
  * @param baseSlideHtml - createSlideHtmlDocument が生成した完全な HTML 文書
  */

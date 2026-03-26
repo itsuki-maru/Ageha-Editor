@@ -1,5 +1,7 @@
 import { type Ref } from "vue";
 import type { DocumentMode, SlideRenderResult } from "@/interface";
+import { invoke, convertFileSrc } from "@tauri-apps/api/core";
+import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
 import {
   createHtml,
   createSlideHtmlDocument,
@@ -73,8 +75,38 @@ export function useExport(
   }
 
   /**
-   * 現在のプレビュー内容を新しいウィンドウで表示する（別ウィンドウビューア）。
-   * 印刷とは異なり、ウィンドウを閉じずそのまま閲覧に使える。
+   * HTML を一時ファイルに保存し、Tauri のネイティブウィンドウ（アドレスバーなし）で開く。
+   * ウィンドウが閉じられたタイミングで一時ファイルを自動削除する。
+   */
+  async function openNativeViewer(
+    html: string,
+    options: { title: string; width?: number; height?: number; maximized?: boolean },
+  ): Promise<void> {
+    let filePath: string;
+    try {
+      filePath = await invoke<string>("save_temp_html", { html });
+    } catch {
+      showMessage("ウィンドウの表示に失敗しました。");
+      return;
+    }
+
+    const label = `viewer-${Date.now()}`;
+    const win = new WebviewWindow(label, {
+      url: convertFileSrc(filePath),
+      title: options.title,
+      width: options.width,
+      height: options.height,
+      maximized: options.maximized,
+    });
+
+    // ウィンドウが閉じられたら一時ファイルを削除する。
+    win.once("tauri://destroyed", () => {
+      invoke("delete_file", { path: filePath }).catch(console.error);
+    });
+  }
+
+  /**
+   * 現在のプレビュー内容を新しいネイティブウィンドウで表示する（別ウィンドウビューア）。
    */
   async function openViewer(): Promise<void> {
     if (editorContent.value === "") {
@@ -82,13 +114,8 @@ export function useExport(
       return;
     }
 
-    // 閲覧用の大きめウィンドウを開く。
-    const viewerWindow = window.open("", "_blank", "width=1000,height=700");
-    if (!viewerWindow) return;
-
     const html = await createViewerHtml();
-    viewerWindow.document.writeln(html);
-    viewerWindow.document.close();
+    await openNativeViewer(html, { title: "Ageha Editor Viewer", width: 1000, height: 700 });
   }
 
   /**
@@ -146,24 +173,15 @@ export function useExport(
       });
     }
 
-    // 通常 Markdown は閲覧向けの HTML を新たに組み立てる。
+    // 通常 Markdown はリソースをすべてインライン化したスタンドアロン HTML を生成する。
+    // ネイティブウィンドウでファイルを開く場合、相対パス参照は解決されないため
+    // createHtml（KaTeX・Mermaid JS をインライン埋め込み済み）を使う。
     const rendered = await renderMermaidToSvg(parsedHtml.value);
-    return `<!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="UTF-8">
-          <title>Ageha Editor Viewer</title>
-          <link rel="stylesheet" href="katex.css">
-          <style>${cssData()}</style>
-        </head>
-        <body>${rendered}</body>
-        <style>body { margin-top: 0; }</style>
-        <script src="preview.js"><\/script>
-      </html>`;
+    return createHtml(rendered, cssData());
   }
 
   /**
-   * スライドモード専用: 全画面スライドショーを新しいウィンドウで開く。
+   * スライドモード専用: 全画面スライドショーをネイティブウィンドウで開く。
    * Markdown モード時は何もしない。
    */
   async function openSlideshow(): Promise<void> {
@@ -173,15 +191,8 @@ export function useExport(
       return;
     }
 
-    const slideshowHtml = createSlideshowHtmlDocument(getSlidesDocumentHtml());
-    const w = window.open(
-      "",
-      "_blank",
-      `width=${screen.availWidth},height=${screen.availHeight},left=0,top=0`,
-    );
-    if (!w) return;
-    w.document.writeln(slideshowHtml);
-    w.document.close();
+    const html = createSlideshowHtmlDocument(getSlidesDocumentHtml());
+    await openNativeViewer(html, { title: "Ageha Editor Slideshow", maximized: true });
   }
 
   /**

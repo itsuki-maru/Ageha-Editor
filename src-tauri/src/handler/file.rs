@@ -122,6 +122,35 @@ fn save_file_inner(save_path: &str, data: &str) -> io::Result<StatusCode> {
     Ok(StatusCode::ok("Save Ok."))
 }
 
+/// HTML 文字列を `~/.ageha/viewer_<timestamp>.html` に書き出し、そのパスを返す。
+/// フロントエンドが WebviewWindow でこのファイルを開き、
+/// ウィンドウを閉じた後に `delete_file` でクリーンアップする。
+#[tauri::command]
+pub async fn save_temp_html(html: String) -> Result<String, String> {
+    let home_dir = dirs::home_dir().ok_or_else(|| "Home directory not found.".to_string())?;
+    let ageha_dir = home_dir.join(".ageha");
+
+    let ms = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_millis())
+        .unwrap_or(0);
+    let file_path = ageha_dir.join(format!("viewer_{}.html", ms));
+
+    let file = fs::File::create(&file_path).map_err(|e| e.to_string())?;
+    let mut writer = BufWriter::new(file);
+    write!(writer, "{}", html).map_err(|e| e.to_string())?;
+    writer.flush().map_err(|e| e.to_string())?;
+
+    Ok(file_path.to_string_lossy().into_owned())
+}
+
+/// 指定されたパスのファイルを削除する。
+/// `save_temp_html` で作成した一時ファイルのクリーンアップ用。
+#[tauri::command]
+pub async fn delete_file(path: String) -> Result<(), String> {
+    fs::remove_file(&path).map_err(|e| e.to_string())
+}
+
 /// 指定されたローカル画像ファイルを Base64 エンコードして data URL として返すコマンド。
 /// スライドや印刷用 HTML は srcdoc / 別ウィンドウで使うため、
 /// ローカル画像を data URL 化しておかないと参照切れが起きやすい。
