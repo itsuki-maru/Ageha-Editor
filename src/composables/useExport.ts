@@ -83,7 +83,7 @@ export function useExport(
             check.textContent = "✓";
             check.setAttribute("style", "font-size:56px;line-height:1;color:#4361ee;");
             const msg = document.createElement("p");
-            msg.textContent = "保存完了後、このウィンドウを閉じてください。";
+            msg.textContent = "保存出力の完了後、このウィンドウを閉じてください。";
             msg.setAttribute("style", "margin:0;font-size:15px;color:#0f172a;letter-spacing:0.02em;");
             ov.appendChild(check);
             ov.appendChild(msg);
