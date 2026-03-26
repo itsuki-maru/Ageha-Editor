@@ -37,11 +37,16 @@ export function useExport(
    * 印刷 / PDF 出力を実行する。
    *
    * - Markdown モード: 一時ポップアップに HTML を書き込み、ブラウザの印刷ダイアログを呼び出す。
+   *   window.print() はモーダルブロッキングのため、ダイアログを閉じた時点で完了メッセージを表示する。
+   *
    * - スライドモード: 一時 HTML ファイルを保存して Tauri ネイティブウィンドウで開く。
    *   document.writeln() 経由では SVG foreignObject のレンダリングが print() 呼び出しに
    *   間に合わず 0 バイト PDF になる問題があるため、ファイル URL 経由でのロードに切り替える。
-   *   load イベント後に window.print() を自動実行するスクリプトを HTML に埋め込むことで、
-   *   SVG を含む全コンテンツが描画完了してから印刷ダイアログが開く。
+   *   load イベント後に window.print() を自動実行し、afterprint 後はオーバーレイを表示して
+   *   ユーザーに手動クローズを促す。ウィンドウが閉じられたタイミングで完了メッセージを表示する。
+   *   これにより「OS の保存ダイアログと同時にメッセージが出る」問題を回避できる。
+   *   afterprint 発火時点では OS の「名前を付けて保存」ダイアログがまだ表示中の可能性があり、
+   *   window.close() による自動クローズでは完了タイミングを正確に捉えられないためである。
    */
   async function printOut(): Promise<void> {
     if (editorContent.value === "") {
@@ -57,7 +62,9 @@ export function useExport(
         title: "印刷",
         extraStyle: "@media print { html, body { background: #f4f7fb; } }",
       });
-      // load 完了後に自動印刷し、afterprint で自動クローズするスクリプトを注入する。
+      // load 完了後に自動印刷する。
+      // afterprint 後は自動クローズせず、オーバーレイを表示してユーザーに手動クローズを促す。
+      // 完了メッセージは tauri://destroyed（ウィンドウが実際に閉じられた瞬間）で表示する。
       const htmlWithAutoPrint = printHtml.replace(
         "</body>",
         `<script>
@@ -65,11 +72,28 @@ export function useExport(
             window.print();
           });
           window.addEventListener("afterprint", function () {
-            window.close();
+            const ov = document.createElement("div");
+            ov.setAttribute("style",
+              "position:fixed;inset:0;z-index:9999;" +
+              "display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;" +
+              "background:rgba(244,247,251,0.97);" +
+              "font-family:'Aptos','Segoe UI','Hiragino Sans','Yu Gothic UI',sans-serif;"
+            );
+            const check = document.createElement("div");
+            check.textContent = "✓";
+            check.setAttribute("style", "font-size:56px;line-height:1;color:#4361ee;");
+            const msg = document.createElement("p");
+            msg.textContent = "保存完了後、このウィンドウを閉じてください。";
+            msg.setAttribute("style", "margin:0;font-size:15px;color:#0f172a;letter-spacing:0.02em;");
+            ov.appendChild(check);
+            ov.appendChild(msg);
+            document.body.appendChild(ov);
           });
         <\/script></body>`,
       );
-      await openNativeViewer(htmlWithAutoPrint, { title: "印刷", width: 1000, height: 700 });
+      await openNativeViewer(htmlWithAutoPrint, { title: "印刷", width: 1000, height: 700 }, () =>
+        showMessage("出力処理が完了しました。"),
+      );
       return;
     }
 
@@ -105,11 +129,13 @@ export function useExport(
 
   /**
    * HTML を一時ファイルに保存し、Tauri のネイティブウィンドウ（アドレスバーなし）で開く。
-   * ウィンドウが閉じられたタイミングで一時ファイルを自動削除する。
+   * ウィンドウが閉じられたタイミングで一時ファイルを自動削除し、onClosed があれば呼び出す。
+   * @param onClosed - ウィンドウが破棄されたときに呼ばれるオプションコールバック
    */
   async function openNativeViewer(
     html: string,
     options: { title: string; width?: number; height?: number; maximized?: boolean },
+    onClosed?: () => void,
   ): Promise<void> {
     let filePath: string;
     try {
@@ -128,9 +154,10 @@ export function useExport(
       maximized: options.maximized,
     });
 
-    // ウィンドウが閉じられたら一時ファイルを削除する。
+    // ウィンドウが閉じられたら一時ファイルを削除し、コールバックがあれば実行する。
     win.once("tauri://destroyed", () => {
       invoke("delete_file", { path: filePath }).catch(console.error);
+      onClosed?.();
     });
   }
 
