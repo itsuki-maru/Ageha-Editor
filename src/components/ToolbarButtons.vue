@@ -18,6 +18,7 @@ defineEmits<{
   "toggle-preview": [];
   "toggle-tools": [];
   "open-viewer": [];
+  "open-slideshow": [];
   "new-instance": [];
   "show-help": [];
   "toggle-vim-mode": [];
@@ -92,10 +93,18 @@ defineEmits<{
       </button>
       <button
         class="btn-head-image"
-        title="別ウィンドウ&#10;ショートカット: Ctrl + Alt + w"
+        title="別ウィンドウ（閲覧）&#10;ショートカット: Ctrl + Alt + w"
         @click="$emit('open-viewer')"
       >
         <img src="/new_window_fill24.png" class="btn-img" alt="new_window_fill24.png" />
+      </button>
+      <button
+        v-if="documentMode === 'slides'"
+        class="btn-head-image btn-head-text btn-slideshow"
+        title="スライドショー&#10;ショートカット: Ctrl + Alt + s"
+        @click="$emit('open-slideshow')"
+      >
+        Play
       </button>
       <button
         class="btn-head-image btn-toggle-vim"

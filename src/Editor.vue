@@ -107,7 +107,7 @@ watch(editorContent, () => {
 });
 
 // ---- エクスポート ----
-const { printOut, exportHtml, openViewer } = useExport(
+const { printOut, exportHtml, openViewer, openSlideshow } = useExport(
   editorContent,
   documentMode,
   parsedHtml,
@@ -264,6 +264,7 @@ useKeyboardShortcuts({
     showHelp.value = !showHelp.value;
   },
   openNewInstance,
+  openSlideshow,
   drawMermaid,
   toggleVimMode: handleVimMode,
   closeModals: () => {
@@ -287,6 +288,7 @@ useKeyboardShortcuts({
     @toggle-preview="handlePreview"
     @toggle-tools="handleInputTool"
     @open-viewer="openViewer"
+    @open-slideshow="openSlideshow"
     @new-instance="openNewInstance"
     @show-help="showHelp = true"
     @toggle-vim-mode="handleVimMode"

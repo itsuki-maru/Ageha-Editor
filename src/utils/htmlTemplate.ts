@@ -165,6 +165,190 @@ export function customizeSlideHtmlDocument(
   return nextHtml;
 }
 
+// -------- スライドショー用定数 --------
+
+const SLIDESHOW_STYLE = `
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #000 !important;
+    overflow: hidden !important;
+    width: 100vw;
+    height: 100vh;
+  }
+
+  body {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer;
+  }
+
+  div.marpit {
+    margin: 0 !important;
+    line-height: 0;
+  }
+
+  #slideshow-wrapper {
+    transform-origin: center center;
+    flex-shrink: 0;
+  }
+
+  #slideshow-nav {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: rgba(0, 0, 0, 0.55);
+    border-radius: 8px;
+    padding: 6px 16px;
+    opacity: 0;
+    transition: opacity 0.25s;
+    z-index: 9999;
+  }
+
+  body:hover #slideshow-nav {
+    opacity: 1;
+  }
+
+  .ss-nav-btn {
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.45);
+    color: #fff;
+    border-radius: 4px;
+    padding: 4px 14px;
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1.4;
+  }
+
+  .ss-nav-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.7);
+  }
+
+  #slide-counter {
+    color: #ccc;
+    font-size: 13px;
+    min-width: 64px;
+    text-align: center;
+    font-family: sans-serif;
+    line-height: 1;
+  }
+`;
+
+const SLIDESHOW_NAV_HTML = `<div id="slideshow-nav">
+  <button class="ss-nav-btn" id="ss-prev">&#8592;</button>
+  <span id="slide-counter">&#8211; / &#8211;</span>
+  <button class="ss-nav-btn" id="ss-next">&#8594;</button>
+</div>`;
+
+const SLIDESHOW_SCRIPT = `
+(function () {
+  var marpit = document.querySelector('div.marpit');
+  if (!marpit) return;
+
+  var firstSvg = marpit.querySelector('svg');
+  var slideW = 1280;
+  var slideH = 720;
+  if (firstSvg) {
+    var vb = firstSvg.getAttribute('viewBox');
+    if (vb) {
+      var parts = vb.trim().split(/[\\s,]+/);
+      if (parts.length >= 4) {
+        slideW = parseFloat(parts[2]) || slideW;
+        slideH = parseFloat(parts[3]) || slideH;
+      }
+    }
+  }
+
+  var slides = Array.from(marpit.children).filter(function (el) {
+    return el.tagName.toLowerCase() === 'svg';
+  });
+  if (slides.length === 0) return;
+
+  var wrapper = document.createElement('div');
+  wrapper.id = 'slideshow-wrapper';
+  wrapper.style.width = slideW + 'px';
+  wrapper.style.height = slideH + 'px';
+  marpit.parentNode.insertBefore(wrapper, marpit);
+  wrapper.appendChild(marpit);
+
+  var current = 0;
+
+  function updateCounter() {
+    var counter = document.getElementById('slide-counter');
+    if (counter) counter.textContent = (current + 1) + ' / ' + slides.length;
+  }
+
+  function showSlide(index) {
+    if (index < 0 || index >= slides.length) return;
+    slides.forEach(function (s, i) {
+      s.style.display = i === index ? '' : 'none';
+    });
+    current = index;
+    updateCounter();
+  }
+
+  function updateScale() {
+    var scaleX = window.innerWidth / slideW;
+    var scaleY = window.innerHeight / slideH;
+    wrapper.style.transform = 'scale(' + Math.min(scaleX, scaleY) + ')';
+  }
+
+  window.addEventListener('resize', updateScale);
+
+  document.addEventListener('keydown', function (e) {
+    switch (e.key) {
+      case 'ArrowRight': case 'ArrowDown': case ' ':
+        e.preventDefault(); showSlide(current + 1); break;
+      case 'ArrowLeft': case 'ArrowUp':
+        e.preventDefault(); showSlide(current - 1); break;
+      case 'Escape': window.close(); break;
+      case 'Home': e.preventDefault(); showSlide(0); break;
+      case 'End': e.preventDefault(); showSlide(slides.length - 1); break;
+    }
+  });
+
+  var nav = document.getElementById('slideshow-nav');
+  if (nav) nav.addEventListener('click', function (e) { e.stopPropagation(); });
+
+  var prevBtn = document.getElementById('ss-prev');
+  var nextBtn = document.getElementById('ss-next');
+  if (prevBtn) prevBtn.addEventListener('click', function (e) { e.stopPropagation(); showSlide(current - 1); });
+  if (nextBtn) nextBtn.addEventListener('click', function (e) { e.stopPropagation(); showSlide(current + 1); });
+
+  document.body.addEventListener('click', function (e) {
+    if (e.clientX < window.innerWidth / 2) showSlide(current - 1);
+    else showSlide(current + 1);
+  });
+
+  showSlide(0);
+  updateScale();
+})();
+`;
+
+/**
+ * スライドモード用の基盤 HTML にスライドショー UI と制御スクリプトを注入して返す。
+ * 1 枚ずつ表示するプレゼンテーションモード用。
+ *
+ * キーボード操作:
+ *   ArrowRight / ArrowDown / Space: 次のスライド
+ *   ArrowLeft / ArrowUp           : 前のスライド
+ *   Home / End                    : 最初 / 最後のスライド
+ *   Escape                        : ウィンドウを閉じる
+ *
+ * @param baseSlideHtml - createSlideHtmlDocument が生成した完全な HTML 文書
+ */
+export function createSlideshowHtmlDocument(baseSlideHtml: string): string {
+  return baseSlideHtml
+    .replace(/<\/head>/i, `    <style>${SLIDESHOW_STYLE}</style>\n    </head>`)
+    .replace(/<\/body>/i, `    ${SLIDESHOW_NAV_HTML}\n    <script>${SLIDESHOW_SCRIPT}<\/script>\n    </body>`);
+}
+
 /** HTML 特殊文字をエスケープする。<title> など HTML コンテキストへの挿入に使う。 */
 function escapeHtml(value: string): string {
   return value

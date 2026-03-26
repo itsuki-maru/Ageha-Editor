@@ -29,6 +29,8 @@ export interface ShortcutActions {
   toggleHelp: () => void;
   /** Ctrl+Alt+N: 新しいエディタウィンドウを起動する */
   openNewInstance: () => void;
+  /** Ctrl+Alt+S: スライドショーを全画面で開く（スライドモード専用） */
+  openSlideshow: () => void;
   /** Ctrl+M: Mermaid ダイアグラムを再描画する（Markdown モード専用） */
   drawMermaid: () => void;
   /** Ctrl+,: Vim キーバインドの有効/無効をトグルする */
@@ -71,6 +73,10 @@ export function useKeyboardShortcuts(actions: ShortcutActions) {
         case "n":
           event.preventDefault();
           actions.openNewInstance();
+          return;
+        case "s":
+          event.preventDefault();
+          actions.openSlideshow();
           return;
       }
     }

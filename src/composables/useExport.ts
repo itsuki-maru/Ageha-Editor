@@ -3,6 +3,7 @@ import type { DocumentMode, SlideRenderResult } from "@/interface";
 import {
   createHtml,
   createSlideHtmlDocument,
+  createSlideshowHtmlDocument,
   customizeSlideHtmlDocument,
 } from "../utils/htmlTemplate";
 
@@ -162,6 +163,28 @@ export function useExport(
   }
 
   /**
+   * スライドモード専用: 全画面スライドショーを新しいウィンドウで開く。
+   * Markdown モード時は何もしない。
+   */
+  async function openSlideshow(): Promise<void> {
+    if (documentMode.value !== "slides") return;
+    if (editorContent.value === "") {
+      showMessage("入力がありません。");
+      return;
+    }
+
+    const slideshowHtml = createSlideshowHtmlDocument(getSlidesDocumentHtml());
+    const w = window.open(
+      "",
+      "_blank",
+      `width=${screen.availWidth},height=${screen.availHeight},left=0,top=0`,
+    );
+    if (!w) return;
+    w.document.writeln(slideshowHtml);
+    w.document.close();
+  }
+
+  /**
    * スライドモードの基盤 HTML 文書を取得して返す。
    * previewFrameHtml（プレビューと同一の完全 HTML）があればそれを最優先し、
    * なければ slideRender の結果から再構築する。
@@ -229,5 +252,5 @@ export function useExport(
     });
   }
 
-  return { printOut, exportHtml, openViewer };
+  return { printOut, exportHtml, openViewer, openSlideshow };
 }
