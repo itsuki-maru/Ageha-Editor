@@ -100,11 +100,11 @@ defineEmits<{
       </button>
       <button
         v-if="documentMode === 'slides'"
-        class="btn-head-image btn-head-text btn-slideshow"
+        class="btn-head-image"
         title="スライドショー&#10;ショートカット: Ctrl + Alt + s"
         @click="$emit('open-slideshow')"
       >
-        Play
+        <img src="/slideshow_24.png" class="btn-img" alt="slideshow_24.png" />
       </button>
       <button
         class="btn-head-image btn-toggle-vim"
