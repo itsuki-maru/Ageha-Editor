@@ -35,8 +35,13 @@ export function useExport(
 ) {
   /**
    * 印刷 / PDF 出力を実行する。
-   * 一時的な新規ウィンドウに HTML を書き込み、ブラウザの印刷ダイアログを呼び出す。
-   * フォント・画像の読み込み完了を待ってから印刷するため、ちらつきが起きにくい。
+   *
+   * - Markdown モード: 一時ポップアップに HTML を書き込み、ブラウザの印刷ダイアログを呼び出す。
+   * - スライドモード: 一時 HTML ファイルを保存して Tauri ネイティブウィンドウで開く。
+   *   document.writeln() 経由では SVG foreignObject のレンダリングが print() 呼び出しに
+   *   間に合わず 0 バイト PDF になる問題があるため、ファイル URL 経由でのロードに切り替える。
+   *   load イベント後に window.print() を自動実行するスクリプトを HTML に埋め込むことで、
+   *   SVG を含む全コンテンツが描画完了してから印刷ダイアログが開く。
    */
   async function printOut(): Promise<void> {
     if (editorContent.value === "") {
@@ -44,7 +49,31 @@ export function useExport(
       return;
     }
 
-    // 印刷専用の一時ウィンドウを開き、完成済みの HTML を流し込む。
+    if (documentMode.value === "slides") {
+      // スライドモード: ファイル URL 経由で開くことで SVG foreignObject の
+      // レンダリング完了を load イベントで確実に待てるようにする。
+      const baseSlidesHtml = getSlidesDocumentHtml();
+      const printHtml = customizeSlideHtmlDocument(baseSlidesHtml, {
+        title: "印刷",
+        extraStyle: "@media print { html, body { background: #f4f7fb; } }",
+      });
+      // load 完了後に自動印刷し、afterprint で自動クローズするスクリプトを注入する。
+      const htmlWithAutoPrint = printHtml.replace(
+        "</body>",
+        `<script>
+          window.addEventListener("load", function () {
+            window.print();
+          });
+          window.addEventListener("afterprint", function () {
+            window.close();
+          });
+        <\/script></body>`,
+      );
+      await openNativeViewer(htmlWithAutoPrint, { title: "印刷", width: 1000, height: 700 });
+      return;
+    }
+
+    // Markdown モード: 印刷専用の一時ウィンドウを開き、完成済みの HTML を流し込む。
     const printWindow = window.open("", "_blank", "width=800,height=600");
     if (!printWindow) return;
 
