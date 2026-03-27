@@ -64,6 +64,8 @@
 
 ### スライドモード
 
+![Ageha Editor](https://ageha-editor.pages.dev/ageha-editor-slide.png)
+
 frontmatter に `marp: true` を記述すると自動的にスライドモードへ切り替わる。
 
 ```markdown
@@ -82,6 +84,8 @@ marp: true
 - 印刷・HTML エクスポート・ビューア表示に対応
 
 #### スライドショー（`Ctrl+Alt+S` または "Play" ボタン）
+
+![Ageha Editor](https://ageha-editor.pages.dev/ageha-editor-slideshow.png)
 
 スライドモード時のみ有効。1 枚ずつ表示する発表モードのウィンドウを開く。
 
