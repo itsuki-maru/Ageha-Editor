@@ -18,6 +18,7 @@ import MarkdownTools from "@/components/MarkdownTools.vue";
 import HelpModal from "@/components/HelpModal.vue";
 import MessageModal from "@/components/MessageModal.vue";
 
+import { openUrl as openExternalUrl } from "@tauri-apps/plugin-opener";
 import { handleCopyButtonClick } from "@/utils/clipboard";
 import { useLocalStorageStore } from "./stores/localStorages";
 import { useRustArgsInitStore } from "./stores/appInits";
@@ -158,13 +159,41 @@ onMounted(async () => {
   }
 });
 
-// ---- コピーボタンのグローバルクリックハンドラ ----
+// ---- コピーボタン・外部リンクのグローバルクリックハンドラ ----
 onMounted(() => {
   document.addEventListener("click", (e) => {
     const target = e.target as HTMLElement;
+
     if (target.classList.contains("copy-btn")) {
       // v-html 経由で描画されたコピー用ボタンもここで拾って処理する。
       handleCopyButtonClick(target);
+    }
+
+    // Markdown プレビュー内の外部リンクを OS デフォルトブラウザで開く。
+    // <strong> や <code> などリンク内の子要素がクリックされる場合に備え closest で祖先を探す。
+    // anchor.href はブラウザが絶対 URL に解決した値を返すため、タウリ内部 URL との混在を防ぐため
+    // 生属性値 getAttribute("href") を使って検証する。
+    const anchor = target.closest("a[href]") as HTMLAnchorElement | null;
+    if (anchor) {
+      const href = anchor.getAttribute("href") ?? "";
+      if (href.startsWith("https://") || href.startsWith("http://")) {
+        e.preventDefault();
+        openExternalUrl(href).catch(console.error);
+      }
+    }
+  });
+});
+
+// ---- スライド iframe からの外部リンク postMessage ブリッジ ----
+// スライドプレビュー iframe 内のリンクは Tauri コンテキスト外のため直接 opener を呼べない。
+// iframe 側から postMessage で通知を受け取り、メインウィンドウから opener.open を呼ぶ。
+onMounted(() => {
+  window.addEventListener("message", (e) => {
+    if (!e.data || e.data.type !== "open-external") return;
+    const url = String(e.data.url ?? "");
+    // http(s):// 以外のプロトコル（javascript: / file:// 等）を確実に弾く。
+    if (url.startsWith("https://") || url.startsWith("http://")) {
+      openExternalUrl(url).catch(console.error);
     }
   });
 });

@@ -4,6 +4,7 @@
   "description": "Capability for viewer/slideshow windows",
   "windows": ["viewer-*"],
   "permissions": [
-    "core:default"
+    "core:default",
+    "opener:allow-open-url"
   ]
 }

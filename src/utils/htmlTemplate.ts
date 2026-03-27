@@ -22,6 +22,37 @@ interface SlideHtmlOptions {
 // ユーザー CSS の `section { ... }` を効かせるには、このフルパスへ変換が必要。
 const SLIDE_SCOPE_SELECTOR = "div.marpit > svg > foreignObject > section";
 
+// スライド HTML に注入する外部リンクインターセプトスクリプト。
+// クリックされた <a href> の href が http(s):// で始まる場合に限り
+// ブラウザのデフォルト動作を止めて OS ブラウザで開く処理を行う。
+//
+// 動作環境による分岐:
+//   - iframe 内（メインウィンドウのプレビュー）:
+//       window.parent.postMessage でメインウィンドウに転送する。
+//       受け取り側 (Editor.vue) が opener.open() を呼ぶ。
+//   - 独立 Tauri ウィンドウ（ビューア / スライドショー）:
+//       window.__TAURI_INTERNALS__ 経由で plugin:opener|open_url を直接呼ぶ。
+//       viewer.json に opener:allow-open-url 権限が必要。
+//   - エクスポート HTML をブラウザで開いた場合:
+//       上記いずれにも該当しないため、何もせずブラウザの通常動作に委ねる。
+//       (target="_blank" 付き <a> はブラウザが新しいタブで開く)
+const SLIDE_EXTERNAL_LINK_SCRIPT = `(function () {
+  document.addEventListener("click", function (e) {
+    var a = e.target.closest("a[href]");
+    if (!a) return;
+    var href = a.getAttribute("href") || "";
+    if (!href.startsWith("https://") && !href.startsWith("http://")) return;
+    e.preventDefault();
+    if (window.parent !== window) {
+      window.parent.postMessage({ type: "open-external", url: href }, "*");
+    } else if (window.__TAURI_INTERNALS__) {
+      window.__TAURI_INTERNALS__
+        .invoke("plugin:opener|open_url", { url: href })
+        .catch(function (err) { console.error("Failed to open URL:", err); });
+    }
+  });
+})();`;
+
 // iframe / 別ウィンドウ内のコードブロックに「コピー」ボタンを付けるための
 // インライン JavaScript。createSlideHtmlDocument で埋め込んでいないが、
 // createHtml（通常 Markdown）で使用している。
@@ -130,7 +161,8 @@ export function createSlideHtmlDocument(
     <style>${style}</style>
     <style>${scopedUserStyle}</style>
     </head>
-    <body>${html}</body>
+    <body>${html}
+    <script>${SLIDE_EXTERNAL_LINK_SCRIPT}<\/script></body>
     </html>`;
 }
 
@@ -344,7 +376,10 @@ const SLIDESHOW_SCRIPT = `
 export function createSlideshowHtmlDocument(baseSlideHtml: string): string {
   return baseSlideHtml
     .replace(/<\/head>/i, `    <style>${SLIDESHOW_STYLE}</style>\n    </head>`)
-    .replace(/<\/body>/i, `    ${SLIDESHOW_NAV_HTML}\n    <script>${SLIDESHOW_SCRIPT}<\/script>\n    </body>`);
+    .replace(
+      /<\/body>/i,
+      `    ${SLIDESHOW_NAV_HTML}\n    <script>${SLIDESHOW_SCRIPT}<\/script>\n    </body>`,
+    );
 }
 
 /** HTML 特殊文字をエスケープする。<title> など HTML コンテキストへの挿入に使う。 */
