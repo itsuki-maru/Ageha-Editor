@@ -1,0 +1,153 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: "Release tag (e.g. v1.0.0)"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  # 1. Build (matrix: Linux / macOS universal / Windows)
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: ubuntu-22.04
+            artifact_name: linux
+            rust_targets: ""
+            tauri_args: ""
+
+          - platform: macos-latest
+            artifact_name: macos
+            rust_targets: "aarch64-apple-darwin,x86_64-apple-darwin"
+            tauri_args: "--target universal-apple-darwin"
+
+          - platform: windows-latest
+            artifact_name: windows
+            rust_targets: ""
+            tauri_args: ""
+
+    runs-on: ${{ matrix.platform }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install Rust (stable)
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust_targets }}
+
+      - name: Cache Rust build
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+
+      # WebKit2GTK 4.1 is required for Tauri v2 on Linux
+      - name: Install Linux system dependencies
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      # Use the CLI directly to avoid tauri-action creating an unintended release
+      - name: Build Tauri app
+        run: npm run tauri -- build ${{ matrix.tauri_args }}
+
+      # ── Collect installer artifacts ──────────────────────────
+      - name: Collect artifacts (Linux)
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          mkdir -p dist
+          find src-tauri/target/release/bundle \
+            \( -name "*.AppImage" -o -name "*.deb" \) \
+            -exec cp {} dist/ \;
+
+      - name: Collect artifacts (macOS)
+        if: matrix.platform == 'macos-latest'
+        run: |
+          mkdir -p dist
+          find src-tauri/target/universal-apple-darwin/release/bundle \
+            -name "*.dmg" \
+            -exec cp {} dist/ \;
+
+      - name: Collect artifacts (Windows)
+        if: matrix.platform == 'windows-latest'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist | Out-Null
+          # Collect NSIS installer (.exe) and WiX installer (.msi)
+          # Exclude files under 'deps' or debug paths
+          Get-ChildItem src-tauri\target\release\bundle -Recurse -Include *.exe, *.msi |
+            Where-Object { $_.FullName -notmatch '\\(deps|debug)\\' } |
+            Copy-Item -Destination dist
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: dist/
+          if-no-files-found: error
+
+  # 2. Release — merge artifacts, generate checksums, publish
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      # Resolve the release tag from either workflow_dispatch input or the pushed tag
+      - name: Resolve release tag
+        id: tag
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "name=${{ inputs.tag_name }}" >> $GITHUB_OUTPUT
+          else
+            echo "name=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Download all platform artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: List collected files
+        run: ls -lh artifacts/
+
+      - name: Generate SHA-256 checksums
+        run: |
+          cd artifacts
+          sha256sum * > checksums.txt
+          echo "=== checksums.txt ==="
+          cat checksums.txt
+
+      - name: Create GitHub Release and upload assets
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.name }}
+          name: Ageha Editor ${{ steps.tag.outputs.name }}
+          draft: true
+          prerelease: false
+          generate_release_notes: true
+          files: artifacts/**
