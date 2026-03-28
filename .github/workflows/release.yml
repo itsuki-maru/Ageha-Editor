@@ -13,6 +13,9 @@ on:
 permissions:
   contents: write
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   # 1. Build (matrix: Linux / macOS universal / Windows)
   build:
@@ -138,7 +141,7 @@ jobs:
       - name: Generate SHA-256 checksums
         run: |
           cd artifacts
-          sha256sum * > checksums.txt
+          find . -maxdepth 1 -type f -exec sha256sum {} + > checksums.txt
           echo "=== checksums.txt ==="
           cat checksums.txt
 

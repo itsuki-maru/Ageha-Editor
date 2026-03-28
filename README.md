@@ -186,6 +186,56 @@ npm run build
 npm run tauri build
 ```
 
+### リリース
+
+リリースは GitHub Actions の `release.yml` ワークフローで行う。Linux / macOS (Universal) / Windows のインストーラーを自動ビルドし、ドラフトリリースとして GitHub にアップロードする。
+
+#### テスト手順（本番実行前の確認）
+
+仮タグを push してワークフローが正常に動作するか確認する。
+
+```bash
+# 1. テスト用ブランチを作成
+git checkout -b test/release-workflow
+
+# 2. 仮タグを push（ワークフローがトリガーされる）
+git tag v0.0.0-test
+git push origin v0.0.0-test
+```
+
+GitHub の **Actions** タブで進捗を確認する。`gh` CLI を使う場合:
+
+```bash
+gh run list --workflow=release.yml
+gh run watch
+```
+
+確認後、仮タグとドラフトリリースを削除してクリーンアップする。
+
+```bash
+# ローカルとリモートのタグを削除
+git tag -d v0.0.0-test
+git push origin --delete v0.0.0-test
+```
+
+GitHub UI で **Releases → ドラフト → Delete** からドラフトリリースも削除する。
+
+#### 本番リリース手順
+
+```bash
+# 1. バージョンを更新（package.json / src-tauri/Cargo.toml / src-tauri/tauri.conf.json）
+
+# 2. コミット
+git add package.json src-tauri/Cargo.toml src-tauri/tauri.conf.json
+git commit -m "Prepare for release vX.Y.Z"
+
+# 3. タグを付けて push（ワークフローがトリガーされる）
+git tag vX.Y.Z
+git push origin main --tags
+```
+
+ワークフロー完了後、GitHub の **Releases** にドラフトリリースが作成されるので、内容を確認して **Publish release** で公開する。
+
 ---
 
 ## ライセンス
