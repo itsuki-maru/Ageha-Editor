@@ -82,35 +82,35 @@ jobs:
       - name: Collect artifacts (Linux)
         if: matrix.platform == 'ubuntu-22.04'
         run: |
-          mkdir -p dist
+          mkdir -p release-pkg
           find src-tauri/target/release/bundle \
             \( -name "*.AppImage" -o -name "*.deb" \) \
-            -exec cp {} dist/ \;
+            -exec cp {} release-pkg/ \;
 
       - name: Collect artifacts (macOS)
         if: matrix.platform == 'macos-latest'
         run: |
-          mkdir -p dist
+          mkdir -p release-pkg
           find src-tauri/target/universal-apple-darwin/release/bundle \
             -name "*.dmg" \
-            -exec cp {} dist/ \;
+            -exec cp {} release-pkg/ \;
 
       - name: Collect artifacts (Windows)
         if: matrix.platform == 'windows-latest'
         shell: pwsh
         run: |
-          New-Item -ItemType Directory -Force dist | Out-Null
+          New-Item -ItemType Directory -Force release-pkg | Out-Null
           # Collect NSIS installer (.exe) and WiX installer (.msi)
           # Exclude files under 'deps' or debug paths
           Get-ChildItem src-tauri\target\release\bundle -Recurse -Include *.exe, *.msi |
             Where-Object { $_.FullName -notmatch '\\(deps|debug)\\' } |
-            Copy-Item -Destination dist
+            Copy-Item -Destination release-pkg
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact_name }}
-          path: dist/
+          path: release-pkg/
           if-no-files-found: error
 
   # 2. Release — merge artifacts, generate checksums, publish
