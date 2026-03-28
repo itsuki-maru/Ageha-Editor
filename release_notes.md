@@ -1,5 +1,11 @@
 # Release Notes
 
+## v0.2.2
+
+- GitHub Actions によるリリースワークフローを追加
+  - Linux (.AppImage / .deb)、macOS Universal (.dmg)、Windows (.exe / .msi) を自動ビルド
+  - SHA-256 チェックサムを自動生成してドラフトリリースに添付
+
 ## v0.2.1
 
 - スライドのPDF出力エラーを解決
