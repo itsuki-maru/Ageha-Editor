@@ -81,6 +81,56 @@ document.addEventListener("click", (e) => {
 });
 `;
 
+// コピーボタンとツールチップの追加スタイル定義
+const COPY_BUTTON_STYLE = `
+  .code-container {
+    position: relative;
+    margin-bottom: 1.5em;
+    border-radius: 6px;
+    overflow: hidden;
+    background: #f5f5f5;
+    font-size: 0.9em;
+    line-height: 1.5;
+  }
+
+  .code-container pre {
+    margin: 0;
+    padding: 1em;
+    overflow-x: auto;
+  }
+
+  .copy-btn {
+    position: absolute;
+    top: 0.7em;
+    right: 0.5em;
+    background-color: #5e5e5e;
+    color: white;
+    border: none;
+    padding: 0.3em 0.6em;
+    border-radius: 4px;
+    font-size: 0.75em;
+    cursor: pointer;
+    opacity: 0.8;
+    transition: opacity 0.2s ease-in-out;
+    z-index: 2;
+  }
+
+  .copy-tooltip {
+    position: absolute;
+    top: 0em;
+    right: 0.5em;
+    background: #57a53f;
+    color: white;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.95em;
+    opacity: 1;
+    pointer-events: none;
+    z-index: 3;
+    transition: opacity 0.3s ease;
+  }
+`;
+
 /**
  * 通常 Markdown モードの HTML エクスポート・別ウィンドウ表示用の
  * スタンドアロン HTML 文書を生成して返す。
@@ -102,6 +152,7 @@ export function createHtml(html: string, style: string): string {
     <div class="container-fluid">${html}</div>
     </body>
     <script>${COPY_BUTTON_SCRIPT}</script>
+    <style>${COPY_BUTTON_STYLE}</style>
     </html>`;
 }
 
