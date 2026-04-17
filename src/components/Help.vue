@@ -1,51 +1,58 @@
 <script setup lang="ts">
-import { onMounted, nextTick } from "vue";
+import { onMounted, nextTick, computed, watch } from "vue";
 import Prism from "prismjs";
 import "prismjs/themes/prism-okaidia.css";
 import { copyElementText } from "@/utils/clipboard";
+import { useI18n } from "@/i18n";
 
-// ヘルプ本文はほぼ静的な内容なので、
-// このコンポーネントではコードハイライトとコピー補助だけを担当する。
-const highlight = async () => {
-  await nextTick();
-  Prism.highlightAll();
-};
+const { t, locale } = useI18n();
 
-onMounted(highlight);
+const markdownTitleSample = computed(() =>
+  locale.value === "ja"
+    ? "# マークダウンによる文書資料の作成"
+    : "# Creating documents with Markdown",
+);
 
-function copyClipBoard(codeId: string) {
-  const element = document.getElementById(codeId);
-  if (!element) return;
-  copyElementText(element);
-}
-</script>
+const markdownBodySample = computed(() =>
+  locale.value === "ja"
+    ? `## 1. マークダウンとは何か?
 
-<template>
-  <h1 id="sample-markdown" style="margin-top: 3%">マークダウン文書を作成</h1>
-  <p>
-    「<strong>マークダウン</strong>」は特定の記号と組み合わせることで文書を整形する手法であり、<strong>Wikipedia</strong>などで使用されているこの形式は、インターネットやイントラネット上で共有・公開される文書の作成に適しています。まずはマークダウン文書をコピー＆ペーストで簡単に作成してみましょう。
-  </p>
+「**マークダウン**」は、記号と組み合わせることで文書を整形する方法のことです。
 
-  <h2 id="slide-sample" style="margin-top: 4%">スライド文書を作成</h2>
-  <p>
-    Ageha Editor は文書先頭の frontmatter に
-    <code>marp: true</code> を書くと、スライドモードとしてプレビューします。スライドの区切りは
-    <code>---</code> を使います。
-  </p>
-  <p>
-    スライド専用の見た目は、ユーザー設定フォルダ内の <code>~/.ageha/ageha-slide.css</code> を編集すると上書きできます。この CSS はプレビュー、別ウィンドウ表示、HTML 出力、印刷に共通で反映されます。
-  </p>
+- ハッシュ記号 \`#\` を文頭に置くと、それは「**見出し**」になります。
+- アスタリスク \`*\` を使うと「**文章を強調（太字）**」、ハイフン \`-\` を使うと「**リスト項目**」を作れます。
 
-  <div class="code-container" style="position: relative">
-    <button
-      class="copy-btn"
-      data-target="help-slide"
-      style="position: absolute; top: 5px; right: 5px; z-index: 1"
-      @click="copyClipBoard('help-slide')"
-    >
-      コピー
-    </button>
-    <pre><code id="help-slide" class="language-markdown">---
+## 2. なぜ使うのか？
+
+- **統一性**: 誰が書いても見た目を揃えやすい
+- **シンプル**: 書式より内容に集中しやすい
+
+| 項目 | マークダウン | Word |
+| ---- | ------------ | ---- |
+| 学習コスト | 低い | 高い |
+| 書式 | 自動で揃えやすい | 手動で調整する |`
+    : `## 1. What is Markdown?
+
+Markdown is a simple way to format text with symbols.
+
+- Put \`#\` at the start of a line to create a **heading**.
+- Use asterisks like \`**text**\` for **bold text**.
+- Use hyphens like \`-\` to create list items.
+
+## 2. Why use it?
+
+- **Consistency**: documents are easier to keep uniform
+- **Simplicity**: you can focus on content instead of formatting
+
+| Item | Markdown | Word |
+| ---- | -------- | ---- |
+| Learning cost | Low | High |
+| Formatting | Easier to standardize | Often manual |`,
+);
+
+const slideSample = computed(() =>
+  locale.value === "ja"
+    ? `---
 marp: true
 ---
 
@@ -58,12 +65,110 @@ marp: true
 
 ## 2枚目のスライド
 
-```mermaid
+\`\`\`mermaid
 graph LR
   Plan --> Build --> Present
-```
+\`\`\`
 
-$$E = mc^2$$</code></pre>
+$$E = mc^2$$`
+    : `---
+marp: true
+---
+
+# Ageha Slide
+
+- Author slides with a Marp-like syntax
+- Supports Mermaid and math
+
+---
+
+## Second slide
+
+\`\`\`mermaid
+graph LR
+  Plan --> Build --> Present
+\`\`\`
+
+$$E = mc^2$$`,
+);
+
+const headingSample = computed(() =>
+  locale.value === "ja"
+    ? `# 見出し1
+
+## 見出し2
+
+### 見出し3`
+    : `# Heading 1
+
+## Heading 2
+
+### Heading 3`,
+);
+
+const listSample = computed(() =>
+  locale.value === "ja"
+    ? `- 議題
+    - 会議室の使用方法について
+    - 車の駐車について
+
+- その他
+    - 休暇のとり方`
+    : `- Agenda
+    - How to use meeting rooms
+    - Parking rules
+
+- Other topics
+    - How to request leave`,
+);
+
+const tableSample = computed(() =>
+  locale.value === "ja"
+    ? `| 施設名   | 住所         | 備考 |
+| -------- | ------------ | ---- |
+| 保養施設 | 東京都品川区 | なし |
+| 社員食堂 | 東京都港区   | なし |`
+    : `| Facility | Address | Notes |
+| -------- | ------- | ----- |
+| Retreat center | Shinagawa, Tokyo | None |
+| Cafeteria | Minato, Tokyo | None |`,
+);
+
+const inlineCodeSample = computed(() => (locale.value === "ja" ? "`○×商事`" : "`Example Corp.`"));
+
+const highlight = async () => {
+  await nextTick();
+  Prism.highlightAll();
+};
+
+onMounted(highlight);
+watch(locale, highlight);
+
+function copyClipBoard(codeId: string) {
+  const element = document.getElementById(codeId);
+  if (!element) return;
+  copyElementText(element);
+}
+</script>
+
+<template>
+  <h1 id="sample-markdown" style="margin-top: 3%">{{ t("help.title") }}</h1>
+  <p>{{ t("help.intro") }}</p>
+
+  <h2 id="slide-sample" style="margin-top: 4%">{{ t("help.slidesTitle") }}</h2>
+  <p>{{ t("help.slidesIntro") }}</p>
+  <p>{{ t("help.slidesCss") }}</p>
+
+  <div class="code-container" style="position: relative">
+    <button
+      class="copy-btn"
+      data-target="help-slide"
+      style="position: absolute; top: 5px; right: 5px; z-index: 1"
+      @click="copyClipBoard('help-slide')"
+    >
+      {{ t("common.copy") }}
+    </button>
+    <pre><code id="help-slide" class="language-markdown">{{ slideSample }}</code></pre>
   </div>
 
   <div class="code-container" style="position: relative">
@@ -73,109 +178,44 @@ $$E = mc^2$$</code></pre>
       style="position: absolute; top: 5px; right: 5px; z-index: 1"
       @click="copyClipBoard('help-title')"
     >
-      コピー
+      {{ t("common.copy") }}
     </button>
-    <pre><code id="help-title" class="language-markdown"># マークダウンによる文書資料の作成</code></pre>
+    <pre><code id="help-title" class="language-markdown">{{ markdownTitleSample }}</code></pre>
   </div>
 
-  <p>
-    今度は次のテキストをコピーして編集エディタに貼り付けてみましょう。先に入力したタイトルと組み合わせてプレビューが現れます。
-  </p>
+  <p>{{ t("help.bodyLead") }}</p>
 
   <div class="code-container" style="position: relative">
     <button
       class="copy-btn"
-      data-target="help-what-markdown"
+      data-target="help-body"
       style="position: absolute; top: 5px; right: 5px; z-index: 1"
-      @click="copyClipBoard('help-what-markdown')"
+      @click="copyClipBoard('help-body')"
     >
-      コピー
+      {{ t("common.copy") }}
     </button>
-    <pre><code id="help-what-markdown" class="language-markdown">## 1. マークダウンとは何か?
-
-「**マークダウン**」は、記号と組み合わせることで文書を整形する方法のことです。
-
-- ハッシュ記号 `#` を文頭に置くと、それは「**見出し**」になります。
-- asterisk `*` を使うと「**文章を強調（太字）**」、ハイフン `-` を使うと「**リスト項目**」を作ることができます。
-
-これは一部の例で、他にもさまざまな整形方法があります。
-
-## 2. なぜマークダウンを使用するのか？
-
-### Microsoft Word
-
-「**Word**」のような文書作成ソフトは、さまざまな整形やレイアウトを行うことができます。
-
-しかし、これらの機能は非常に複雑で、学習コストが大きいものです。このため次のような問題をしばし引き起こします。
-
-- **統一性**:
-    - 文書を作成する人によって、レイアウトや書式がバラバラになる問題が発生します。
-
-- **複雑な書式や機能**:
-    - Microsoft Officeソフトは機能が豊富ですが、バージョンによって使い方や表示が異なります。
-    - ユーザーは「**行頭 揃え方**」や「**均等割り付け うまくいかない**」とGoogleで検索をするでしょう。
-    - 結果、書式設定に囚われ「**文章の内容よりも見た目**」に労力を割いてしまうという現象が発生します。
-
-### マークダウン
-
-一方、マークダウンは「**シンプルさが魅力**」です。
-
-基本的な機能は数分で学ぶことができ、基本的な記号だけで「**見栄えの良い文書を作成する**」ことができます。
-
-
-- **統一性**:
-    - 予め決められた書式に自動で変換されるため「**誰が書いても同じ見栄え**」になります。
-
-- **複雑な書式や機能**:
-    - 複雑な機能がないため「**文章の内容を考える**」ことに集中できます。
-
-
-| 項目           | マークダウン | Microsoft Word |
-| -------------- | ------------ | -------------- |
-| **機能**       | シンプル     | 多機能         |
-| **学習コスト** | 低い         | 学ぶことが多い |
-| **書式**       | 自動で設定   | ユーザーが設定 |
-
-上記のような違いから「**複雑・高度な書式を求められる文書（通知、様式、広報誌）**」はMicrosoft Wordを選択するところです。
-
-しかし、大半の文書はそれ以外です。新たな選択肢として「**マークダウン**」は業務に大いに役立つと考えられます。</code></pre>
+    <pre><code id="help-body" class="language-markdown">{{ markdownBodySample }}</code></pre>
   </div>
 
-  <h1 id="書き方" style="margin-top: 5%">解説</h1>
-  <p>
-    マークダウンは記号を使ってスタイルを整える文書作成の技術です。この先はそれぞれの記号がどのような意味を持つか解説します。
-  </p>
+  <h1 id="guide" style="margin-top: 5%">{{ t("help.guideTitle") }}</h1>
+  <p>{{ t("help.guideIntro") }}</p>
 
-  <h2 id="見出しの書き方">見出しの書き方</h2>
-  <p>
-    見出しは<code>#(シャープ)</code>を使います。シャープの数で見出しの大きさ（レベル）を変えることができます。また、<code>#</code>の次は必ず<strong>半角スペース</strong>を入れます。
-  </p>
-
+  <h2 id="headings">{{ t("help.headingTitle") }}</h2>
+  <p>{{ t("help.headingBody") }}</p>
   <div class="code-container" style="position: relative">
     <button
       class="copy-btn"
-      data-target="help-header"
+      data-target="help-heading"
       style="position: absolute; top: 5px; right: 5px; z-index: 1"
-      @click="copyClipBoard('help-header')"
+      @click="copyClipBoard('help-heading')"
     >
-      コピー
+      {{ t("common.copy") }}
     </button>
-    <pre><code id="help-header" class="language-markdown"># 見出し1
-
-## 見出し2
-
-### 見出し3
-
-#### 見出し4
-
-##### 見出し5
-
-###### 見出し6</code></pre>
+    <pre><code id="help-heading" class="language-markdown">{{ headingSample }}</code></pre>
   </div>
 
-  <h2 id="文字の強調">文字の強調</h2>
-  <p><strong>文字を強調したい場合</strong>は強調したい文字を<code>**</code>で囲みます。</p>
-
+  <h2 id="bold">{{ t("help.boldTitle") }}</h2>
+  <p>{{ t("help.boldBody") }}</p>
   <div class="code-container" style="position: relative">
     <button
       class="copy-btn"
@@ -183,18 +223,13 @@ $$E = mc^2$$</code></pre>
       style="position: absolute; top: 5px; right: 5px; z-index: 1"
       @click="copyClipBoard('help-bold')"
     >
-      コピー
+      {{ t("common.copy") }}
     </button>
-    <pre><code id="help-bold" class="language-markdown">この場所は**非常に危険**です。</code></pre>
+    <pre><code id="help-bold" class="language-markdown">This place is **very dangerous**.</code></pre>
   </div>
 
-  <p>この場所は<strong>非常に危険</strong>です。</p>
-
-  <h2 id="箇条書き（点）">箇条書き（点）</h2>
-  <p>
-    箇条書きは<code>-(ハイフン)</code>を使い、<code>-</code>の後には<strong>半角スペース</strong>を必ず入れます。また、入れ子の見出しを作る場合は<strong>半角スペースを4つ</strong>入れ子にしたい箇条書きの次に入れます。具体例を見ていきましょう。
-  </p>
-
+  <h2 id="bullets">{{ t("help.bulletTitle") }}</h2>
+  <p>{{ t("help.bulletBody") }}</p>
   <div class="code-container" style="position: relative">
     <button
       class="copy-btn"
@@ -202,80 +237,16 @@ $$E = mc^2$$</code></pre>
       style="position: absolute; top: 5px; right: 5px; z-index: 1"
       @click="copyClipBoard('help-list')"
     >
-      コピー
+      {{ t("common.copy") }}
     </button>
-    <pre><code id="help-list" class="language-markdown">- 議題
-    - 会議室の使用方法について
-    - 車の駐車について
-    - 大掃除について
-
-- その他
-    - 休暇のとり方</code></pre>
+    <pre><code id="help-list" class="language-markdown">{{ listSample }}</code></pre>
   </div>
 
-  <ul>
-    <li>
-      議題
-      <ul>
-        <li>会議室の使用方法について</li>
-        <li>車の駐車について</li>
-        <li>大掃除について</li>
-      </ul>
-    </li>
-    <li>
-      その他
-      <ul>
-        <li>休暇のとり方</li>
-      </ul>
-    </li>
-  </ul>
+  <h2 id="numbers">{{ t("help.numberTitle") }}</h2>
+  <p>{{ t("help.numberBody") }}</p>
 
-  <h2 id="箇条書き（数字）">箇条書き（数字）</h2>
-  <p>
-    数字の箇条書きは<code>1.</code>のように記述します。<code>1.</code>の後には<strong>半角スペース</strong>を必ず入れます。また、入れ子の見出しを作る場合は点の箇条書きと同様に<strong>半角スペースを4つ</strong>入れ子にしたい箇条書きの次に入れます。具体例を見ていきましょう。
-  </p>
-
-  <div class="code-container" style="position: relative">
-    <button
-      class="copy-btn"
-      data-target="help-number-list"
-      style="position: absolute; top: 5px; right: 5px; z-index: 1"
-      @click="copyClipBoard('help-number-list')"
-    >
-      コピー
-    </button>
-    <pre><code id="help-number-list" class="language-markdown">1. 議題
-    1. 会議室の使用方法について
-    2. 車の駐車について
-    3. 大掃除について
-2. その他
-    - 休暇のとり方</code></pre>
-  </div>
-
-  <ol>
-    <li>
-      議題
-      <ol>
-        <li>会議室の使用方法について</li>
-        <li>車の駐車について</li>
-        <li>大掃除について</li>
-      </ol>
-    </li>
-    <li>
-      その他
-      <ul>
-        <li>休暇のとり方</li>
-      </ul>
-    </li>
-  </ol>
-
-  <h2 id="表の作り方">表の作り方</h2>
-  <p>
-    表は<code>|</code>の記号を使用して作ります。また<strong>タイトル行と内容の区切り</strong>は<code
-      >| --- | --- | --- |</code
-    >のように記述します。次の表は3×3の表の作成例です。
-  </p>
-
+  <h2 id="tables">{{ t("help.tableTitle") }}</h2>
+  <p>{{ t("help.tableBody") }}</p>
   <div class="code-container" style="position: relative">
     <button
       class="copy-btn"
@@ -283,55 +254,24 @@ $$E = mc^2$$</code></pre>
       style="position: absolute; top: 5px; right: 5px; z-index: 1"
       @click="copyClipBoard('help-table')"
     >
-      コピー
+      {{ t("common.copy") }}
     </button>
-    <pre><code id="help-table" class="language-markdown">| 施設名   | 住所         | 備考 |
-| -------- | ------------ | ---- |
-| 保養施設 | 東京都品川区 | なし |
-| 社員食堂 | 東京都港区   | なし |</code></pre>
+    <pre><code id="help-table" class="language-markdown">{{ tableSample }}</code></pre>
   </div>
 
-  <table>
-    <thead>
-      <tr>
-        <th>施設名</th>
-        <th>住所</th>
-        <th>備考</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td>保養施設</td>
-        <td>東京都品川区</td>
-        <td>なし</td>
-      </tr>
-      <tr>
-        <td>社員食堂</td>
-        <td>東京都港区</td>
-        <td>なし</td>
-      </tr>
-    </tbody>
-  </table>
-
-  <h2 id="マーキング">マーキング</h2>
-  <p>
-    <code>このように</code
-    >マーキングしたい場合はマーキングしたい箇所を次のように<strong>バッククォート</strong>で囲みます。
-  </p>
-
+  <h2 id="inline-code">{{ t("help.codeTitle") }}</h2>
+  <p>{{ t("help.codeBody") }}</p>
   <div class="code-container" style="position: relative">
     <button
       class="copy-btn"
-      data-target="help-markup"
+      data-target="help-inline-code"
       style="position: absolute; top: 5px; right: 5px; z-index: 1"
-      @click="copyClipBoard('help-markup')"
+      @click="copyClipBoard('help-inline-code')"
     >
-      コピー
+      {{ t("common.copy") }}
     </button>
-    <pre><code id="help-markup" class="language-markdown">`○×商事`</code></pre>
+    <pre><code id="help-inline-code" class="language-markdown">{{ inlineCodeSample }}</code></pre>
   </div>
-
-  <p><code>○×商事</code></p>
 </template>
 
 <style scoped></style>

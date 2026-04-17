@@ -2,6 +2,7 @@ import { Renderer, marked } from "marked";
 import type { Token, Tokens } from "marked";
 import katex from "katex";
 import { toPreviewAssetUrl } from "@/utils/assetPaths";
+import { translate } from "@/i18n";
 
 // Markdown モード専用の marked 拡張とレンダラ差し替えをここへ集約している。
 // Ageha 独自記法もこのファイルを起点にパースされる。
@@ -208,7 +209,10 @@ renderer.link = (tokens: Tokens.Link) => {
   const isExternal = /^https?:\/\//.test(tokens.href!);
   const html = originalLinkRenderer(tokens);
   if (isExternal) {
-    return html.replace(/^<a /, '<a target="_blank" rel="noopener noreferrer" title="外部リンク" ');
+    return html.replace(
+      /^<a /,
+      `<a target="_blank" rel="noopener noreferrer" title="${escapeHtml(translate("common.externalLink"))}" `,
+    );
   }
   return html;
 };
@@ -222,7 +226,7 @@ renderer.code = (tokens: Tokens.Code) => {
     const escapedCode = escapeHtml(tokens.text);
     return `
         <div class="code-container" style="position: relative;">
-        <button class="copy-btn" data-target="${id}" style="position: absolute; top: 5px; right: 5px; z-index: 1;">コピー</button>
+        <button class="copy-btn" data-target="${id}" style="position: absolute; top: 5px; right: 5px; z-index: 1;">${escapeHtml(translate("common.copy"))}</button>
         <pre><code id="${id}">${escapedCode}</code></pre>
         </div>
         `;

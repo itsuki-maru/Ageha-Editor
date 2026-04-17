@@ -19,6 +19,7 @@ const DEFAULT_STATE: LocalStorageItem = {
   isPreviewFromLocalStorage: true,
   isShowToolsFromLocalStorage: true,
   isVimModeFromLocalStorage: false,
+  localeFromLocalStorage: "ja",
 };
 
 // HMR（ホットリロード）や多重初期化で $subscribe が重複しないようにするフラグ。
@@ -124,6 +125,7 @@ export const useLocalStorageStore = defineStore({
             isPreviewFromLocalStorage: state.isPreviewFromLocalStorage,
             isShowToolsFromLocalStorage: state.isShowToolsFromLocalStorage,
             isVimModeFromLocalStorage: state.isVimModeFromLocalStorage,
+            localeFromLocalStorage: state.localeFromLocalStorage,
           };
           await writeState(plain);
           notifyPeers(plain);
@@ -140,7 +142,8 @@ export const useLocalStorageStore = defineStore({
         if (
           s.isPreviewFromLocalStorage === next.isPreviewFromLocalStorage &&
           s.isShowToolsFromLocalStorage === next.isShowToolsFromLocalStorage &&
-          s.isVimModeFromLocalStorage === next.isVimModeFromLocalStorage
+          s.isVimModeFromLocalStorage === next.isVimModeFromLocalStorage &&
+          s.localeFromLocalStorage === next.localeFromLocalStorage
         )
           return;
         this.$patch(next);
@@ -158,6 +161,10 @@ export const useLocalStorageStore = defineStore({
     /** Vim モードの有効状態を更新する */
     setVimMode(isVimMode: boolean | null) {
       this.isVimModeFromLocalStorage = isVimMode;
+    },
+    /** UI 表示言語を更新する */
+    setLocale(locale: LocalStorageItem["localeFromLocalStorage"]) {
+      this.localeFromLocalStorage = locale;
     },
 
     /** ストアをデフォルト値へリセットし、ストレージからも削除する */

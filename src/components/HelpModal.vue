@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import Help from "./Help.vue";
+import { useI18n } from "@/i18n";
 
 // Help.vue をモーダルとして表示するための薄いラッパーであり、
 // 閉じる操作やオーバーレイ表示だけを担当する。
@@ -10,6 +11,8 @@ defineProps<{
 defineEmits<{
   close: [];
 }>();
+
+const { t } = useI18n();
 </script>
 
 <template>
@@ -17,7 +20,7 @@ defineEmits<{
     <div id="overlay-help" v-show="visible" @click.self="$emit('close')">
       <div id="content-help">
         <Help />
-        <button class="btn-help-close" @click="$emit('close')">閉じる</button>
+        <button class="btn-help-close" @click="$emit('close')">{{ t("common.close") }}</button>
       </div>
     </div>
   </transition>

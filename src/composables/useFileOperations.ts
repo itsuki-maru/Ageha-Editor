@@ -3,6 +3,7 @@ import { open, save, confirm } from "@tauri-apps/plugin-dialog";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import type { ResponseTextData, StatusCode } from "../interface";
+import { translate } from "@/i18n";
 
 // ファイルの読み書き・ダイアログ表示・未保存状態の追跡を一手に管理する composable。
 // コンポーネント側からは「開く・保存する」という意図だけで扱えるようにし、
@@ -65,8 +66,8 @@ export function useFileOperations(
   async function confirmUnsaved(): Promise<boolean> {
     // 変更がなければ確認なしで続行する。
     if (!isEdit.value) return true;
-    return await confirm("ファイルが保存されていません。よろしいですか??", {
-      title: "保存の確認",
+    return await confirm(translate("dialog.unsavedMessage"), {
+      title: translate("dialog.unsavedTitle"),
       kind: "warning",
     });
   }
@@ -108,7 +109,7 @@ export function useFileOperations(
   async function fileOpen(): Promise<void> {
     if (!(await confirmUnsaved())) return;
 
-    const filePath = await selectFile("Markdown File", ["md", "txt"]);
+    const filePath = await selectFile(translate("file.markdownFilter"), ["md", "txt"]);
     if (!filePath) return;
 
     const textData = await readFile(filePath);
@@ -136,7 +137,7 @@ export function useFileOperations(
       return selectedFilePath ?? undefined;
     } catch (error) {
       console.error("Failed to select file:", error);
-      showMessage("ファイル選択時にエラーが発生しました");
+      showMessage(translate("dialog.fileSelectError"));
       return undefined;
     }
   }
@@ -169,7 +170,7 @@ export function useFileOperations(
     if (activeFilePath.value === "*" || (markdownText === "" && activeFilePath.value === "")) {
       // 新規ファイルとして保存先を決める。
       const path = await save({
-        filters: [{ name: "markdowntext", extensions: ["md"] }],
+        filters: [{ name: translate("file.markdownSaveFilter"), extensions: ["md"] }],
       });
       if (!path) return;
 
@@ -198,7 +199,7 @@ export function useFileOperations(
    */
   async function saveHtmlFile(htmlContent: string): Promise<void> {
     const path = await save({
-      filters: [{ name: "html", extensions: ["html"] }],
+      filters: [{ name: translate("file.htmlSaveFilter"), extensions: ["html"] }],
     });
     if (!path) return;
 

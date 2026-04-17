@@ -8,6 +8,7 @@ import {
   createSlideshowHtmlDocument,
   customizeSlideHtmlDocument,
 } from "../utils/htmlTemplate";
+import { translate } from "@/i18n";
 
 // 印刷・HTML エクスポート・別ウィンドウ表示の 3 つの出力先を管理する composable。
 // Markdown モードとスライドモードで処理を分岐しつつ、
@@ -50,7 +51,7 @@ export function useExport(
    */
   async function printOut(): Promise<void> {
     if (editorContent.value === "") {
-      showMessage("入力がありません。");
+      showMessage(translate("editor.emptyInput"));
       return;
     }
 
@@ -59,7 +60,7 @@ export function useExport(
       // レンダリング完了を load イベントで確実に待てるようにする。
       const baseSlidesHtml = getSlidesDocumentHtml();
       const printHtml = customizeSlideHtmlDocument(baseSlidesHtml, {
-        title: "印刷",
+        title: translate("export.printTitle"),
         extraStyle: "@media print { html, body { background: #f4f7fb; } }",
       });
       // load 完了後に自動印刷する。
@@ -83,7 +84,7 @@ export function useExport(
             check.textContent = "✓";
             check.setAttribute("style", "font-size:56px;line-height:1;color:#4361ee;");
             const msg = document.createElement("p");
-            msg.textContent = "保存出力の完了後、このウィンドウを閉じてください。";
+            msg.textContent = ${JSON.stringify(translate("export.printOverlay"))};
             msg.setAttribute("style", "margin:0;font-size:15px;color:#0f172a;letter-spacing:0.02em;");
             ov.appendChild(check);
             ov.appendChild(msg);
@@ -91,8 +92,10 @@ export function useExport(
           });
         <\/script></body>`,
       );
-      await openNativeViewer(htmlWithAutoPrint, { title: "印刷", width: 1000, height: 700 }, () =>
-        showMessage("出力処理が完了しました。"),
+      await openNativeViewer(
+        htmlWithAutoPrint,
+        { title: translate("export.printTitle"), width: 1000, height: 700 },
+        () => showMessage(translate("export.exportComplete")),
       );
       return;
     }
@@ -118,7 +121,7 @@ export function useExport(
    */
   async function exportHtml(): Promise<void> {
     if (editorContent.value === "") {
-      showMessage("入力がありません。");
+      showMessage(translate("editor.emptyInput"));
       return;
     }
 
@@ -141,7 +144,7 @@ export function useExport(
     try {
       filePath = await invoke<string>("save_temp_html", { html });
     } catch {
-      showMessage("ウィンドウの表示に失敗しました。");
+      showMessage(translate("export.viewerOpenError"));
       return;
     }
 
@@ -166,12 +169,16 @@ export function useExport(
    */
   async function openViewer(): Promise<void> {
     if (editorContent.value === "") {
-      showMessage("入力がありません。");
+      showMessage(translate("editor.emptyInput"));
       return;
     }
 
     const html = await createViewerHtml();
-    await openNativeViewer(html, { title: "Ageha Editor Viewer", width: 1000, height: 700 });
+    await openNativeViewer(html, {
+      title: translate("export.viewerTitle"),
+      width: 1000,
+      height: 700,
+    });
   }
 
   /**
@@ -185,7 +192,7 @@ export function useExport(
       // プレビューと出力結果の見た目が一致することをここで保証する。
       const baseSlidesHtml = getSlidesDocumentHtml();
       return customizeSlideHtmlDocument(baseSlidesHtml, {
-        title: isPrint ? "印刷" : "Ageha Editor Slides",
+        title: isPrint ? translate("export.printTitle") : translate("export.slidesTitle"),
         // 印刷時だけ背景色を明示して白紙にならないようにする。
         extraStyle: isPrint ? "@media print { html, body { background: #f4f7fb; } }" : undefined,
       });
@@ -199,7 +206,7 @@ export function useExport(
       return `<html>
         <head>
           <meta charset="UTF-8">
-          <title>印刷</title>
+          <title>${translate("export.printTitle")}</title>
           <link rel="stylesheet" href="katex.css">
           <style>${cssData()}
             @media print {
@@ -214,7 +221,10 @@ export function useExport(
     }
 
     // HTML エクスポート: KaTeX CSS・Mermaid JS をインラインで含んだスタンドアロン HTML を生成する。
-    return createHtml(rendered, cssData());
+    return createHtml(rendered, cssData(), {
+      title: translate("export.viewerTitle"),
+      copiedLabel: translate("common.copied"),
+    });
   }
 
   /**
@@ -225,7 +235,7 @@ export function useExport(
     if (documentMode.value === "slides") {
       // スライドは preview 用 HTML をそのまま流用する。
       return customizeSlideHtmlDocument(getSlidesDocumentHtml(), {
-        title: "Ageha Editor Slides",
+        title: translate("export.slidesTitle"),
       });
     }
 
@@ -233,7 +243,10 @@ export function useExport(
     // ネイティブウィンドウでファイルを開く場合、相対パス参照は解決されないため
     // createHtml（KaTeX・Mermaid JS をインライン埋め込み済み）を使う。
     const rendered = await renderMermaidToSvg(parsedHtml.value);
-    return createHtml(rendered, cssData());
+    return createHtml(rendered, cssData(), {
+      title: translate("export.viewerTitle"),
+      copiedLabel: translate("common.copied"),
+    });
   }
 
   /**
@@ -243,12 +256,12 @@ export function useExport(
   async function openSlideshow(): Promise<void> {
     if (documentMode.value !== "slides") return;
     if (editorContent.value === "") {
-      showMessage("入力がありません。");
+      showMessage(translate("editor.emptyInput"));
       return;
     }
 
     const html = createSlideshowHtmlDocument(getSlidesDocumentHtml());
-    await openNativeViewer(html, { title: "Ageha Editor Slideshow", maximized: true });
+    await openNativeViewer(html, { title: translate("export.slideshowTitle"), maximized: true });
   }
 
   /**

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { DocumentMode } from "@/interface";
+import { useI18n } from "@/i18n";
 
 // ツールバーは見た目とイベント通知に専念させ、
 // 実際の処理内容は Editor.vue 側でまとめて制御する構成にしている。
@@ -22,48 +23,51 @@ defineEmits<{
   "new-instance": [];
   "show-help": [];
   "toggle-vim-mode": [];
+  "toggle-locale": [];
 }>();
+
+const { t, languageLabel } = useI18n();
 </script>
 
 <template>
   <div class="top-right-zone">
     <span class="mode-badge" :class="`mode-${documentMode}`">
-      {{ documentMode === "slides" ? "Slides" : "Markdown" }}
+      {{ documentMode === "slides" ? t("toolbar.slidesMode") : t("toolbar.markdownMode") }}
     </span>
   </div>
   <div id="btn-head-zone">
     <div id="btn-head-left">
       <button
         class="btn-head-image"
-        title="ファイルを開く&#10;ショートカット: Ctrl + o"
+        :title="t('toolbar.openFile')"
         @click="$emit('file-open')"
       >
         <img src="/file_open_24.png" class="btn-img" alt="file_open_24.png" />
       </button>
       <button
         class="btn-head-image"
-        title="保存&#10;ショートカット: Ctrl + s"
+        :title="t('toolbar.saveFile')"
         @click="$emit('file-save')"
       >
         <img src="/file_save_24.png" class="btn-img" alt="file_save_24.png" />
       </button>
       <button
         class="btn-head-image"
-        title="画像読み込み&#10;ショートカット: Ctrl + r"
+        :title="t('toolbar.readImage')"
         @click="$emit('read-image')"
       >
         <img src="/smartphone_line24.png" class="btn-img" alt="smartphone_line24.png" />
       </button>
       <button
         class="btn-head-image"
-        title="出力（PDFまたは紙）&#10;ショートカット: Ctrl + Alt + p"
+        :title="t('toolbar.printOut')"
         @click="$emit('print-out')"
       >
         <img src="/print_24.png" class="btn-img" alt="print_24.png" />
       </button>
       <button
         class="btn-head-image"
-        title="HTML出力&#10;ショートカット: Ctrl + Alt + f"
+        :title="t('toolbar.exportHtml')"
         @click="$emit('export-html')"
       >
         <img src="/html_24.png" class="btn-img" alt="html_24.png" />
@@ -71,7 +75,7 @@ defineEmits<{
       <button
         v-if="isPreview"
         class="btn-head-image"
-        title="プレビュー切り替え&#10;ショートカット: Ctrl + Alt + /"
+        :title="t('toolbar.togglePreview')"
         @click="$emit('toggle-preview')"
       >
         <img src="/preview_off_24.png" class="btn-img" alt="preview_off_24.png" />
@@ -79,21 +83,21 @@ defineEmits<{
       <button
         v-else
         class="btn-head-image"
-        title="プレビュー切り替え&#10;ショートカット: Ctrl + Alt + /"
+        :title="t('toolbar.togglePreview')"
         @click="$emit('toggle-preview')"
       >
         <img src="/preview_on_24.png" class="btn-img" alt="preview_on_24.png" />
       </button>
       <button
         class="btn-head-image"
-        title="マークダウン入力ツール&#10;ショートカット: Ctrl + Alt + i"
+        :title="t('toolbar.toggleTools')"
         @click="$emit('toggle-tools')"
       >
         <img src="/markdown_24.png" class="btn-img" alt="markdown_24.png" />
       </button>
       <button
         class="btn-head-image"
-        title="別ウィンドウ（閲覧）&#10;ショートカット: Ctrl + Alt + w"
+        :title="t('toolbar.openViewer')"
         @click="$emit('open-viewer')"
       >
         <img src="/new_window_fill24.png" class="btn-img" alt="new_window_fill24.png" />
@@ -101,7 +105,7 @@ defineEmits<{
       <button
         v-if="documentMode === 'slides'"
         class="btn-head-image"
-        title="スライドショー&#10;ショートカット: Ctrl + Alt + s"
+        :title="t('toolbar.openSlideshow')"
         @click="$emit('open-slideshow')"
       >
         <img src="/slideshow_24.png" class="btn-img" alt="slideshow_24.png" />
@@ -109,7 +113,7 @@ defineEmits<{
       <button
         class="btn-head-image btn-toggle-vim"
         :class="{ 'btn-vim-active': isVimMode }"
-        title="Vimモード切り替え&#10;ショートカット: Ctrl + ,"
+        :title="t('toolbar.toggleVim')"
         @click="$emit('toggle-vim-mode')"
       >
         Vim
@@ -117,15 +121,22 @@ defineEmits<{
     </div>
     <div id="btn-head-right">
       <button
+        class="btn-head-text"
+        :title="t('app.languageSwitch')"
+        @click="$emit('toggle-locale')"
+      >
+        {{ languageLabel }}
+      </button>
+      <button
         class="btn-head-image"
-        title="新しいエディターを起動&#10;ショートカット: Ctrl + Alt + n"
+        :title="t('toolbar.newWindow')"
         @click="$emit('new-instance')"
       >
         <img src="/new_editor_24.png" class="btn-img" alt="new_editor_24.png" />
       </button>
       <button
         class="btn-head-image"
-        title="書き方のヘルプを表示&#10;ショートカット: Ctrl + Alt + h"
+        :title="t('toolbar.help')"
         @click="$emit('show-help')"
       >
         <img src="/help_24.png" class="btn-img" alt="help_24.png" />
@@ -141,6 +152,11 @@ defineEmits<{
 }
 
 #btn-head-left {
+  display: flex;
+  align-items: center;
+}
+
+#btn-head-right {
   display: flex;
   align-items: center;
 }
@@ -175,27 +191,33 @@ defineEmits<{
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 36px;
-  height: 36px;
-  padding: 0 8px;
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  border-radius: 5px;
-  background: transparent;
-  color: #c0c0c0;
+  min-width: 40px;
+  height: 30px;
+  padding: 3px 8px;
+  margin-top: 3px;
+  margin-right: 10px;
+  margin-bottom: 3px;
+  margin-left: 5px;
+  border: 1px solid transparent;
+  border-radius: 15px;
+  background: white;
+  box-shadow: 3px 3px 5px 0 rgba(75, 75, 75, 0.5);
+  color: #2f2f2f;
   font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.06em;
+  line-height: 1;
+  text-transform: uppercase;
   cursor: pointer;
   transition:
-    background 0.15s,
+    background-color 0.3s,
     color 0.15s,
     border-color 0.15s;
 }
 
 .btn-head-text:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #ffffff;
-  border-color: rgba(255, 255, 255, 0.45);
+  background: rgb(192, 192, 192);
+  color: #1f1f1f;
 }
 
 .btn-vim-active {

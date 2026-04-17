@@ -17,6 +17,11 @@ interface SlideHtmlOptions {
   extraStyle?: string;
 }
 
+interface HtmlDocumentOptions {
+  title?: string;
+  copiedLabel?: string;
+}
+
 // Marp が生成するスライドの DOM 構造:
 //   div.marpit > svg > foreignObject > section
 // ユーザー CSS の `section { ... }` を効かせるには、このフルパスへ変換が必要。
@@ -56,7 +61,8 @@ const SLIDE_EXTERNAL_LINK_SCRIPT = `(function () {
 // iframe / 別ウィンドウ内のコードブロックに「コピー」ボタンを付けるための
 // インライン JavaScript。createSlideHtmlDocument で埋め込んでいないが、
 // createHtml（通常 Markdown）で使用している。
-const COPY_BUTTON_SCRIPT = `
+function buildCopyButtonScript(copiedLabel: string) {
+  return `
 document.addEventListener("click", (e) => {
   const target = e.target;
   if (!(target instanceof HTMLElement) || !target.classList.contains("copy-btn")) return;
@@ -70,7 +76,7 @@ document.addEventListener("click", (e) => {
   if (existingTooltip) existingTooltip.remove();
 
   const tooltip = document.createElement("div");
-  tooltip.textContent = "コピーしました";
+  tooltip.textContent = ${JSON.stringify(copiedLabel)};
   tooltip.className = "copy-tooltip";
   target.parentElement?.appendChild(tooltip);
 
@@ -80,6 +86,7 @@ document.addEventListener("click", (e) => {
   }, 1000);
 });
 `;
+}
 
 // コピーボタンとツールチップの追加スタイル定義
 const COPY_BUTTON_STYLE = `
@@ -138,12 +145,14 @@ const COPY_BUTTON_STYLE = `
  * @param html  - Markdown を marked でレンダリングした HTML 断片
  * @param style - ageha.css の内容
  */
-export function createHtml(html: string, style: string): string {
+export function createHtml(html: string, style: string, options: HtmlDocumentOptions = {}): string {
+  const title = options.title ?? "Ageha Editor";
+  const copiedLabel = options.copiedLabel ?? "Copied";
   return `<!DOCTYPE html>
     <html>
     <head>
     <meta charset="UTF-8" />
-    <title>Ageha Editor</title>
+    <title>${escapeHtml(title)}</title>
     <style>${style}</style>
     <style>${rawKatex}</style>
     <script>${rawMermaid}</script>
@@ -151,7 +160,7 @@ export function createHtml(html: string, style: string): string {
     <body>
     <div class="container-fluid">${html}</div>
     </body>
-    <script>${COPY_BUTTON_SCRIPT}</script>
+    <script>${buildCopyButtonScript(copiedLabel)}</script>
     <style>${COPY_BUTTON_STYLE}</style>
     </html>`;
 }
@@ -174,7 +183,7 @@ export function createSlideHtmlDocument(
   style: string,
   options: SlideHtmlOptions = {},
 ): string {
-  const title = options.title ?? "Ageha Editor Slides";
+  const title = escapeHtml(options.title ?? "Ageha Editor Slides");
   const userStyle = options.userStyle ?? "";
   // ユーザー CSS を Marp の DOM 構造に合わせてスコープ変換する。
   // 変換結果はキャッシュされるため、同じ CSS を繰り返し渡してもコストは最小限。

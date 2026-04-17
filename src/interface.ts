@@ -14,7 +14,14 @@ export interface LocalStorageItem {
   isPreviewFromLocalStorage: boolean | null;
   /** Vim キーバインドの有効状態 */
   isVimModeFromLocalStorage: boolean | null;
+  /** UI 表示言語 */
+  localeFromLocalStorage: AppLocale | null;
 }
+
+// -------- ロケール --------
+
+/** アプリが現在サポートする UI 言語 */
+export type AppLocale = "ja" | "en";
 
 // -------- 文書モード --------
 

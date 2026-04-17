@@ -1,4 +1,5 @@
 import { TOOLTIP_DISPLAY_MS, TOOLTIP_FADE_MS } from "../constants";
+import { translate } from "@/i18n";
 
 // ヘルプ画面やコードブロックで使うコピー処理を共通化している。
 // ツールチップ表示まで含めて一か所に寄せることで挙動を揃えやすくする。
@@ -35,7 +36,7 @@ function showCopyTooltip(anchorElement: HTMLElement): void {
 
   // メッセージを作成
   const tooltip = document.createElement("div");
-  tooltip.textContent = "コピーしました";
+  tooltip.textContent = translate("common.copied");
   tooltip.className = "copy-tooltip";
   parent.appendChild(tooltip);
 

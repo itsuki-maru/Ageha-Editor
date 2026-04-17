@@ -23,6 +23,7 @@ import { handleCopyButtonClick } from "@/utils/clipboard";
 import { useLocalStorageStore } from "./stores/localStorages";
 import { useRustArgsInitStore } from "./stores/appInits";
 import { EDITOR_FOCUS_DELAY_MS, IMAGE_FILE_EXTENSIONS, TEXT_FILE_EXTENSIONS } from "./constants";
+import { setLocale, useI18n } from "@/i18n";
 
 // このコンポーネントがアプリ本体であり、
 // エディタ・プレビュー・保存・出力まわりの処理を組み合わせて画面を構成する。
@@ -37,6 +38,7 @@ const isVimMode = ref<boolean | null>(null);
 const showHelp = ref(false);
 const isMessageModal = ref(false);
 const messageText = ref("");
+const { t, toggleLocale } = useI18n();
 
 function showMessage(message: string) {
   // どの処理からでも同じ手順でメッセージモーダルを開けるようにしている。
@@ -98,7 +100,9 @@ watch(editorContent, (newContent) => {
 // ---- マークダウンプレビュー ----
 const { parsedHtml, previewFrameHtml, documentMode, slideRender, drawMermaid, renderMermaidToSvg } =
   useMarkdownPreview(editorContent, activeFilePath, slideCustomCss);
-const previewTitle = computed(() => (documentMode.value === "slides" ? "Slides" : "Preview"));
+const previewTitle = computed(() =>
+  documentMode.value === "slides" ? t("editor.slidePreview") : t("editor.preview"),
+);
 const isScrollSyncEnabled = computed(() => documentMode.value === "markdown");
 
 // editorContent 変化時に Mermaid を再描画
@@ -136,6 +140,7 @@ onMounted(async () => {
   isShowTools.value = localStorageItem.isShowToolsFromLocalStorage;
   isPreview.value = localStorageItem.isPreviewFromLocalStorage;
   isVimMode.value = localStorageItem.isVimModeFromLocalStorage;
+  setLocale(localStorageItem.localeFromLocalStorage ?? "ja");
 });
 
 // ---- 起動時のファイル読み込み ----
@@ -257,9 +262,14 @@ function handleVimMode() {
   aceEditor.setVimMode(isVimMode.value!);
 }
 
+function handleLocaleToggle() {
+  const next = toggleLocale();
+  localStorageItem.setLocale(next);
+}
+
 // ---- 画像ファイル読み込み ----
 async function readImage() {
-  const imageFilePath = await selectFile("Image File", ["png", "jpg", "jpeg", "svg"]);
+  const imageFilePath = await selectFile(t("file.imageFilter"), ["png", "jpg", "jpeg", "svg"]);
   if (!imageFilePath) return;
   // 選んだ画像は絶対パス付き Markdown 画像記法で挿入する。
   const fileName = getFileName(imageFilePath);
@@ -321,6 +331,7 @@ useKeyboardShortcuts({
     @new-instance="openNewInstance"
     @show-help="showHelp = true"
     @toggle-vim-mode="handleVimMode"
+    @toggle-locale="handleLocaleToggle"
   />
 
   <!-- エディタとプレビュー -->
@@ -331,14 +342,14 @@ useKeyboardShortcuts({
       :style="{ width: isPreview ? '50%' : '100%', marginRight: isPreview ? '10px' : '0px' }"
     >
       <div class="left-h3">
-        <h3 class="editor-and-preview-title" id="title_h3_1">Editor</h3>
+        <h3 class="editor-and-preview-title" id="title_h3_1">{{ t("editor.title") }}</h3>
       </div>
       <div class="edit-area" :style="{ height: divHeight + 'px' }">
         <div
           ref="editorRef"
           class="editor-div"
           id="editor"
-          title="作成したい文書をマークダウンで記述します。&#10;作成はリアルタイムで左側のプレビューエリアに反映されます。"
+          :title="t('editor.editorTooltip')"
         ></div>
       </div>
     </div>
@@ -358,7 +369,7 @@ useKeyboardShortcuts({
           v-if="documentMode === 'slides'"
           class="slide-preview-frame"
           :srcdoc="previewFrameHtml"
-          title="Slide preview"
+          :title="t('editor.slidePreview')"
         ></iframe>
         <section v-else class="markdown-body" v-html="parsedHtml"></section>
       </div>

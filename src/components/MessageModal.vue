@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { useI18n } from "@/i18n";
+
 // 保存失敗や簡単な通知など、
 // エディタ全体で共通利用するシンプルなメッセージモーダル。
 defineProps<{
@@ -9,19 +11,21 @@ defineProps<{
 defineEmits<{
   close: [];
 }>();
+
+const { t } = useI18n();
 </script>
 
 <template>
   <div id="overlay-message" v-show="visible" @click.self="$emit('close')">
     <div id="content-message">
-      <h2 class="modal-h2">メッセージ</h2>
+      <h2 class="modal-h2">{{ t("common.message") }}</h2>
       <div class="input-text-zone">
         <p>
           <strong>{{ message }}</strong>
         </p>
       </div>
       <div class="btn-close">
-        <button id="message-close-btn" @click="$emit('close')">閉じる</button>
+        <button id="message-close-btn" @click="$emit('close')">{{ t("common.close") }}</button>
       </div>
     </div>
   </div>

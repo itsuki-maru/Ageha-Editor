@@ -1,11 +1,17 @@
 <script setup lang="ts">
 import Editor from "./Editor.vue";
 import { message } from "@tauri-apps/plugin-dialog";
+import { useI18n } from "@/i18n";
 
 // ルートコンポーネントではアプリ全体の外枠だけを担当し、
 // 実際の編集機能は Editor.vue 側へ委譲する。
+const { t } = useI18n();
+
 async function openVersion() {
-  await message(`Ageha Editor: Version ${__APP_VERSION__}`, { title: "Version", kind: "info" });
+  await message(t("app.versionMessage", { version: __APP_VERSION__ }), {
+    title: t("app.versionTitle"),
+    kind: "info",
+  });
 }
 </script>
 
