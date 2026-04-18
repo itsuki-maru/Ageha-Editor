@@ -1,7 +1,7 @@
 # Ageha Editor Specification
 
 **Product Name:** Ageha Editor  
-**Version:** 0.2.x  
+**Version:** 0.3.x  
 **Identifier:** com.ageha.app  
 **Tech Stack:** Tauri v2 + Vue 3 + TypeScript (frontend) / Rust (backend)  
 **Target OS:** Windows / macOS / Linux
@@ -136,26 +136,26 @@ Ageha-Editor/
 ### 4.1 Overall Structure
 
 ```text
-┌──────────────────────────────────────────────────────────┐
-│                       Tauri Shell                        │
-│  ┌──────────────────────────────┐  ┌──────────────────┐  │
-│  │       Vue 3 Frontend         │  │  Rust Backend    │  │
-│  │  App.vue                     │  │  main.rs         │  │
-│  │   └─ Editor.vue              │◄─►  lib.rs          │  │
-│  │       ├─ ToolbarButtons.vue  │IPC│  handler/        │  │
-│  │       ├─ MarkdownTools.vue   │  │   ├─ file.rs     │  │
-│  │       ├─ HelpModal.vue       │  │   └─ spawn_self.rs│  │
-│  │       └─ MessageModal.vue    │  │  config.rs       │  │
-│  │  Composables                 │  │  schema.rs       │  │
-│  │  Pinia Stores                │  │  utils.rs        │  │
-│  │  i18n / Utils                │  │  init.rs         │  │
-│  └──────────────────────────────┘  └──────────────────┘  │
-│                                                          │
-│  User settings (`~/.ageha/`)                             │
-│  ├─ ageha.env.json      (app settings)                   │
-│  ├─ ageha.css           (Markdown CSS)                   │
-│  └─ ageha-slide.css     (Slides CSS)                     │
-└──────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────┐
+│                       Tauri Shell                          │
+│  ┌──────────────────────────────┐   ┌───────────────────┐  │
+│  │       Vue 3 Frontend         │   │  Rust Backend     │  │
+│  │  App.vue                     │   │  main.rs          │  │
+│  │   └─ Editor.vue              │◄─►|  lib.rs           │  │
+│  │       ├─ ToolbarButtons.vue  │IPC│  handler/         │  │
+│  │       ├─ MarkdownTools.vue   │   │   ├─ file.rs      │  │
+│  │       ├─ HelpModal.vue       │   │   └─ spawn_self.rs│  │
+│  │       └─ MessageModal.vue    │   │  config.rs        │  │
+│  │  Composables                 │   │  schema.rs        │  │
+│  │  Pinia Stores                │   │  utils.rs         │  │
+│  │  i18n / Utils                │   │  init.rs          │  │
+│  └──────────────────────────────┘   └───────────────────┘  │
+│                                                            │
+│  User settings (`~/.ageha/`)                               │
+│  ├─ ageha.env.json      (app settings)                     │
+│  ├─ ageha.css           (Markdown CSS)                     │
+│  └─ ageha-slide.css     (Slides CSS)                       │
+└────────────────────────────────────────────────────────────┘
 ```
 
 ### 4.2 Startup Sequence
@@ -653,11 +653,11 @@ npm run format      # Format code with Prettier
 
 ```text
 ┌──────────────────────────────────────────────────────────┐
-│ Header: "Ageha Editor" (double-click to show version)   │
+│ Header: "Ageha Editor" (double-click to show version)    │
 ├──────────────────────────────────────────────────────────┤
-│ Toolbar: [Open][Save][Image][Print][HTML]               │
-│          [Preview][Tools][Vim][Help][New]               │
-│                                 [Mode Badge][JA/EN]     │
+│ Toolbar: [Open][Save][Image][Print][HTML]                │
+│          [Preview][Tools][Vim][Help][New]                │
+│                                 [Mode Badge][JA/EN]      │
 ├──────────────────┬───────────────────────────────────────┤
 │ Markdown tools   │                                       │
 │ (toggleable)     │                                       │
