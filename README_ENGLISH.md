@@ -14,6 +14,12 @@
 
 **Ageha Editor** is a Markdown editor built with [Tauri](https://v2.tauri.app/). It is lightweight and can be used without a heavyweight runtime installation.
 
+**Default Screen Image**
+
+![Ageha Editor](https://geocode-web-single.pages.dev/ageha-edhitor-desktop-image.png)
+
+**Full Screen Image**
+
 ![Ageha Editor](https://ageha-editor.pages.dev/ageha-editor.png)
 
 ### Core Features
@@ -43,12 +49,12 @@
 
 ### File Operations
 
-| Action | Description |
-| ------ | ----------- |
-| Open file | Select and load a file from a dialog |
-| Save file | Save the current content to a local file |
+| Action        | Description                                 |
+| ------------- | ------------------------------------------- |
+| Open file     | Select and load a file from a dialog        |
+| Save file     | Save the current content to a local file    |
 | Drag and drop | Drop a file into the editor area to open it |
-| New window | Launch a new editor window |
+| New window    | Launch a new editor window                  |
 
 Supported file types: `.md` `.txt`
 
@@ -62,14 +68,14 @@ Supported file types: `.md` `.txt`
 
 In addition to standard Markdown, Ageha supports the following custom syntax:
 
-| Syntax | Description |
-| ------ | ----------- |
-| `?[alt](video.mp4)` | Embed a video |
-| `@[youtube](URL)` | Embed YouTube |
-| `:::details Title...:::` | Collapsible block |
-| `:::note Title...:::` | Note block |
-| `:::warning Title...:::` | Warning block |
-| `@@@` | Page break when printing |
+| Syntax                   | Description              |
+| ------------------------ | ------------------------ |
+| `?[alt](video.mp4)`      | Embed a video            |
+| `@[youtube](URL)`        | Embed YouTube            |
+| `:::details Title...:::` | Collapsible block        |
+| `:::note Title...:::`    | Note block               |
+| `:::warning Title...:::` | Warning block            |
+| `@@@`                    | Page break when printing |
 
 ### Slide Mode
 
@@ -98,14 +104,14 @@ marp: true
 
 Available only in slide mode. Opens a presentation window that shows one slide at a time.
 
-| Action | Behavior |
-| ------ | -------- |
-| `→` / `↓` / `Space` | Next slide |
-| `←` / `↑` | Previous slide |
-| `Home` / `End` | First / last slide |
-| Click right half of screen | Next slide |
-| Click left half of screen | Previous slide |
-| Hover near bottom | Show navigation UI (`← counter →`) |
+| Action                     | Behavior                           |
+| -------------------------- | ---------------------------------- |
+| `→` / `↓` / `Space`        | Next slide                         |
+| `←` / `↑`                  | Previous slide                     |
+| `Home` / `End`             | First / last slide                 |
+| Click right half of screen | Next slide                         |
+| Click left half of screen  | Previous slide                     |
+| Hover near bottom          | Show navigation UI (`← counter →`) |
 
 ### Mermaid Diagrams
 
@@ -141,22 +147,22 @@ $$
 
 ## Keyboard Shortcuts
 
-| Key | Function |
-| --- | -------- |
-| `Ctrl+O` | Open file |
-| `Ctrl+S` | Save file |
-| `Ctrl+R` | Insert image |
-| `Ctrl+M` | Re-render Mermaid |
-| `Ctrl+,` | Toggle Vim mode |
-| `Ctrl+Alt+P` | Print / PDF output |
-| `Ctrl+Alt+F` | Export HTML |
+| Key          | Function                          |
+| ------------ | --------------------------------- |
+| `Ctrl+O`     | Open file                         |
+| `Ctrl+S`     | Save file                         |
+| `Ctrl+R`     | Insert image                      |
+| `Ctrl+M`     | Re-render Mermaid                 |
+| `Ctrl+,`     | Toggle Vim mode                   |
+| `Ctrl+Alt+P` | Print / PDF output                |
+| `Ctrl+Alt+F` | Export HTML                       |
 | `Ctrl+Alt+W` | Open preview in a separate window |
-| `Ctrl+Alt+/` | Toggle preview visibility |
-| `Ctrl+Alt+I` | Toggle writing tools panel |
-| `Ctrl+Alt+H` | Show help |
-| `Ctrl+Alt+N` | Open a new window |
-| `Ctrl+Alt+S` | Open slideshow |
-| `Escape` | Close modal dialogs |
+| `Ctrl+Alt+/` | Toggle preview visibility         |
+| `Ctrl+Alt+I` | Toggle writing tools panel        |
+| `Ctrl+Alt+H` | Show help                         |
+| `Ctrl+Alt+N` | Open a new window                 |
+| `Ctrl+Alt+S` | Open slideshow                    |
+| `Escape`     | Close modal dialogs               |
 
 ---
 
@@ -164,10 +170,10 @@ $$
 
 On first launch, the application creates `~/.ageha/` in the user directory.
 
-| File | Description |
-| ---- | ----------- |
-| `~/.ageha/ageha.css` | Styles for the Markdown preview |
-| `~/.ageha/ageha-slide.css` | Styles for slide preview |
+| File                       | Description                     |
+| -------------------------- | ------------------------------- |
+| `~/.ageha/ageha.css`       | Styles for the Markdown preview |
+| `~/.ageha/ageha-slide.css` | Styles for slide preview        |
 
 By editing these files, you can customize the styling used in preview, printing, and HTML export.
 
