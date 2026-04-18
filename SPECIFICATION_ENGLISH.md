@@ -691,7 +691,7 @@ npm run format      # Format code with Prettier
 
 | Version | Description |
 | ------- | ----------- |
-| v0.2.x | English UI support, persisted locale setting, localized help and output text |
+| v0.3.0 | English UI support, persisted locale setting, localized help and output text, and a scroll sync toggle |
 | v0.1.0 | Release preparation and Marp-compatible slide authoring |
 | v0.0.27 | YouTube embed fixes and new input buttons |
 | v0.0.24 | YouTube embed, HTML export, CSS customization |
