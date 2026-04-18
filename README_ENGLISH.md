@@ -2,6 +2,8 @@
 
 ![Icon](https://ageha-editor.pages.dev/icon-128.png)
 
+To install, please select the version appropriate for your platform from [Release](https://github.com/itsuki-maru/Ageha-Editor/releases/tag/v0.3.0). Note that on Windows, you can also download and run `ageha.exe`, but depending on your OS version, components such as WebView may be missing. In that case, please use the installer.
+
 > The author accepts absolutely no responsibility for any damage caused by using this application.
 >
 > This application is recommended only for those who are not intimidated by blue windows like the one below.
