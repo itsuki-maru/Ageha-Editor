@@ -18,6 +18,7 @@ const STATE_KEY = "localState@v1";
 const DEFAULT_STATE: LocalStorageItem = {
   isPreviewFromLocalStorage: true,
   isShowToolsFromLocalStorage: true,
+  isScrollSyncFromLocalStorage: true,
   isVimModeFromLocalStorage: false,
   localeFromLocalStorage: "ja",
 };
@@ -124,6 +125,7 @@ export const useLocalStorageStore = defineStore({
           const plain: LocalStorageItem = {
             isPreviewFromLocalStorage: state.isPreviewFromLocalStorage,
             isShowToolsFromLocalStorage: state.isShowToolsFromLocalStorage,
+            isScrollSyncFromLocalStorage: state.isScrollSyncFromLocalStorage,
             isVimModeFromLocalStorage: state.isVimModeFromLocalStorage,
             localeFromLocalStorage: state.localeFromLocalStorage,
           };
@@ -142,6 +144,7 @@ export const useLocalStorageStore = defineStore({
         if (
           s.isPreviewFromLocalStorage === next.isPreviewFromLocalStorage &&
           s.isShowToolsFromLocalStorage === next.isShowToolsFromLocalStorage &&
+          s.isScrollSyncFromLocalStorage === next.isScrollSyncFromLocalStorage &&
           s.isVimModeFromLocalStorage === next.isVimModeFromLocalStorage &&
           s.localeFromLocalStorage === next.localeFromLocalStorage
         )
@@ -157,6 +160,10 @@ export const useLocalStorageStore = defineStore({
     /** マークダウン入力ツールパネルの表示状態を更新する */
     setMarkdownTools(isMarkdownTools: boolean | null) {
       this.isShowToolsFromLocalStorage = isMarkdownTools;
+    },
+    /** スクロール同期の有効状態を更新する */
+    setScrollSync(isScrollSync: boolean | null) {
+      this.isScrollSyncFromLocalStorage = isScrollSync;
     },
     /** Vim モードの有効状態を更新する */
     setVimMode(isVimMode: boolean | null) {

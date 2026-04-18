@@ -6,6 +6,7 @@ import { useI18n } from "@/i18n";
 // 実際の処理内容は Editor.vue 側でまとめて制御する構成にしている。
 defineProps<{
   isPreview: boolean | null;
+  isScrollSync: boolean | null;
   isVimMode: boolean | null;
   documentMode: DocumentMode;
 }>();
@@ -17,6 +18,7 @@ defineEmits<{
   "print-out": [];
   "export-html": [];
   "toggle-preview": [];
+  "toggle-scroll-sync": [];
   "toggle-tools": [];
   "open-viewer": [];
   "open-slideshow": [];
@@ -37,39 +39,19 @@ const { t, languageLabel } = useI18n();
   </div>
   <div id="btn-head-zone">
     <div id="btn-head-left">
-      <button
-        class="btn-head-image"
-        :title="t('toolbar.openFile')"
-        @click="$emit('file-open')"
-      >
+      <button class="btn-head-image" :title="t('toolbar.openFile')" @click="$emit('file-open')">
         <img src="/file_open_24.png" class="btn-img" alt="file_open_24.png" />
       </button>
-      <button
-        class="btn-head-image"
-        :title="t('toolbar.saveFile')"
-        @click="$emit('file-save')"
-      >
+      <button class="btn-head-image" :title="t('toolbar.saveFile')" @click="$emit('file-save')">
         <img src="/file_save_24.png" class="btn-img" alt="file_save_24.png" />
       </button>
-      <button
-        class="btn-head-image"
-        :title="t('toolbar.readImage')"
-        @click="$emit('read-image')"
-      >
+      <button class="btn-head-image" :title="t('toolbar.readImage')" @click="$emit('read-image')">
         <img src="/smartphone_line24.png" class="btn-img" alt="smartphone_line24.png" />
       </button>
-      <button
-        class="btn-head-image"
-        :title="t('toolbar.printOut')"
-        @click="$emit('print-out')"
-      >
+      <button class="btn-head-image" :title="t('toolbar.printOut')" @click="$emit('print-out')">
         <img src="/print_24.png" class="btn-img" alt="print_24.png" />
       </button>
-      <button
-        class="btn-head-image"
-        :title="t('toolbar.exportHtml')"
-        @click="$emit('export-html')"
-      >
+      <button class="btn-head-image" :title="t('toolbar.exportHtml')" @click="$emit('export-html')">
         <img src="/html_24.png" class="btn-img" alt="html_24.png" />
       </button>
       <button
@@ -95,11 +77,7 @@ const { t, languageLabel } = useI18n();
       >
         <img src="/markdown_24.png" class="btn-img" alt="markdown_24.png" />
       </button>
-      <button
-        class="btn-head-image"
-        :title="t('toolbar.openViewer')"
-        @click="$emit('open-viewer')"
-      >
+      <button class="btn-head-image" :title="t('toolbar.openViewer')" @click="$emit('open-viewer')">
         <img src="/new_window_fill24.png" class="btn-img" alt="new_window_fill24.png" />
       </button>
       <button
@@ -111,12 +89,20 @@ const { t, languageLabel } = useI18n();
         <img src="/slideshow_24.png" class="btn-img" alt="slideshow_24.png" />
       </button>
       <button
-        class="btn-head-image btn-toggle-vim"
+        class="btn-head-image btn-toggle-text"
         :class="{ 'btn-vim-active': isVimMode }"
         :title="t('toolbar.toggleVim')"
         @click="$emit('toggle-vim-mode')"
       >
         Vim
+      </button>
+      <button
+        class="btn-head-image btn-toggle-text"
+        :class="{ 'btn-toggle-active': isScrollSync && documentMode === 'markdown' }"
+        :title="t('toolbar.toggleScrollSync')"
+        @click="$emit('toggle-scroll-sync')"
+      >
+        Sync
       </button>
     </div>
     <div id="btn-head-right">
@@ -127,18 +113,10 @@ const { t, languageLabel } = useI18n();
       >
         {{ languageLabel }}
       </button>
-      <button
-        class="btn-head-image"
-        :title="t('toolbar.newWindow')"
-        @click="$emit('new-instance')"
-      >
+      <button class="btn-head-image" :title="t('toolbar.newWindow')" @click="$emit('new-instance')">
         <img src="/new_editor_24.png" class="btn-img" alt="new_editor_24.png" />
       </button>
-      <button
-        class="btn-head-image"
-        :title="t('toolbar.help')"
-        @click="$emit('show-help')"
-      >
+      <button class="btn-head-image" :title="t('toolbar.help')" @click="$emit('show-help')">
         <img src="/help_24.png" class="btn-img" alt="help_24.png" />
       </button>
     </div>
@@ -220,13 +198,24 @@ const { t, languageLabel } = useI18n();
   color: #1f1f1f;
 }
 
-.btn-vim-active {
+.btn-toggle-text {
+  color: black;
+  font-weight: bold;
+  font-size: 0.72rem;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    color 0.15s,
+    border-color 0.15s;
+}
+
+.btn-toggle-active {
   background: linear-gradient(135deg, #116956, #2c8f77);
   color: #ffffff;
   border-color: #2c8f77;
 }
 
-.btn-vim-active:hover {
+.btn-toggle-active:hover {
   background: linear-gradient(135deg, #0e5a49, #247a65);
   color: #ffffff;
 }
@@ -242,14 +231,7 @@ const { t, languageLabel } = useI18n();
 }
 
 .btn-toggle-vim {
-  color: black;
-  font-weight: bold;
-  font-size: 0.72rem;
-  cursor: pointer;
-  transition:
-    background 0.15s,
-    color 0.15s,
-    border-color 0.15s;
+  min-width: 44px;
 }
 
 .btn-vim-active {

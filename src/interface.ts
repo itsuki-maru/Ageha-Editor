@@ -12,6 +12,8 @@ export interface LocalStorageItem {
   isShowToolsFromLocalStorage: boolean | null;
   /** プレビューエリアの表示状態 */
   isPreviewFromLocalStorage: boolean | null;
+  /** エディタとプレビューのスクロール同期の有効状態 */
+  isScrollSyncFromLocalStorage: boolean | null;
   /** Vim キーバインドの有効状態 */
   isVimModeFromLocalStorage: boolean | null;
   /** UI 表示言語 */

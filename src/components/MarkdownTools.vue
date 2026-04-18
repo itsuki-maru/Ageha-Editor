@@ -30,25 +30,13 @@ const { t } = useI18n();
     <button class="btn-input-tools" :title="t('tools.h1')" @click="insert('# ')">
       <img src="/format_h1_24.png" class="btn-input-tools-img" alt="format_h1_24.png" />
     </button>
-    <button
-      class="btn-input-tools"
-      :title="t('tools.h2')"
-      @click="insert('## ')"
-    >
+    <button class="btn-input-tools" :title="t('tools.h2')" @click="insert('## ')">
       <img src="/format_h2_24.png" class="btn-input-tools-img" alt="format_h2_24.png" />
     </button>
-    <button
-      class="btn-input-tools"
-      :title="t('tools.h3')"
-      @click="insert('### ')"
-    >
+    <button class="btn-input-tools" :title="t('tools.h3')" @click="insert('### ')">
       <img src="/format_h3_24.png" class="btn-input-tools-img" alt="format_h3_24.png" />
     </button>
-    <button
-      class="btn-input-tools"
-      :title="t('tools.bold')"
-      @click="insert('**')"
-    >
+    <button class="btn-input-tools" :title="t('tools.bold')" @click="insert('**')">
       <img src="/format_bold_24.png" class="btn-input-tools-img" alt="format_bold_24.png" />
     </button>
     <button class="btn-input-tools" :title="t('tools.bulletList')" @click="insert('- ')">
@@ -111,24 +99,20 @@ const { t } = useI18n();
     >
       <img src="/warning_24.png" class="btn-input-tools-img" alt="warning_24.png" />
     </button>
-    <button class="btn-input-tools" :title="t('tools.math')" @click="insert(t('tools.mathTemplate'))">
+    <button
+      class="btn-input-tools"
+      :title="t('tools.math')"
+      @click="insert(t('tools.mathTemplate'))"
+    >
       <img src="/math24.png" class="btn-input-tools-img" alt="math24.png" />
     </button>
     <button class="btn-input-tools" :title="t('tools.pageBreak')" @click="insert('@@@')">
       <img src="/keyboard_return_24.png" class="btn-input-tools-img" alt="keyboard_return_24.png" />
     </button>
-    <button
-      class="btn-input-tools"
-      :title="t('tools.tel')"
-      @click="insert('[](tel:+81)')"
-    >
+    <button class="btn-input-tools" :title="t('tools.tel')" @click="insert('[](tel:+81)')">
       <img src="/tel_24.png" class="btn-input-tools-img" alt="tel_24.png" />
     </button>
-    <button
-      class="btn-input-tools"
-      :title="t('tools.mail')"
-      @click="insert('[](mailto:)')"
-    >
+    <button class="btn-input-tools" :title="t('tools.mail')" @click="insert('[](mailto:)')">
       <img src="/mail_24.png" class="btn-input-tools-img" alt="mail_24.png" />
     </button>
     <button

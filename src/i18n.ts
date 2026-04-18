@@ -39,6 +39,7 @@ const messages: Record<AppLocale, MessageTree> = {
       printOut: "出力（PDFまたは紙）\nショートカット: Ctrl + Alt + p",
       exportHtml: "HTML出力\nショートカット: Ctrl + Alt + f",
       togglePreview: "プレビュー切り替え\nショートカット: Ctrl + Alt + /",
+      toggleScrollSync: "スクロール同期の切り替え\nMarkdown プレビュー時に有効",
       toggleTools: "マークダウン入力ツール\nショートカット: Ctrl + Alt + i",
       openViewer: "別ウィンドウ（閲覧）\nショートカット: Ctrl + Alt + w",
       openSlideshow: "スライドショー\nショートカット: Ctrl + Alt + s",
@@ -160,6 +161,7 @@ const messages: Record<AppLocale, MessageTree> = {
       printOut: "Print (PDF or paper)\nShortcut: Ctrl + Alt + P",
       exportHtml: "Export HTML\nShortcut: Ctrl + Alt + F",
       togglePreview: "Toggle preview\nShortcut: Ctrl + Alt + /",
+      toggleScrollSync: "Toggle scroll sync\nEnabled for Markdown preview",
       toggleTools: "Markdown tools\nShortcut: Ctrl + Alt + I",
       openViewer: "Open in separate window\nShortcut: Ctrl + Alt + W",
       openSlideshow: "Slideshow\nShortcut: Ctrl + Alt + S",
@@ -246,8 +248,7 @@ const messages: Record<AppLocale, MessageTree> = {
       tableBody:
         "Use the | character to create tables. Separate the header row from the body with a line like | --- | --- | --- |. The sample below shows a 3 x 3 table.",
       codeTitle: "Inline code",
-      codeBody:
-        "To mark text like code, wrap the target text with backticks.",
+      codeBody: "To mark text like code, wrap the target text with backticks.",
     },
   },
 };
@@ -273,7 +274,11 @@ function interpolate(template: string, params?: MessageParams): string {
   return template.replace(/\{(\w+)\}/g, (_, key: string) => String(params[key] ?? `{${key}}`));
 }
 
-export function translate(key: string, params?: MessageParams, locale = currentLocale.value): string {
+export function translate(
+  key: string,
+  params?: MessageParams,
+  locale = currentLocale.value,
+): string {
   const message = getMessage(locale, key) ?? getMessage("ja", key) ?? key;
   return interpolate(message, params);
 }

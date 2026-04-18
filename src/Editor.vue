@@ -34,6 +34,7 @@ const localStorageItem = useLocalStorageStore();
 // ---- UI 状態 ----
 const isShowTools = ref<boolean | null>(null);
 const isPreview = ref<boolean | null>(null);
+const isScrollSync = ref<boolean | null>(null);
 const isVimMode = ref<boolean | null>(null);
 const showHelp = ref(false);
 const isMessageModal = ref(false);
@@ -103,7 +104,9 @@ const { parsedHtml, previewFrameHtml, documentMode, slideRender, drawMermaid, re
 const previewTitle = computed(() =>
   documentMode.value === "slides" ? t("editor.slidePreview") : t("editor.preview"),
 );
-const isScrollSyncEnabled = computed(() => documentMode.value === "markdown");
+const isScrollSyncEnabled = computed(
+  () => documentMode.value === "markdown" && isScrollSync.value === true,
+);
 
 // editorContent 変化時に Mermaid を再描画
 watch(editorContent, () => {
@@ -139,6 +142,7 @@ onMounted(async () => {
   await localStorageItem.init();
   isShowTools.value = localStorageItem.isShowToolsFromLocalStorage;
   isPreview.value = localStorageItem.isPreviewFromLocalStorage;
+  isScrollSync.value = localStorageItem.isScrollSyncFromLocalStorage;
   isVimMode.value = localStorageItem.isVimModeFromLocalStorage;
   setLocale(localStorageItem.localeFromLocalStorage ?? "ja");
 });
@@ -255,6 +259,12 @@ function handlePreview() {
   localStorageItem.setPreview(isPreview.value);
 }
 
+function handleScrollSync() {
+  // Markdown プレビューのスクロール同期設定をトグルし、次回起動用に保存する。
+  isScrollSync.value = !isScrollSync.value;
+  localStorageItem.setScrollSync(isScrollSync.value);
+}
+
 function handleVimMode() {
   // UI 状態と Ace のキーバインドを同じタイミングで切り替える。
   isVimMode.value = !isVimMode.value;
@@ -317,6 +327,7 @@ useKeyboardShortcuts({
   <!-- 機能ボタン -->
   <ToolbarButtons
     :is-preview="isPreview"
+    :is-scroll-sync="isScrollSync"
     :is-vim-mode="isVimMode"
     :document-mode="documentMode"
     @file-open="fileOpen"
@@ -325,6 +336,7 @@ useKeyboardShortcuts({
     @print-out="printOut"
     @export-html="exportHtml"
     @toggle-preview="handlePreview"
+    @toggle-scroll-sync="handleScrollSync"
     @toggle-tools="handleInputTool"
     @open-viewer="openViewer"
     @open-slideshow="openSlideshow"

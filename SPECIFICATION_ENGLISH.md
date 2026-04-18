@@ -180,7 +180,7 @@ Ageha-Editor/
   - Converts regular Markdown into HTML using `marked + XSS + Mermaid`.
   - Local images are embedded as `data:` URLs in advance to keep preview / export / print behavior consistent.
   - Preview is rendered directly into the app DOM with `v-html`.
-  - Scroll sync from editor to preview is enabled.
+  - Scroll sync from editor to preview is enabled only when the toolbar toggle is ON.
 - `slides` mode:
   - Enabled only when `marp: true` is found in the document frontmatter.
   - Generates HTML/CSS with `@marp-team/marp-core`, while Mermaid is pre-rendered into SVG.
@@ -315,6 +315,7 @@ Editor.vue is organized by responsibility using Vue 3 Composition API composable
 | -------- | ---- | ------- | ----------- |
 | `isPreviewFromLocalStorage` | `boolean` | `true` | Preview visible / hidden |
 | `isShowToolsFromLocalStorage` | `boolean` | `true` | Markdown tools visible / hidden |
+| `isScrollSyncFromLocalStorage` | `boolean` | `true` | Scroll sync enabled / disabled |
 | `isVimModeFromLocalStorage` | `boolean` | `false` | Vim mode enabled / disabled |
 | `localeFromLocalStorage` | `"ja" \| "en"` | `"ja"` | UI language |
 
@@ -365,8 +366,8 @@ Editor.vue is organized by responsibility using Vue 3 Composition API composable
 | Image handling | Resolves absolute/relative paths and converts local images to `data:` URLs for preview-related outputs |
 | Layout | Split view between editor and preview (`50/50`) |
 | Slides isolation | Preview rendered in an iframe during `slides` mode |
-| Scroll sync | Editor → preview sync (`markdown` mode only) |
-| Toggle | `Ctrl+Alt+/` |
+| Scroll sync | Editor → preview sync only when in `markdown` mode and the `Sync` toggle is ON |
+| Toggle | Toolbar `Sync` button |
 
 ### 6.4 Slide Document Features
 

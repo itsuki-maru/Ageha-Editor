@@ -124,10 +124,7 @@ export function useFileOperations(
    * @param extensions - 選択を許可するファイル拡張子の配列
    * @returns 選択されたファイルの絶対パス。キャンセル時は undefined。
    */
-  async function selectFile(
-    name: string,
-    extensions: string[],
-  ): Promise<string | undefined> {
+  async function selectFile(name: string, extensions: string[]): Promise<string | undefined> {
     try {
       const selectedFilePath = await open({
         directory: false,
