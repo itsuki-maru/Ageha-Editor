@@ -214,6 +214,17 @@ npm run build
 npm run tauri build
 ```
 
+### Tests
+
+```bash
+npm test
+cd src-tauri
+cargo test
+```
+
+- Frontend unit tests use Vitest
+- Rust backend unit tests use Cargo's built-in test runner
+
 ### Release
 
 Releases are handled by the GitHub Actions workflow `release.yml`. It automatically builds installers for Linux, macOS (Universal), and Windows, then uploads them to GitHub as a draft release.

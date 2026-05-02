@@ -164,7 +164,7 @@ export function useFileOperations(
   async function fileSave(): Promise<void> {
     const markdownText = getEditorContent();
 
-    if (activeFilePath.value === "*" || (markdownText === "" && activeFilePath.value === "")) {
+    if (activeFilePath.value === "*" || activeFilePath.value === "") {
       // 新規ファイルとして保存先を決める。
       const path = await save({
         filters: [{ name: translate("file.markdownSaveFilter"), extensions: ["md"] }],

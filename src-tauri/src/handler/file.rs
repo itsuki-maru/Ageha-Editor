@@ -303,3 +303,83 @@ fn is_image_path(path: &Path) -> bool {
         Some("png" | "jpg" | "jpeg" | "svg" | "webp" | "gif" | "bmp" | "avif" | "ico")
     )
 }
+
+#[cfg(test)]
+mod tests {
+    use super::{
+        guess_mime_type, is_image_path, normalize_relative_image_dir_part, save_file_inner,
+        split_path_input,
+    };
+    use std::{
+        fs,
+        path::{Path, PathBuf},
+        time::{SystemTime, UNIX_EPOCH},
+    };
+
+    #[test]
+    fn splits_path_input_into_directory_and_prefix() {
+        assert_eq!(
+            split_path_input("images/icons/ag"),
+            (String::from("images/icons/"), String::from("ag"))
+        );
+        assert_eq!(
+            split_path_input("images\\ag"),
+            (String::from("images/"), String::from("ag"))
+        );
+        assert_eq!(
+            split_path_input("ag"),
+            (String::new(), String::from("ag"))
+        );
+    }
+
+    #[test]
+    fn normalizes_root_relative_image_directory_as_document_relative() {
+        assert_eq!(normalize_relative_image_dir_part("/"), "./");
+        assert_eq!(normalize_relative_image_dir_part("/images/"), "./images/");
+        assert_eq!(normalize_relative_image_dir_part("//server/share/"), "//server/share/");
+        assert_eq!(normalize_relative_image_dir_part("images/"), "images/");
+    }
+
+    #[test]
+    fn guesses_supported_image_mime_types_case_insensitively() {
+        assert_eq!(guess_mime_type(Path::new("sample.PNG")), "image/png");
+        assert_eq!(guess_mime_type(Path::new("sample.jpeg")), "image/jpeg");
+        assert_eq!(guess_mime_type(Path::new("sample.svg")), "image/svg+xml");
+        assert_eq!(
+            guess_mime_type(Path::new("sample.txt")),
+            "application/octet-stream"
+        );
+    }
+
+    #[test]
+    fn detects_supported_image_paths() {
+        assert!(is_image_path(Path::new("photo.WEBP")));
+        assert!(is_image_path(Path::new("icon.ico")));
+        assert!(!is_image_path(Path::new("document.md")));
+    }
+
+    #[test]
+    fn saves_file_contents() {
+        let path = unique_temp_file_path();
+
+        let status = save_file_inner(&path.to_string_lossy(), "hello ageha")
+            .expect("file should be saved");
+
+        assert_eq!(status.status_code, 200);
+        assert_eq!(status.message, "Save Ok.");
+        assert_eq!(
+            fs::read_to_string(&path).expect("saved file should be readable"),
+            "hello ageha"
+        );
+
+        let _ = fs::remove_file(path);
+    }
+
+    fn unique_temp_file_path() -> PathBuf {
+        let nanos = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("system time should be after epoch")
+            .as_nanos();
+        std::env::temp_dir().join(format!("ageha-file-test-{}.md", nanos))
+    }
+}

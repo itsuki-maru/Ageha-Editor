@@ -37,3 +37,40 @@ pub fn get_abs_filepath(filename: &str) -> io::Result<path::PathBuf> {
         Ok(current_dir.join(path))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::get_abs_filepath;
+    use std::{env, path::PathBuf};
+
+    #[test]
+    fn expands_home_directory_prefix() {
+        let actual = get_abs_filepath("~/ageha-test.md").expect("path should resolve");
+        let expected = dirs::home_dir()
+            .expect("home directory should exist")
+            .join("ageha-test.md");
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn resolves_relative_path_from_current_directory() {
+        let current_dir = env::current_dir().expect("current dir should resolve");
+
+        let actual = get_abs_filepath("docs/note.md").expect("path should resolve");
+
+        assert_eq!(actual, current_dir.join("docs/note.md"));
+    }
+
+    #[test]
+    fn keeps_absolute_path_absolute() {
+        let absolute = env::current_dir()
+            .expect("current dir should resolve")
+            .join("docs")
+            .join("note.md");
+
+        let actual = get_abs_filepath(&absolute.to_string_lossy()).expect("path should resolve");
+
+        assert_eq!(actual, PathBuf::from(absolute));
+    }
+}

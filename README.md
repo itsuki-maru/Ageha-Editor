@@ -204,6 +204,17 @@ npm run build
 npm run tauri build
 ```
 
+### テスト
+
+```bash
+npm test
+cd src-tauri
+cargo test
+```
+
+- フロントエンドの単体テストは Vitest を使用
+- Rust バックエンドの単体テストは Cargo の標準テスト機能を使用
+
 ### リリース
 
 リリースは GitHub Actions の `release.yml` ワークフローで行う。Linux / macOS (Universal) / Windows のインストーラーを自動ビルドし、ドラフトリリースとして GitHub にアップロードする。

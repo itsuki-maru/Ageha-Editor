@@ -110,3 +110,43 @@ impl ReadFileData {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::{LaunchRequestData, ReadFileData, StatusCode};
+
+    #[test]
+    fn creates_success_and_error_status_codes() {
+        let ok = StatusCode::ok("Read Ok.");
+        let error = StatusCode::error("Read Error.");
+
+        assert_eq!(ok.status_code, 200);
+        assert_eq!(ok.message, "Read Ok.");
+        assert_eq!(error.status_code, 500);
+        assert_eq!(error.message, "Read Error.");
+    }
+
+    #[test]
+    fn creates_launch_error_response_with_css_payloads() {
+        let response = LaunchRequestData::error(
+            "CSS file read error.",
+            String::from("body {}"),
+            String::from("section {}"),
+        );
+
+        assert_eq!(response.status.status_code, 500);
+        assert_eq!(response.file_abs_path, "");
+        assert_eq!(response.text_data, "");
+        assert_eq!(response.css_data, "body {}");
+        assert_eq!(response.slide_css_data, "section {}");
+    }
+
+    #[test]
+    fn creates_read_file_error_response() {
+        let response = ReadFileData::error("Markdown file read error.");
+
+        assert_eq!(response.status.status_code, 500);
+        assert_eq!(response.file_abs_path, "");
+        assert_eq!(response.text_data, "");
+    }
+}
