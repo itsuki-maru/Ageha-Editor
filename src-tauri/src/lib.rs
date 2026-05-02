@@ -6,8 +6,8 @@ mod utils;
 
 use config::AppConfig;
 use handler::file::{
-    delete_file, read_binary_file_data_url, read_file, request_launch_args, save_file,
-    save_temp_html,
+    delete_file, list_image_path_suggestions, read_binary_file_data_url, read_file,
+    request_launch_args, save_file, save_temp_html,
 };
 use handler::spawn_self::spawn_self;
 
@@ -40,6 +40,7 @@ pub fn run(args_file_path: String, css_file_path: String, slide_css_file_path: S
         // フロントエンドから呼び出せるコマンドをここでまとめて公開する。
         .invoke_handler(tauri::generate_handler![
             read_binary_file_data_url,
+            list_image_path_suggestions,
             read_file,
             save_file,
             save_temp_html,

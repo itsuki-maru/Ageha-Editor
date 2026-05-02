@@ -29,6 +29,10 @@ export function useExport(
   slideCssData: () => string,
   /** Markdown モード用: `.mermaid` ブロックを SVG に変換するコールバック */
   renderMermaidToSvg: (html: string) => Promise<string>,
+  /** Markdown モード用: 出力向けにローカル画像を data URL 化した HTML を生成するコールバック */
+  renderMarkdownHtmlForExport: () => Promise<string>,
+  /** Markdown モード用: 別ウィンドウ向けに軽量な HTML を生成するコールバック */
+  renderMarkdownHtmlForViewer: () => Promise<string>,
   /** HTML ファイルの保存ダイアログを開いて保存するコールバック */
   saveHtmlFile: (htmlContent: string) => Promise<void>,
   /** ユーザーへメッセージを表示するコールバック */
@@ -104,15 +108,21 @@ export function useExport(
     const printWindow = window.open("", "_blank", "width=800,height=600");
     if (!printWindow) return;
 
-    const html = await createExportHtml(true);
-    printWindow.document.writeln(html);
-    printWindow.document.close();
-    // フォントや画像のロードを待ってから印刷することで崩れを防ぐ。
-    await waitForWindowAssets(printWindow);
-    printWindow.focus();
-    printWindow.print();
-    // 印刷ダイアログを閉じたらウィンドウも自動で閉じる。
-    printWindow.close();
+    try {
+      const html = await createExportHtml(true);
+      printWindow.document.writeln(html);
+      printWindow.document.close();
+      // フォントや画像のロードを待ってから印刷することで崩れを防ぐ。
+      await waitForWindowAssets(printWindow);
+      printWindow.focus();
+      printWindow.print();
+      // 印刷ダイアログを閉じたらウィンドウも自動で閉じる。
+      printWindow.close();
+    } catch (error) {
+      printWindow.close();
+      console.error("Failed to print markdown document:", error);
+      showMessage(translate("export.viewerOpenError"));
+    }
   }
 
   /**
@@ -173,12 +183,17 @@ export function useExport(
       return;
     }
 
-    const html = await createViewerHtml();
-    await openNativeViewer(html, {
-      title: translate("export.viewerTitle"),
-      width: 1000,
-      height: 700,
-    });
+    try {
+      const html = await createViewerHtml();
+      await openNativeViewer(html, {
+        title: translate("export.viewerTitle"),
+        width: 1000,
+        height: 700,
+      });
+    } catch (error) {
+      console.error("Failed to open viewer:", error);
+      showMessage(translate("export.viewerOpenError"));
+    }
   }
 
   /**
@@ -201,8 +216,10 @@ export function useExport(
     // Markdown モード: エクスポート前に Mermaid ダイアグラムを静的 SVG へ変換する。
     // プレビューでは mermaid.init() が動的に描画しているが、
     // 別ウィンドウや保存 HTML では Mermaid の JS が動作しないため事前変換が必要。
-    const rendered = await renderMermaidToSvg(parsedHtml.value);
+    const markdownHtml = await renderMarkdownHtmlForExport();
+    const rendered = await renderMermaidToSvg(markdownHtml);
     if (isPrint) {
+      const printReadyHtml = forceEagerImageLoading(rendered);
       return `<html>
         <head>
           <meta charset="UTF-8">
@@ -216,7 +233,7 @@ export function useExport(
             html { transform: scale(0.9); }
           </style>
         </head>
-        <body>${rendered}</body>
+        <body>${printReadyHtml}</body>
       </html>`;
     }
 
@@ -239,10 +256,10 @@ export function useExport(
       });
     }
 
-    // 通常 Markdown はリソースをすべてインライン化したスタンドアロン HTML を生成する。
-    // ネイティブウィンドウでファイルを開く場合、相対パス参照は解決されないため
-    // createHtml（KaTeX・Mermaid JS をインライン埋め込み済み）を使う。
-    const rendered = await renderMermaidToSvg(parsedHtml.value);
+    // 別ウィンドウ表示は即時性を優先し、プレビュー表示中なら現在の HTML を再利用する。
+    // プレビュー非表示などで HTML が無い場合も、data URL 化を避けた軽量 HTML を生成する。
+    const markdownHtml = parsedHtml.value || (await renderMarkdownHtmlForViewer());
+    const rendered = await renderMermaidToSvg(markdownHtml);
     return createHtml(rendered, cssData(), {
       title: translate("export.viewerTitle"),
       copiedLabel: translate("common.copied"),
@@ -330,6 +347,23 @@ export function useExport(
         targetWindow.requestAnimationFrame(() => resolve());
       });
     });
+  }
+
+  /**
+   * 通常プレビューでは画像の遅延読み込みを使うが、印刷時は全画像を事前ロードしたい。
+   * `loading="lazy"` が残ると画面外の画像が印刷に間に合わないことがあるため、
+   * 印刷用 HTML だけ eager に差し替える。
+   */
+  function forceEagerImageLoading(html: string): string {
+    const container = document.createElement("div");
+    container.innerHTML = html;
+
+    for (const image of Array.from(container.querySelectorAll("img"))) {
+      image.loading = "eager";
+      image.decoding = "sync";
+    }
+
+    return container.innerHTML;
   }
 
   return { printOut, exportHtml, openViewer, openSlideshow };

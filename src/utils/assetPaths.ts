@@ -135,6 +135,24 @@ export async function embedLocalImageSources(
   return nextMarkdown;
 }
 
+export async function embedLocalImageSourcesInHtml(
+  html: string,
+  activeFilePath: string,
+): Promise<string> {
+  return replaceAsync(
+    html,
+    HTML_IMAGE_SRC_RE,
+    async (_match, prefix: string, src: string, suffix: string) => {
+      if (!src || isExternalAssetPath(src)) {
+        return `${prefix}${src}${suffix}`;
+      }
+
+      const resolved = await toEmbeddedAssetUrl(src, activeFilePath);
+      return `${prefix}${resolved}${suffix}`;
+    },
+  );
+}
+
 function isAbsoluteFilePath(path: string): boolean {
   return WINDOWS_ABS_PATH_RE.test(path) || path.startsWith("/");
 }

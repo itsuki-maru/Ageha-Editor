@@ -192,9 +192,14 @@ const warningToken = createNestedTokenizer("warning");
 // markedのスラッグ化機能をカスタマイズ
 const renderer = new Renderer();
 let activeMarkdownFilePath = "";
+let usePreviewAssetUrls = true;
 
 function setMarkedRendererFileContext(filePath: string) {
   activeMarkdownFilePath = filePath;
+}
+
+function setMarkedRendererPreviewAssetUrls(enabled: boolean) {
+  usePreviewAssetUrls = enabled;
 }
 
 // ヘッダーを定義
@@ -247,8 +252,8 @@ renderer.image = (tokens: Tokens.Image) => {
   const widthAttr = width ? ` width="${width}px"` : "";
   // 通常の Markdown プレビューはメイン WebView 上で描画されるため、
   // 画像は convertFileSrc ベースの URL のままでも表示できる。
-  const previewHref = toPreviewAssetUrl(href, activeMarkdownFilePath);
-  return `<img src="${previewHref}" alt="${text}" ${widthAttr}>`;
+  const imageHref = usePreviewAssetUrls ? toPreviewAssetUrl(href, activeMarkdownFilePath) : href;
+  return `<img src="${imageHref}" alt="${text}" loading="lazy" decoding="async" ${widthAttr}>`;
 };
 
 // HTMLエスケープ関数
@@ -374,4 +379,5 @@ export {
   youtubeToken,
   renderIframe,
   setMarkedRendererFileContext,
+  setMarkedRendererPreviewAssetUrls,
 };

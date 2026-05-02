@@ -5,7 +5,7 @@ use base64::Engine;
 use std::{
     fs,
     io::{self, BufWriter, Write},
-    path::Path,
+    path::{Path, PathBuf},
 };
 
 // フロントエンドから invoke されるファイル関連コマンド群。
@@ -168,6 +168,56 @@ pub async fn read_binary_file_data_url(target_file: &str) -> Result<String, Stri
     Ok(format!("data:{};base64,{}", mime, encoded))
 }
 
+/// Markdown 画像記法のパス入力中に表示する候補を返す。
+/// ディレクトリは末尾に `/` を付け、画像ファイルと同じ候補リストで返す。
+/// @param input_path - ユーザーが `![alt](...)` 内で入力しているパス
+/// @param base_file_path - 現在編集中の Markdown ファイルパス（相対パス基準）
+#[tauri::command]
+pub async fn list_image_path_suggestions(
+    input_path: String,
+    base_file_path: String,
+) -> Result<Vec<String>, String> {
+    // 入力済みパスを「検索するディレクトリ部分」と「ファイル名の前方一致部分」に分ける。
+    let (dir_part, name_prefix) = split_path_input(&input_path);
+    let search_dir = resolve_image_suggestion_dir(&dir_part, &base_file_path)?;
+    let prefix_lower = name_prefix.to_ascii_lowercase();
+    // フォルダを先に、画像ファイルを後に並べるため、いったん別々に集める。
+    let mut directories = Vec::new();
+    let mut image_files = Vec::new();
+
+    let entries = match fs::read_dir(&search_dir) {
+        Ok(entries) => entries,
+        // 存在しないディレクトリを入力中でも、補完は空で返して編集を止めない。
+        Err(_) => return Ok(Vec::new()),
+    };
+
+    for entry in entries.flatten() {
+        let file_type = match entry.file_type() {
+            Ok(file_type) => file_type,
+            Err(_) => continue,
+        };
+        let name = entry.file_name().to_string_lossy().into_owned();
+        // 隠しファイルと、入力中のプレフィックスに一致しない候補は表示しない。
+        if name.starts_with('.') || !name.to_ascii_lowercase().starts_with(&prefix_lower) {
+            continue;
+        }
+
+        if file_type.is_dir() {
+            // ディレクトリ候補は選択後も続けて入力できるよう、末尾に `/` を付ける。
+            directories.push(format!("{}{}/", dir_part, name));
+        } else if is_image_path(&entry.path()) {
+            image_files.push(format!("{}{}", dir_part, name));
+        }
+    }
+
+    directories.sort_by_key(|path| path.to_ascii_lowercase());
+    image_files.sort_by_key(|path| path.to_ascii_lowercase());
+    directories.extend(image_files);
+    // 大きなディレクトリで補完ポップアップが重くならないよう候補数を制限する。
+    directories.truncate(50);
+    Ok(directories)
+}
+
 /// ファイルパスの拡張子から MIME タイプを推定して返す。
 /// 対応外の拡張子は `application/octet-stream` を返し、
 /// ブラウザが適切に処理できるようにする。
@@ -189,4 +239,67 @@ fn guess_mime_type(path: &Path) -> &'static str {
         // 対応外の形式。ブラウザは octet-stream をそのままバイナリとして扱う。
         _ => "application/octet-stream",
     }
+}
+
+// ファイルパスを分割する。ディレクトリ部分とファイル名部分に分ける
+fn split_path_input(input_path: &str) -> (String, String) {
+    let normalized = input_path.replace('\\', "/");
+    match normalized.rfind('/') {
+        Some(index) => (
+            normalized[..=index].to_string(),
+            normalized[index + 1..].to_string(),
+        ),
+        None => (String::new(), normalized),
+    }
+}
+
+// 画像の補完候補ディレクトリを解決する
+fn resolve_image_suggestion_dir(dir_part: &str, base_file_path: &str) -> Result<PathBuf, String> {
+    // `/` 始まりの入力は、補完では Markdown ファイルからの相対パスとして扱う。
+    let normalized_dir_part = normalize_relative_image_dir_part(dir_part);
+    let dir_path = Path::new(&normalized_dir_part);
+    if dir_path.is_absolute() {
+        // Windows の `C:\...` など、明示的な絶対パスはそのまま検索対象にする。
+        return Ok(dir_path.to_path_buf());
+    }
+
+    let base_dir = if base_file_path.is_empty() {
+        // 未保存ファイルでは基準ファイルが無いため、アプリのカレントディレクトリを使う。
+        std::env::current_dir().map_err(|e| e.to_string())?
+    } else {
+        // 保存済み Markdown の親ディレクトリを相対画像パスの基準にする。
+        get_abs_filepath(base_file_path)
+            .map_err(|e| e.to_string())?
+            .parent()
+            .map(Path::to_path_buf)
+            .unwrap_or_else(|| std::env::current_dir().unwrap_or_default())
+    };
+
+    Ok(base_dir.join(dir_path))
+}
+
+// 画像の相対パスを正規化する。`![alt](/` は OS ルートではなく、現在ファイル基準のルート候補として扱う
+fn normalize_relative_image_dir_part(dir_part: &str) -> String {
+    // `![alt](/` は OS ルートではなく、現在ファイル基準のルート候補として扱う。
+    if dir_part == "/" {
+        return String::from("./");
+    }
+
+    // `/images/` のような入力も `./images/` と同じ検索先に正規化する
+    if dir_part.starts_with('/') && !dir_part.starts_with("//") {
+        return format!(".{}", dir_part);
+    }
+
+    dir_part.to_string()
+}
+
+// 画像ファイルかどうかを判定する。プレビューや埋め込み処理で扱える代表的な画像拡張子だけを候補に出す
+fn is_image_path(path: &Path) -> bool {
+    matches!(
+        path.extension()
+            .and_then(|ext| ext.to_str())
+            .map(|ext| ext.to_ascii_lowercase())
+            .as_deref(),
+        Some("png" | "jpg" | "jpeg" | "svg" | "webp" | "gif" | "bmp" | "avif" | "ico")
+    )
 }

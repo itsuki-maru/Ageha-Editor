@@ -1,11 +1,11 @@
-import { ref, watch, type Ref } from "vue";
+import { nextTick, ref, watch, type Ref } from "vue";
 import { FilterXSS, getDefaultWhiteList } from "xss";
 import type { IFilterXSSOptions } from "xss";
 import { marked } from "marked";
 import type { MarkedOptions } from "marked";
 import mermaid from "mermaid";
 import type { DocumentMode, SlideRenderResult } from "@/interface";
-import { embedLocalImageSources } from "@/utils/assetPaths";
+import { embedLocalImageSourcesInHtml } from "@/utils/assetPaths";
 import { detectDocumentMode } from "@/utils/documentMode";
 import { createSlideHtmlDocument } from "@/utils/htmlTemplate";
 import { renderSlides } from "@/utils/slideRenderer";
@@ -17,6 +17,7 @@ import {
   renderIframe,
   renderer,
   setMarkedRendererFileContext,
+  setMarkedRendererPreviewAssetUrls,
   videoToken,
   warningToken,
   youtubeToken,
@@ -26,6 +27,7 @@ export function useMarkdownPreview(
   editorContent: Ref<string>,
   activeFilePath: Ref<string>,
   slideCustomCss: Ref<string>,
+  isPreview: Ref<boolean | null>,
 ) {
   const parsedHtml = ref("");
   const previewFrameHtml = ref("");
@@ -62,6 +64,7 @@ export function useMarkdownPreview(
       button: ["class", "data-target"],
       code: ["id", "class"],
       div: ["class"],
+      img: ["src", "alt", "title", "width", "height", "loading", "decoding"],
       p: ["class"],
       span: ["class", "aria-hidden", "style"],
       "app-youtube": ["video-id", "data-src"],
@@ -85,20 +88,33 @@ export function useMarkdownPreview(
   const myXss = new FilterXSS(xssOptions);
 
   let renderSequence = 0;
+  let markdownDebounceTimer: ReturnType<typeof setTimeout> | null = null;
   let slideDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 
   watch(
-    [editorContent, activeFilePath],
-    async ([md, filePath]) => {
+    [editorContent, activeFilePath, isPreview],
+    ([md, filePath, previewVisible]) => {
+      if (markdownDebounceTimer !== null) {
+        clearTimeout(markdownDebounceTimer);
+        markdownDebounceTimer = null;
+      }
+      if (slideDebounceTimer !== null) {
+        clearTimeout(slideDebounceTimer);
+        slideDebounceTimer = null;
+      }
+
       // frontmatter の変更もあり得るため、本文が変わるたびにモードを再判定する。
       const nextMode = detectDocumentMode(md);
       documentMode.value = nextMode;
 
+      if (previewVisible !== true) {
+        // プレビュー非表示時は重いレンダリングを止め、表示復帰時に最新内容で再生成する。
+        renderSequence++;
+        return;
+      }
+
       if (nextMode === "slides") {
         // Marp レンダリングは重いため、連続入力中は実行を遅延させる。
-        if (slideDebounceTimer !== null) {
-          clearTimeout(slideDebounceTimer);
-        }
         slideDebounceTimer = setTimeout(() => {
           slideDebounceTimer = null;
           renderSlideContent(md, filePath);
@@ -106,28 +122,71 @@ export function useMarkdownPreview(
         return;
       }
 
-      // 通常 Markdown は従来どおり marked + XSS のパイプラインで描画する。
-      const currentSequence = ++renderSequence;
-      setMarkedRendererFileContext(filePath);
-      const markdownWithEmbeddedImages = await embedLocalImageSources(md, filePath);
-      const options: MarkedOptions = { async: false };
-      const htmlStr = marked.parse(markdownWithEmbeddedImages, options);
-      // HTML として整形したあとで危険なタグや属性を落とす。
-      const cleanHtml = myXss.process(htmlStr as string);
-
-      if (currentSequence !== renderSequence) {
-        return;
-      }
-
-      parsedHtml.value = renderIframe(cleanHtml);
-      previewFrameHtml.value = "";
-      slideRender.value = null;
+      markdownDebounceTimer = setTimeout(() => {
+        markdownDebounceTimer = null;
+        renderMarkdownContent(md, filePath);
+      }, 200);
     },
     { flush: "post", immediate: true },
   );
 
+  async function renderMarkdownContent(md: string, filePath: string) {
+    const currentSequence = ++renderSequence;
+    const startedAt = performance.now();
+    const html = await renderMarkdownHtml(md, filePath, { embedLocalImages: false });
+
+    if (currentSequence !== renderSequence) {
+      return;
+    }
+
+    parsedHtml.value = html;
+    previewFrameHtml.value = "";
+    slideRender.value = null;
+
+    if (html.includes('class="mermaid"') || html.includes("class='mermaid'")) {
+      await nextTick();
+      await drawMermaid();
+    }
+
+    console.debug(`Markdown preview rendered in ${Math.round(performance.now() - startedAt)}ms`);
+  }
+
+  async function renderMarkdownHtml(
+    md: string,
+    filePath: string,
+    options: { embedLocalImages: boolean },
+  ): Promise<string> {
+    setMarkedRendererFileContext(filePath);
+    const markedOptions: MarkedOptions = { async: false };
+    setMarkedRendererPreviewAssetUrls(!options.embedLocalImages);
+    try {
+      const htmlStr = marked.parse(md, markedOptions);
+      const htmlWithAssets = options.embedLocalImages
+        ? await embedLocalImageSourcesInHtml(htmlStr as string, filePath)
+        : (htmlStr as string);
+      // HTML として整形したあとで危険なタグや属性を落とす。
+      const cleanHtml = myXss.process(htmlWithAssets);
+      return renderIframe(cleanHtml);
+    } finally {
+      setMarkedRendererPreviewAssetUrls(true);
+    }
+  }
+
+  async function renderMarkdownHtmlForExport(): Promise<string> {
+    return renderMarkdownHtml(editorContent.value, activeFilePath.value, {
+      embedLocalImages: true,
+    });
+  }
+
+  async function renderMarkdownHtmlForViewer(): Promise<string> {
+    return renderMarkdownHtml(editorContent.value, activeFilePath.value, {
+      embedLocalImages: false,
+    });
+  }
+
   async function renderSlideContent(md: string, filePath: string) {
     const currentSequence = ++renderSequence;
+    const startedAt = performance.now();
     try {
       // スライドは Marp で HTML/CSS を生成し、さらに Mermaid を SVG 化してから iframe へ渡す。
       const renderedSlides = await renderSlides(md, filePath);
@@ -147,6 +206,7 @@ export function useMarkdownPreview(
         userStyle: slideCustomCss.value,
       });
       parsedHtml.value = "";
+      console.debug(`Slide preview rendered in ${Math.round(performance.now() - startedAt)}ms`);
     } catch (error) {
       console.error("Slide render failed:", error);
 
@@ -227,5 +287,7 @@ export function useMarkdownPreview(
     slideRender,
     drawMermaid,
     renderMermaidToSvg,
+    renderMarkdownHtmlForExport,
+    renderMarkdownHtmlForViewer,
   };
 }

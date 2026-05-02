@@ -1,7 +1,9 @@
 import { shallowRef, onMounted, onUnmounted, type Ref } from "vue";
+import { invoke } from "@tauri-apps/api/core";
 import * as ace from "ace-builds";
 import type { Ace } from "ace-builds";
 import "ace-builds/src-noconflict/ext-searchbox";
+import "ace-builds/src-noconflict/ext-language_tools";
 import "ace-builds/src-noconflict/mode-markdown";
 import "ace-builds/src-noconflict/theme-monokai";
 import "ace-builds/src-noconflict/keybinding-vim";
@@ -21,6 +23,15 @@ export interface UseAceEditorOptions {
   onSave: () => void;
   /** エディタの内容が変化するたびに呼ばれるコールバック。新しい本文テキストを受け取る。 */
   onChange: (value: string) => void;
+  /** 相対画像パス候補の基準にする、現在編集中のファイルパスを返す。 */
+  getActiveFilePath?: () => string;
+}
+
+interface ImagePathContext {
+  /** 現在カーソル位置までに入力済みの画像パス文字列 */
+  pathText: string;
+  /** 補完確定時に置き換えるパス部分の開始カラム */
+  startColumn: number;
 }
 
 /**
@@ -44,6 +55,15 @@ export function useAceEditor(editorRef: Ref<HTMLDivElement | null>, options: Use
     ed.setFontSize(EDITOR_FONT_SIZE);
     // 印刷マージンの縦線はテキストエディタには不要なので非表示にする。
     ed.setShowPrintMargin(false);
+    // Markdown 画像記法と <img src> の入力中だけ動く専用補完を登録する。
+    const imagePathCompleter = createImagePathCompleter(options);
+    ed.setOptions({
+      // Ctrl+Space などの手動補完と、入力中の自動補完の両方で同じ候補を使う。
+      enableBasicAutocompletion: [imagePathCompleter],
+      enableLiveAutocompletion: [imagePathCompleter],
+      liveAutocompletionDelay: 120,
+      liveAutocompletionThreshold: 0,
+    });
 
     // 永続化された設定が有効なら初期化時点で Vim キーバインドへ切り替える。
     if (options.vimMode.value) {
@@ -141,4 +161,111 @@ export function useAceEditor(editorRef: Ref<HTMLDivElement | null>, options: Use
     getSession,
     getRenderer,
   };
+}
+
+// 画像パスの補完を提供する Ace の Completer を返す
+function createImagePathCompleter(options: UseAceEditorOptions): Ace.Completer {
+  const completer: Ace.Completer = {
+    id: "agehaImagePathCompleter",
+    // ファイル名には `-` や `.` なども含まれるため、空白や閉じ括弧までを補完対象にする。
+    identifierRegexps: [/[^\s)\]"']+/],
+    // パス入力開始やディレクトリ移動のタイミングで候補を開きやすくする。
+    triggerCharacters: ["/", "\\", ".", "(", '"', "'"],
+    async getCompletions(_editor, session, position, _prefix, callback) {
+      const line = session.getLine(position.row);
+      const context = getImagePathContext(line, position.column);
+      if (!context || isRemoteOrDataPath(context.pathText)) {
+        // 画像パス入力中でない場合や外部 URL の場合は Ageha 独自補完を出さない。
+        callback(null, []);
+        return;
+      }
+
+      try {
+        // 実ファイル一覧の取得は Tauri 側で行い、フロント側は候補表示に専念する。
+        const suggestions = await invoke<string[]>("list_image_path_suggestions", {
+          inputPath: normalizeImagePathInput(context.pathText),
+          baseFilePath: normalizeActiveFilePath(options.getActiveFilePath?.() ?? ""),
+        });
+        callback(
+          null,
+          suggestions.map((suggestion) => ({
+            caption: suggestion,
+            value: suggestion,
+            meta: suggestion.endsWith("/") ? "folder" : "image",
+            score: suggestion.endsWith("/") ? 1000 : 900,
+            skipFilter: true,
+            // 入力済みのパス全体を候補で置き換え、途中のディレクトリ変更にも対応する。
+            range: {
+              start: { row: position.row, column: context.startColumn },
+              end: position,
+            },
+            completer,
+          })),
+        );
+      } catch (error) {
+        console.error("Failed to list image path suggestions:", error);
+        callback(null, []);
+      }
+    },
+    insertMatch(editor, completion) {
+      const range = completion.range;
+      const value = completion.value ?? completion.caption ?? "";
+      if (range) {
+        // Ace 標準の単語置換ではパス区切りをまたげないため、明示した範囲を置換する。
+        editor.session.replace(range, value);
+      } else {
+        editor.insert(value);
+      }
+    },
+  };
+  return completer;
+}
+
+// 画像パスの補完対象となるコンテキストを取得する
+function getImagePathContext(line: string, column: number): ImagePathContext | null {
+  const beforeCursor = line.slice(0, column);
+  // Markdown 画像記法 `![alt](path` の `path` 部分を補完対象にする。
+  const markdownMatch = /!\[[^\]]*]\(([^)\s]*)$/.exec(beforeCursor);
+  if (markdownMatch?.index !== undefined) {
+    return {
+      pathText: markdownMatch[1],
+      startColumn: beforeCursor.length - markdownMatch[1].length,
+    };
+  }
+
+  // Markdown 内に直接書かれた HTML 画像タグの src 属性も同じ候補を使えるようにする。
+  const htmlImageMatch = /<img\b[^>]*\bsrc\s*=\s*["']([^"']*)$/i.exec(beforeCursor);
+  if (htmlImageMatch?.index !== undefined) {
+    return {
+      pathText: htmlImageMatch[1],
+      startColumn: beforeCursor.length - htmlImageMatch[1].length,
+    };
+  }
+
+  return null;
+}
+
+// 外部 URL や埋め込み済み data URL はローカルファイル候補の対象外にする
+function isRemoteOrDataPath(pathText: string): boolean {
+  return /^(?:https?:|data:|asset:|blob:)/i.test(pathText);
+}
+
+// 画像パスの入力を正規化する。`/` を `./` に変換し、相対パスを絶対パスに変換する
+function normalizeImagePathInput(pathText: string): string {
+  // Ageha の画像候補では `/` を現在ファイル基準のルートとして扱う。
+  if (pathText === "/") {
+    return "./";
+  }
+
+  // `/images/foo.png` のような入力も、候補検索時は `./images/foo.png` として解釈する。
+  if (pathText.startsWith("/") && !pathText.startsWith("//")) {
+    return `.${pathText}`;
+  }
+
+  return pathText;
+}
+
+// アクティブなファイルパスを正規化する。未保存状態では先頭に `*` が付くため、取り除く
+function normalizeActiveFilePath(filePath: string): string {
+  return filePath.replace(/^\*+/, "");
 }

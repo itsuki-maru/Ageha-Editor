@@ -86,6 +86,8 @@ const aceEditor = useAceEditor(editorRef, {
       editorContent.value = value;
     }
   },
+  // アクティブなファイルパスを取得
+  getActiveFilePath: () => activeFilePath.value,
 });
 
 // editorContent の変化を Ace エディタに反映
@@ -99,20 +101,22 @@ watch(editorContent, (newContent) => {
 });
 
 // ---- マークダウンプレビュー ----
-const { parsedHtml, previewFrameHtml, documentMode, slideRender, drawMermaid, renderMermaidToSvg } =
-  useMarkdownPreview(editorContent, activeFilePath, slideCustomCss);
+const {
+  parsedHtml,
+  previewFrameHtml,
+  documentMode,
+  slideRender,
+  drawMermaid,
+  renderMermaidToSvg,
+  renderMarkdownHtmlForExport,
+  renderMarkdownHtmlForViewer,
+} = useMarkdownPreview(editorContent, activeFilePath, slideCustomCss, isPreview);
 const previewTitle = computed(() =>
   documentMode.value === "slides" ? t("editor.slidePreview") : t("editor.preview"),
 );
 const isScrollSyncEnabled = computed(
   () => documentMode.value === "markdown" && isScrollSync.value === true,
 );
-
-// editorContent 変化時に Mermaid を再描画
-watch(editorContent, () => {
-  // Markdown モード時だけ drawMermaid 内で再描画される。
-  drawMermaid();
-});
 
 // ---- エクスポート ----
 const { printOut, exportHtml, openViewer, openSlideshow } = useExport(
@@ -124,6 +128,8 @@ const { printOut, exportHtml, openViewer, openSlideshow } = useExport(
   () => rustArgsStore.rustArgsData.css_data,
   () => rustArgsStore.rustArgsData.slide_css_data,
   renderMermaidToSvg,
+  renderMarkdownHtmlForExport,
+  renderMarkdownHtmlForViewer,
   saveHtmlFile,
   showMessage,
 );
