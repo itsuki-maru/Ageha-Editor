@@ -22,6 +22,13 @@ interface HtmlDocumentOptions {
   copiedLabel?: string;
 }
 
+interface TocItem {
+  id: string;
+  text: string;
+  level: number;
+  children: TocItem[];
+}
+
 // Marp が生成するスライドの DOM 構造:
 //   div.marpit > svg > foreignObject > section
 // ユーザー CSS の `section { ... }` を効かせるには、このフルパスへ変換が必要。
@@ -138,6 +145,400 @@ const COPY_BUTTON_STYLE = `
   }
 `;
 
+const MARKDOWN_VIEWER_RESPONSIVE_STYLE = `
+  body.ageha-viewer {
+    overflow-x: hidden;
+  }
+
+  body.ageha-viewer .container-fluid {
+    box-sizing: border-box;
+    max-width: 100%;
+  }
+
+  body.ageha-viewer img,
+  body.ageha-viewer video,
+  body.ageha-viewer iframe {
+    max-width: 100%;
+  }
+
+  body.ageha-viewer img,
+  body.ageha-viewer video {
+    height: auto;
+  }
+
+  @media (max-width: 720px) {
+    body.ageha-viewer {
+      font-size: 14px;
+      overflow-wrap: anywhere;
+    }
+
+    body.ageha-viewer .container-fluid {
+      width: 100%;
+      padding-left: 10px;
+      padding-right: 10px;
+    }
+
+    body.ageha-viewer pre,
+    body.ageha-viewer .code-container,
+    body.ageha-viewer table {
+      max-width: 100%;
+      overflow-x: auto;
+    }
+
+    body.ageha-viewer table {
+      display: block;
+    }
+  }
+`;
+
+const TOC_STYLE = `
+  body.ageha-viewer.has-toc .viewer-layout {
+    display: flex;
+    align-items: flex-start;
+    gap: 0;
+    width: 100%;
+    margin: 0;
+    padding: 0 12px;
+    box-sizing: border-box;
+  }
+
+  body.ageha-viewer.has-toc .viewer-layout > .container-fluid {
+    flex: 0 1 70%;
+    min-width: 0;
+    max-width: 70%;
+    box-sizing: border-box;
+    padding-right: 28px;
+  }
+
+  .ageha-toc {
+    position: sticky;
+    top: 24px;
+    flex: 0 1 30%;
+    width: 30%;
+    max-height: calc(100vh - 48px);
+    overflow-y: auto;
+    overflow-x: hidden;
+    box-sizing: border-box;
+    padding: 14px 14px 16px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    background: #fafafa;
+    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.07);
+    font-size: 13px;
+    line-height: 1.6;
+  }
+
+  .ageha-toc::before {
+    content: "目次";
+    display: block;
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #e5e7eb;
+    color: #6b7280;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+  }
+
+  .ageha-toc ul {
+    margin: 0;
+    padding: 0;
+  }
+
+  .ageha-toc ul ul {
+    margin: 2px 0 0 4px;
+    padding-left: 10px;
+    border-left: 2px solid #e5e7eb;
+  }
+
+  .ageha-toc li {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .ageha-toc a {
+    display: block;
+    padding: 4px 8px;
+    border-radius: 5px;
+    color: #323740;
+    text-decoration: none;
+    word-break: break-word;
+    transition:
+      color 0.15s,
+      background-color 0.15s;
+  }
+
+  .ageha-toc a:hover,
+  .ageha-toc a.active {
+    background-color: #eff6ff;
+    color: #2563eb;
+  }
+
+  .ageha-toc a.active {
+    font-weight: 600;
+  }
+
+  .ageha-toc-toggle {
+    position: fixed;
+    top: 16px;
+    right: 18px;
+    z-index: 20;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    height: 32px;
+    padding: 0 10px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    background: #ffffff;
+    color: #374151;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+    cursor: pointer;
+    font-size: 12px;
+    line-height: 1;
+  }
+
+  .ageha-toc-toggle:hover {
+    background: #f3f4f6;
+  }
+
+  body.toc-collapsed .ageha-toc {
+    display: none;
+  }
+
+  body.ageha-viewer.has-toc.toc-collapsed .viewer-layout > .container-fluid {
+    flex-basis: 100%;
+    max-width: none;
+    padding-right: 0;
+  }
+
+  @media (max-width: 980px) {
+    body.ageha-viewer.has-toc .viewer-layout {
+      flex-direction: column;
+      padding: 0 10px;
+    }
+
+    body.ageha-viewer.has-toc .viewer-layout > .container-fluid {
+      flex: 0 1 auto;
+      max-width: none;
+      padding-right: 0;
+    }
+
+    .ageha-toc {
+      position: static;
+      order: -1;
+      flex: 0 1 auto;
+      width: 100%;
+      max-height: 240px;
+      margin: 0 0 20px;
+    }
+  }
+
+  @media (max-width: 720px) {
+    body.ageha-viewer.has-toc.toc-collapsed {
+      padding: 10px;
+    }
+
+    body.ageha-viewer.has-toc .viewer-layout {
+      padding: 0 6px;
+    }
+
+    body.ageha-viewer.has-toc:not(.toc-collapsed)::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: 25;
+      background: rgba(17, 24, 39, 0.34);
+    }
+
+    body.toc-collapsed .ageha-toc {
+      display: block;
+      pointer-events: none;
+      transform: translateX(calc(100% + 18px));
+      visibility: hidden;
+    }
+
+    .ageha-toc {
+      position: fixed;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 30;
+      display: block;
+      width: min(86vw, 340px);
+      max-height: none;
+      margin: 0;
+      padding: 52px 14px 18px;
+      border-top: 0;
+      border-right: 0;
+      border-bottom: 0;
+      border-radius: 0;
+      box-shadow: -8px 0 24px rgba(15, 23, 42, 0.2);
+      font-size: 12px;
+      transform: translateX(0);
+      transition:
+        transform 0.22s ease,
+        visibility 0.22s ease;
+      visibility: visible;
+    }
+
+    .ageha-toc-toggle {
+      top: 10px;
+      right: 10px;
+      z-index: 35;
+      height: 30px;
+      font-size: 11px;
+    }
+  }
+`;
+
+const TOC_SCRIPT = `
+(function () {
+  var body = document.body;
+  var toc = document.getElementById("ageha-toc");
+  var toggle = document.getElementById("ageha-toc-toggle");
+  if (!toc || !toggle) return;
+
+  var storageKey = "ageha.viewer.tocCollapsed";
+  var mobileQuery = window.matchMedia("(max-width: 720px)");
+  try {
+    var storedCollapsed = localStorage.getItem(storageKey);
+    if (storedCollapsed === "true" || (storedCollapsed === null && mobileQuery.matches)) {
+      body.classList.add("toc-collapsed");
+    }
+  } catch (_) {}
+
+  function syncToggleLabel() {
+    var collapsed = body.classList.contains("toc-collapsed");
+    toggle.textContent = collapsed ? "目次を表示" : "目次を隠す";
+    toggle.setAttribute("aria-expanded", collapsed ? "false" : "true");
+  }
+
+  toggle.addEventListener("click", function () {
+    body.classList.toggle("toc-collapsed");
+    try {
+      localStorage.setItem(storageKey, body.classList.contains("toc-collapsed") ? "true" : "false");
+    } catch (_) {}
+    syncToggleLabel();
+  });
+
+  document.addEventListener("click", function (e) {
+    if (!mobileQuery.matches || body.classList.contains("toc-collapsed")) return;
+    var target = e.target;
+    if (!(target instanceof HTMLElement)) return;
+    if (toc.contains(target) || toggle.contains(target)) return;
+
+    body.classList.add("toc-collapsed");
+    try {
+      localStorage.setItem(storageKey, "true");
+    } catch (_) {}
+    syncToggleLabel();
+  });
+
+  var links = Array.from(toc.querySelectorAll("a[href^='#']"));
+  var headings = links
+    .map(function (link) {
+      var id = decodeURIComponent(link.getAttribute("href").slice(1));
+      return document.getElementById(id);
+    })
+    .filter(Boolean);
+
+  function setActive(id) {
+    links.forEach(function (link) {
+      link.classList.toggle("active", link.getAttribute("href") === "#" + encodeURIComponent(id));
+    });
+  }
+
+  function getHeadingTop(heading) {
+    return heading.getBoundingClientRect().top + window.scrollY - 16;
+  }
+
+  function scrollToHeading(id, behavior) {
+    var heading = document.getElementById(id);
+    if (!heading) return;
+    window.scrollTo({ top: getHeadingTop(heading), behavior: behavior || "auto" });
+    setActive(id);
+  }
+
+  function scheduleScrollCorrection(id) {
+    [100, 300, 700, 1200].forEach(function (delay) {
+      window.setTimeout(function () {
+        scrollToHeading(id, "auto");
+      }, delay);
+    });
+  }
+
+  function correctAfterPendingImages(id) {
+    var pendingImages = Array.from(document.images).filter(function (image) {
+      return !image.complete;
+    });
+
+    pendingImages.forEach(function (image) {
+      var correct = function () {
+        scrollToHeading(id, "auto");
+      };
+      image.addEventListener("load", correct, { once: true });
+      image.addEventListener("error", correct, { once: true });
+    });
+  }
+
+  links.forEach(function (link) {
+    link.addEventListener("click", function (e) {
+      var rawHref = link.getAttribute("href") || "";
+      if (!rawHref.startsWith("#")) return;
+
+      var id = decodeURIComponent(rawHref.slice(1));
+      if (!document.getElementById(id)) return;
+
+      e.preventDefault();
+      scrollToHeading(id, "smooth");
+      correctAfterPendingImages(id);
+      scheduleScrollCorrection(id);
+
+      try {
+        history.pushState(null, "", "#" + encodeURIComponent(id));
+      } catch (_) {}
+
+      if (mobileQuery.matches) {
+        body.classList.add("toc-collapsed");
+        try {
+          localStorage.setItem(storageKey, "true");
+        } catch (_) {}
+        syncToggleLabel();
+      }
+    });
+  });
+
+  if ("IntersectionObserver" in window && headings.length > 0) {
+    var visible = new Map();
+    var observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) visible.set(entry.target.id, entry.boundingClientRect.top);
+        else visible.delete(entry.target.id);
+      });
+
+      var active = Array.from(visible.entries()).sort(function (a, b) { return a[1] - b[1]; })[0];
+      if (active) setActive(active[0]);
+    }, { rootMargin: "0px 0px -70% 0px", threshold: 0 });
+
+    headings.forEach(function (heading) { observer.observe(heading); });
+  }
+
+  syncToggleLabel();
+
+  window.addEventListener("load", function () {
+    if (!location.hash) return;
+    var id = decodeURIComponent(location.hash.slice(1));
+    if (!document.getElementById(id)) return;
+    scrollToHeading(id, "auto");
+    correctAfterPendingImages(id);
+    scheduleScrollCorrection(id);
+  });
+})();
+`;
+
 /**
  * 通常 Markdown モードの HTML エクスポート・別ウィンドウ表示用の
  * スタンドアロン HTML 文書を生成して返す。
@@ -148,19 +549,36 @@ const COPY_BUTTON_STYLE = `
 export function createHtml(html: string, style: string, options: HtmlDocumentOptions = {}): string {
   const title = options.title ?? "Ageha Editor";
   const copiedLabel = options.copiedLabel ?? "Copied";
+  const tocHtml = buildTocHtml(html);
+  const hasToc = tocHtml.length > 0;
+  const tocButton = hasToc
+    ? '<button type="button" id="ageha-toc-toggle" class="ageha-toc-toggle" aria-controls="ageha-toc" aria-expanded="true">目次を隠す</button>'
+    : "";
+  const tocAside = hasToc ? `<aside id="ageha-toc" class="ageha-toc">${tocHtml}</aside>` : "";
+  const bodyClass = hasToc ? "ageha-viewer has-toc" : "ageha-viewer";
+  const tocStyle = hasToc ? `<style>${TOC_STYLE}</style>` : "";
+  const tocScript = hasToc ? `<script>${TOC_SCRIPT}</script>` : "";
   return `<!DOCTYPE html>
     <html>
     <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>${escapeHtml(title)}</title>
     <style>${style}</style>
     <style>${rawKatex}</style>
+    <style>${MARKDOWN_VIEWER_RESPONSIVE_STYLE}</style>
+    ${tocStyle}
     <script>${rawMermaid}</script>
     </head>
-    <body>
-    <div class="container-fluid">${html}</div>
+    <body class="${bodyClass}">
+    ${tocButton}
+    <div class="viewer-layout">
+    <main class="container-fluid" id="main-content">${html}</main>
+    ${tocAside}
+    </div>
     </body>
     <script>${buildCopyButtonScript(copiedLabel)}</script>
+    ${tocScript}
     <style>${COPY_BUTTON_STYLE}</style>
     </html>`;
 }
@@ -450,6 +868,57 @@ function escapeHtml(value: string): string {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
+}
+
+function buildTocHtml(html: string): string {
+  if (typeof document === "undefined") {
+    return "";
+  }
+
+  const container = document.createElement("div");
+  container.innerHTML = html;
+
+  const headings = Array.from(
+    container.querySelectorAll<HTMLHeadingElement>("h1[id],h2[id],h3[id],h4[id],h5[id],h6[id]"),
+  )
+    .map<TocItem>((heading) => ({
+      id: heading.id,
+      text: heading.textContent?.trim() ?? "",
+      level: Number(heading.tagName.slice(1)),
+      children: [],
+    }))
+    .filter((heading): heading is TocItem => heading.id.length > 0 && heading.text.length > 0);
+
+  if (headings.length === 0) {
+    return "";
+  }
+
+  const root: TocItem = { id: "", text: "", level: 0, children: [] };
+  const stack: TocItem[] = [root];
+
+  for (const heading of headings) {
+    while (stack.length > 1 && stack[stack.length - 1].level >= heading.level) {
+      stack.pop();
+    }
+
+    stack[stack.length - 1].children.push(heading);
+    stack.push(heading);
+  }
+
+  return renderTocItems(root.children);
+}
+
+function renderTocItems(items: TocItem[]): string {
+  if (items.length === 0) {
+    return "";
+  }
+
+  return `<ul>${items
+    .map((item) => {
+      const href = `#${encodeURIComponent(item.id)}`;
+      return `<li><a href="${href}">${escapeHtml(item.text)}</a>${renderTocItems(item.children)}</li>`;
+    })
+    .join("")}</ul>`;
 }
 
 // -------- ユーザー CSS のスコープ変換キャッシュ --------

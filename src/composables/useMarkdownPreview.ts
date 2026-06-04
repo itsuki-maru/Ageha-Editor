@@ -16,6 +16,7 @@ import {
   noteToken,
   renderIframe,
   renderer,
+  resetMarkedHeadingSlugs,
   setMarkedRendererFileContext,
   setMarkedRendererPreviewAssetUrls,
   videoToken,
@@ -55,10 +56,10 @@ export function useMarkdownPreview(
       ...getDefaultWhiteList(),
       h1: ["id", "class"],
       h2: ["id", "class"],
-      h3: ["id"],
-      h4: ["id"],
-      h5: ["id"],
-      h6: ["id"],
+      h3: ["id", "class"],
+      h4: ["id", "class"],
+      h5: ["id", "class"],
+      h6: ["id", "class"],
       pre: ["class", "is", "data-auto-scaling"],
       a: ["target", "rel", "href", "title"],
       button: ["class", "data-target"],
@@ -159,6 +160,7 @@ export function useMarkdownPreview(
     setMarkedRendererFileContext(filePath);
     const markedOptions: MarkedOptions = { async: false };
     setMarkedRendererPreviewAssetUrls(!options.embedLocalImages);
+    resetMarkedHeadingSlugs();
     try {
       const htmlStr = marked.parse(md, markedOptions);
       const htmlWithAssets = options.embedLocalImages

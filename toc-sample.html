@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="ja">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>MarkdownWiki2</title>
+        <link rel="icon" href="/assets/favicon.ico" />
+    </head>
+
+    <body>
+        <h1 class="head1">{{ markdowntitle }}</h1>
+        <div class="contents-area">
+            <div id="main-content" class="content"></div>
+            <div id="toc" class="toc"></div>
+        </div>
+        <script id="markdown-content" type="text/template">
+            {{ markdownbody | safe }}
+        </script>
+    </body>
+    <style>
+        html {
+            scroll-behavior: smooth;
+            overscroll-behavior: none;
+        }
+
+        body {
+            font-family: Helvetica, arial, sans-serif;
+            font-size: 14px;
+            line-height: 1.6;
+            padding-top: 10px;
+            padding-bottom: 10px;
+            background-color: white;
+            padding: 30px;
+        }
+
+        ~ 省略 ~
+        .contents-area {
+            display: flex;
+            height: 100%;
+        }
+
+        .content {
+            width: 70%;
+        }
+
+        .toc {
+            width: 380px;
+            max-height: calc(75vh - 80px);
+            position: fixed;
+            top: 100px;
+            right: 50px;
+            overflow-y: auto;
+            overflow-x: hidden;
+            font-size: 13px;
+            line-height: 1.6;
+            border-radius: 10px;
+            border: 1px solid #e5e7eb;
+            background-color: #fafafa;
+            padding: 14px 14px 16px;
+            box-shadow: 0 1px 6px rgba(0, 0, 0, 0.07);
+        }
+
+        .toc::before {
+            content: "目次";
+            display: block;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            color: #9ca3af;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .toc::-webkit-scrollbar {
+            width: 4px;
+        }
+        .toc::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .toc::-webkit-scrollbar-thumb {
+            background: #d1d5db;
+            border-radius: 2px;
+        }
+
+        a {
+            color: #1431af;
+            text-decoration: underline;
+        }
+
+        /* 目次のリンク */
+        .toc a {
+            display: block;
+            padding: 4px 8px;
+            border-radius: 5px;
+            text-decoration: none;
+            color: #323740;
+            transition:
+                color 0.15s,
+                background-color 0.15s;
+            word-break: break-word;
+        }
+
+        .toc a.active {
+            color: #3b82f6;
+            font-weight: 600;
+            background-color: #eff6ff;
+        }
+
+        .toc ul {
+            margin: 0;
+            padding: 0;
+        }
+
+        .toc ul ul {
+            padding-left: 10px;
+            border-left: 2px solid #e5e7eb;
+            margin-left: 4px;
+            margin-top: 2px;
+        }
+
+        .toc li {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* ホバー */
+        a:hover {
+            background-color: #c1d1d6;
+            display: inline-block;
+            /* transform を適用するために必要 */
+        }
+
+        .toc a:hover {
+            background-color: #eff6ff;
+            color: #3b82f6;
+            display: block;
+        }
+
+        .head1 {
+            font-size: 34px;
+            margin-bottom: -1%;
+        }
+
+        .head2 {
+            font-size: 20px;
+            color: black;
+            margin-top: 2%;
+            padding: 0.3em 0.4em;
+            background: #ebe8e8;
+            border-left: solid 5px #426f9c;
+            border-bottom: solid 3px #d7d7d7;
+            border-radius: 6px;
+        }
+    </style>
+</html>
+

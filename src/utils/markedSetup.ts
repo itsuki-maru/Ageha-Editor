@@ -193,6 +193,7 @@ const warningToken = createNestedTokenizer("warning");
 const renderer = new Renderer();
 let activeMarkdownFilePath = "";
 let usePreviewAssetUrls = true;
+const headingSlugCounts = new Map<string, number>();
 
 function setMarkedRendererFileContext(filePath: string) {
   activeMarkdownFilePath = filePath;
@@ -202,9 +203,14 @@ function setMarkedRendererPreviewAssetUrls(enabled: boolean) {
   usePreviewAssetUrls = enabled;
 }
 
+function resetMarkedHeadingSlugs() {
+  headingSlugCounts.clear();
+}
+
 // ヘッダーを定義
 renderer.heading = function (tokens: Tokens.Heading) {
-  return `<h${tokens.depth} class="head${tokens.depth}">${tokens.text}</h${tokens.depth}>\n`;
+  const id = createHeadingId(tokens.text);
+  return `<h${tokens.depth} id="${id}" class="head${tokens.depth}">${tokens.text}</h${tokens.depth}>\n`;
 };
 
 // 外部リンクを別タブで開かせるカスタムレンダラ設定
@@ -264,6 +270,22 @@ function escapeHtml(html: string) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
+}
+
+function createHeadingId(text: string): string {
+  const baseSlug =
+    text
+      .replace(/<[^>]*>/g, "")
+      .replace(/[`*_~[\]()]/g, "")
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, "-")
+      .replace(/[^\p{Letter}\p{Number}_-]+/gu, "")
+      .replace(/^-+|-+$/g, "") || "heading";
+
+  const count = headingSlugCounts.get(baseSlug) ?? 0;
+  headingSlugCounts.set(baseSlug, count + 1);
+  return count === 0 ? baseSlug : `${baseSlug}-${count + 1}`;
 }
 
 // カスタムトークンの型定義
@@ -378,6 +400,7 @@ export {
   renderer,
   youtubeToken,
   renderIframe,
+  resetMarkedHeadingSlugs,
   setMarkedRendererFileContext,
   setMarkedRendererPreviewAssetUrls,
 };

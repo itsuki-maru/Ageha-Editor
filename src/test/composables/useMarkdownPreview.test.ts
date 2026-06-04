@@ -61,10 +61,34 @@ describe("useMarkdownPreview", () => {
     await nextTick();
 
     expect(result.documentMode.value).toBe("markdown");
-    expect(result.parsedHtml.value).toContain('<h1 class="head1">Title</h1>');
+    expect(result.parsedHtml.value).toContain('<h1 id="title" class="head1">Title</h1>');
     expect(result.parsedHtml.value).not.toContain("<script>");
     expect(result.parsedHtml.value).toContain('src="/asset/local.png"');
     expect(result.previewFrameHtml.value).toBe("");
+
+    unmount();
+    vi.useRealTimers();
+  });
+
+  it("Markdown レンダリングごとに見出し ID の採番をリセットする", async () => {
+    const editorContent = ref("# Title\n\n# Title");
+    const { result, unmount } = await mountComposable(() =>
+      useMarkdownPreview(editorContent, ref("C:/docs/a.md"), ref(""), ref(true)),
+    );
+
+    await vi.advanceTimersByTimeAsync(200);
+    await nextTick();
+
+    expect(result.parsedHtml.value).toContain('<h1 id="title" class="head1">Title</h1>');
+    expect(result.parsedHtml.value).toContain('<h1 id="title-2" class="head1">Title</h1>');
+
+    editorContent.value = "# Title";
+    await nextTick();
+    await vi.advanceTimersByTimeAsync(200);
+    await nextTick();
+
+    expect(result.parsedHtml.value).toContain('<h1 id="title" class="head1">Title</h1>');
+    expect(result.parsedHtml.value).not.toContain('id="title-3"');
 
     unmount();
     vi.useRealTimers();
