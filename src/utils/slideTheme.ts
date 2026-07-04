@@ -147,7 +147,7 @@ blockquote {
   background: var(--surf);
   border: 1px solid var(--bdr);
   border-left: 5px solid var(--p);
-  border-radius: 0 14px 14px 0;
+  border-radius: 14px;
   box-shadow: var(--shd);
 }
 
