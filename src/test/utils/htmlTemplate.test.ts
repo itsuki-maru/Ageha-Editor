@@ -8,6 +8,23 @@ import {
 } from "@/utils/htmlTemplate";
 
 describe("htmlTemplate", () => {
+  it.each([0, 1, 3])("図が %i 個でも軽量な HTML を生成し、変換済み SVG を保持する", (count) => {
+    const diagrams = Array.from(
+      { length: count },
+      (_, index) => `<svg id="diagram-${index}" viewBox="0 0 100 50"><text>Diagram ${index}</text></svg>`,
+    ).join("");
+    const html = createHtml(`<h1 id="title">Title</h1>${diagrams}`, "body{}");
+    const doc = new DOMParser().parseFromString(html, "text/html");
+
+    // 小さい文書へ数 MB の描画ライブラリを再度埋め込む退行を防ぐ。
+    expect(new TextEncoder().encode(html).byteLength).toBeLessThan(100_000);
+    expect(doc.querySelectorAll("svg")).toHaveLength(count);
+    expect(doc.querySelector("#main-content")?.innerHTML).toContain(diagrams);
+    expect(doc.head.querySelector("script")).toBeNull();
+    expect(html).toContain("navigator.clipboard.writeText");
+    expect(doc.querySelector("#ageha-toc")).not.toBeNull();
+  });
+
   it("通常 Markdown 用 HTML にタイトル、本文、CSS、コピーラベルを埋め込む", () => {
     const html = createHtml("<h1>Hello</h1>", "body{color:red;}", {
       title: '<Ageha "Test">',

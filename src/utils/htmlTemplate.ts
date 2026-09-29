@@ -1,5 +1,4 @@
 import rawKatex from "katex/dist/katex.min.css?raw";
-import rawMermaid from "mermaid/dist/mermaid.min.js?raw";
 
 // エクスポート用 HTML・別ウィンドウ表示用 HTML・スライド iframe 用 HTML を
 // 共通の組み立て方で生成するテンプレートユーティリティ。
@@ -542,8 +541,9 @@ const TOC_SCRIPT = `
 /**
  * 通常 Markdown モードの HTML エクスポート・別ウィンドウ表示用の
  * スタンドアロン HTML 文書を生成して返す。
- * KaTeX CSS・Mermaid JS・コピーボタンスクリプトをインラインで埋め込む。
- * @param html  - Markdown を marked でレンダリングした HTML 断片
+ * KaTeX CSS・コピーボタンスクリプトをインラインで埋め込む。
+ * Mermaid 図は呼び出し元で SVG に変換済みのため、描画用 JS は埋め込まない。
+ * @param html  - Markdown をレンダリングし、Mermaid 図を SVG に変換した HTML 断片
  * @param style - ageha.css の内容
  */
 export function createHtml(html: string, style: string, options: HtmlDocumentOptions = {}): string {
@@ -568,7 +568,6 @@ export function createHtml(html: string, style: string, options: HtmlDocumentOpt
     <style>${rawKatex}</style>
     <style>${MARKDOWN_VIEWER_RESPONSIVE_STYLE}</style>
     ${tocStyle}
-    <script>${rawMermaid}</script>
     </head>
     <body class="${bodyClass}">
     ${tocButton}
