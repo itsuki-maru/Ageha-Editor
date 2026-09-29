@@ -1,14 +1,6 @@
 import rawKatex from "katex/dist/katex.min.css?raw";
 
-// エクスポート用 HTML・別ウィンドウ表示用 HTML・スライド iframe 用 HTML を
-// 共通の組み立て方で生成するテンプレートユーティリティ。
-//
-// スライドと通常 Markdown で HTML の構造が大きく異なるため、
-// createHtml（Markdown 用）と createSlideHtmlDocument（スライド用）に分けている。
-
-/** createSlideHtmlDocument / customizeSlideHtmlDocument に渡すオプション */
 interface SlideHtmlOptions {
-  /** HTML 文書の <title> に設定する文字列 */
   title?: string;
   /** ~/.ageha/ageha-slide.css の内容。Marp CSS の後段に適用する。 */
   userStyle?: string;
@@ -28,25 +20,10 @@ interface TocItem {
   children: TocItem[];
 }
 
-// Marp が生成するスライドの DOM 構造:
-//   div.marpit > svg > foreignObject > section
-// ユーザー CSS の `section { ... }` を効かせるには、このフルパスへ変換が必要。
 const SLIDE_SCOPE_SELECTOR = "div.marpit > svg > foreignObject > section";
 
-// スライド HTML に注入する外部リンクインターセプトスクリプト。
-// クリックされた <a href> の href が http(s):// で始まる場合に限り
-// ブラウザのデフォルト動作を止めて OS ブラウザで開く処理を行う。
-//
-// 動作環境による分岐:
-//   - iframe 内（メインウィンドウのプレビュー）:
-//       window.parent.postMessage でメインウィンドウに転送する。
-//       受け取り側 (Editor.vue) が opener.open() を呼ぶ。
-//   - 独立 Tauri ウィンドウ（ビューア / スライドショー）:
-//       window.__TAURI_INTERNALS__ 経由で plugin:opener|open_url を直接呼ぶ。
-//       viewer.json に opener:allow-open-url 権限が必要。
-//   - エクスポート HTML をブラウザで開いた場合:
-//       上記いずれにも該当しないため、何もせずブラウザの通常動作に委ねる。
-//       (target="_blank" 付き <a> はブラウザが新しいタブで開く)
+// iframe は親へ通知し、独立 Tauri ウィンドウは opener を直接呼ぶ（viewer.json の権限が必要）。
+// エクスポート HTML をブラウザで開いた場合は通常のリンク動作に委ねる。
 const SLIDE_EXTERNAL_LINK_SCRIPT = `(function () {
   document.addEventListener("click", function (e) {
     var a = e.target.closest("a[href]");
@@ -64,9 +41,6 @@ const SLIDE_EXTERNAL_LINK_SCRIPT = `(function () {
   });
 })();`;
 
-// iframe / 別ウィンドウ内のコードブロックに「コピー」ボタンを付けるための
-// インライン JavaScript。createSlideHtmlDocument で埋め込んでいないが、
-// createHtml（通常 Markdown）で使用している。
 function buildCopyButtonScript(copiedLabel: string) {
   return `
 document.addEventListener("click", (e) => {
@@ -94,7 +68,6 @@ document.addEventListener("click", (e) => {
 `;
 }
 
-// コピーボタンとツールチップの追加スタイル定義
 const COPY_BUTTON_STYLE = `
   .code-container {
     position: relative;
@@ -538,14 +511,7 @@ const TOC_SCRIPT = `
 })();
 `;
 
-/**
- * 通常 Markdown モードの HTML エクスポート・別ウィンドウ表示用の
- * スタンドアロン HTML 文書を生成して返す。
- * KaTeX CSS・コピーボタンスクリプトをインラインで埋め込む。
- * Mermaid 図は呼び出し元で SVG に変換済みのため、描画用 JS は埋め込まない。
- * @param html  - Markdown をレンダリングし、Mermaid 図を SVG に変換した HTML 断片
- * @param style - ageha.css の内容
- */
+/** Mermaid は呼び出し元で SVG 化し、ここでは KaTeX CSS とコピー用スクリプトを埋め込む。 */
 export function createHtml(html: string, style: string, options: HtmlDocumentOptions = {}): string {
   const title = options.title ?? "Ageha Editor";
   const copiedLabel = options.copiedLabel ?? "Copied";
@@ -582,19 +548,7 @@ export function createHtml(html: string, style: string, options: HtmlDocumentOpt
     </html>`;
 }
 
-/**
- * スライドモード用の完結した HTML 文書を生成して返す。
- * iframe の srcdoc・別ウィンドウ表示・HTML エクスポート・印刷すべてに使われる共通の基盤。
- *
- * スタイルの適用順:
- *   1. 基本レイアウト CSS（body マージン等のベースライン）
- *   2. Marp テーマ CSS（ageha-slide テーマ）
- *   3. スコープ済みユーザー CSS（ageha-slide.css を Marp DOM 構造へ変換したもの）
- *
- * @param html    - Marp が生成したスライド HTML 断片（section 要素の列）
- * @param style   - Marp が生成したテーマ CSS
- * @param options - タイトル・ユーザー CSS・追加 CSS のオプション
- */
+/** Marp CSS の後にユーザー CSS を適用する、プレビュー・出力共通のスライド文書。 */
 export function createSlideHtmlDocument(
   html: string,
   style: string,
@@ -602,13 +556,9 @@ export function createSlideHtmlDocument(
 ): string {
   const title = escapeHtml(options.title ?? "Ageha Editor Slides");
   const userStyle = options.userStyle ?? "";
-  // ユーザー CSS を Marp の DOM 構造に合わせてスコープ変換する。
-  // 変換結果はキャッシュされるため、同じ CSS を繰り返し渡してもコストは最小限。
   const scopedUserStyle = buildScopedSlideUserStyle(userStyle);
   const extraStyle = options.extraStyle ?? "";
 
-  // スライドは iframe や別ウィンドウで独立して描画するため、
-  // body まで含んだ完結した HTML 文書として生成する。
   return `<!DOCTYPE html>
     <html>
     <head>
@@ -643,12 +593,7 @@ export function createSlideHtmlDocument(
     </html>`;
 }
 
-/**
- * 既存のスライド HTML 文書の一部を後から差し替える。
- * タイトル変更・印刷用スタイル追加など、生成後の軽量な調整に使う。
- * @param documentHtml - createSlideHtmlDocument が生成した完全な HTML 文書
- * @param options      - 上書きしたい項目のみ指定する
- */
+/** createSlideHtmlDocument の生成結果に、指定されたタイトル・追加 CSS だけを反映する。 */
 export function customizeSlideHtmlDocument(
   documentHtml: string,
   options: SlideHtmlOptions = {},
@@ -658,13 +603,11 @@ export function customizeSlideHtmlDocument(
   if (options.title) {
     const escapedTitle = escapeHtml(options.title);
     if (/<title>.*?<\/title>/i.test(nextHtml)) {
-      // 既存 <title> がある場合だけ安全に差し替える。
       nextHtml = nextHtml.replace(/<title>.*?<\/title>/i, `<title>${escapedTitle}</title>`);
     }
   }
 
   if (options.extraStyle) {
-    // 印刷時の追加 CSS など、呼び出し側だけが知っているルールを </head> 直前に差し込む。
     nextHtml = nextHtml.replace(
       /<\/head>/i,
       `    <style>${options.extraStyle}</style>\n    </head>`,
@@ -839,17 +782,7 @@ const SLIDESHOW_SCRIPT = `
 })();
 `;
 
-/**
- * スライドモード用の基盤 HTML にスライドショー UI と制御スクリプトを注入して返す。
- * 1 枚ずつ表示するプレゼンテーションモード用。
- *
- * キーボード操作:
- *   ArrowRight / ArrowDown / Space: 次のスライド
- *   ArrowLeft / ArrowUp           : 前のスライド
- *   Home / End                    : 最初 / 最後のスライド
- *
- * @param baseSlideHtml - createSlideHtmlDocument が生成した完全な HTML 文書
- */
+/** スライド文書に、1 枚ずつ表示するスライドショー UI と操作スクリプトを追加する。 */
 export function createSlideshowHtmlDocument(baseSlideHtml: string): string {
   return baseSlideHtml
     .replace(/<\/head>/i, `    <style>${SLIDESHOW_STYLE}</style>\n    </head>`)
@@ -859,7 +792,6 @@ export function createSlideshowHtmlDocument(baseSlideHtml: string): string {
     );
 }
 
-/** HTML 特殊文字をエスケープする。<title> など HTML コンテキストへの挿入に使う。 */
 function escapeHtml(value: string): string {
   return value
     .replace(/&/g, "&amp;")
@@ -922,41 +854,21 @@ function renderTocItems(items: TocItem[]): string {
 
 // -------- ユーザー CSS のスコープ変換キャッシュ --------
 
-// ユーザー CSS のスコープ変換結果をキャッシュする Map。
-// slideCustomCss はアプリ起動時に一度だけ読み込まれ、セッション中は変化しないため、
-// 同じ入力に対して CSSStyleSheet のパースが繰り返し走るのを防ぐ。
-// キー: 入力 CSS 文字列 / 値: スコープ変換済み CSS 文字列
+// 同じユーザー CSS を再パースしないよう、スコープ変換結果を保持する。
 const scopedStyleCache = new Map<string, string>();
 
-/**
- * ユーザーが記述した CSS を Marp の DOM 構造に適合するよう変換して返す。
- *
- * 変換の必要性:
- *   Marp は各スライドを `div.marpit > svg > foreignObject > section` という
- *   SVG の入れ子構造で出力する。ユーザーが `section { color: red }` と書いても
- *   通常の CSS セレクタでは SVG 内の section に届かない。
- *   そのため、すべての section 系セレクタにフルパスのプレフィックスを付与する。
- *
- * キャッシュ:
- *   CSSStyleSheet の生成・パースは比較的コストがかかる処理のため、
- *   同じ CSS 文字列であれば前回の変換結果を返す。
- *
- * @param userStyle - ~/.ageha/ageha-slide.css の内容
- * @returns Marp DOM 構造に適合するスコープ済み CSS 文字列
- */
+// ユーザー CSS の対象を Marp のスライド section 配下へ揃える。
 function buildScopedSlideUserStyle(userStyle: string): string {
   if (!userStyle.trim() || typeof CSSStyleSheet === "undefined") {
     return "";
   }
 
-  // 同じ CSS が再度来たらキャッシュから返す。
   const cached = scopedStyleCache.get(userStyle);
   if (cached !== undefined) {
     return cached;
   }
 
   try {
-    // CSSStyleSheet API でパースし、ルールごとにセレクタを変換する。
     const sheet = new CSSStyleSheet();
     sheet.replaceSync(userStyle);
     const result = Array.from(sheet.cssRules)
@@ -971,19 +883,12 @@ function buildScopedSlideUserStyle(userStyle: string): string {
   }
 }
 
-/**
- * 単一の CSS ルールを Marp DOM 構造向けに変換して文字列で返す。
- * @media / @supports の場合は再帰的に内部ルールも変換する。
- * 対応外のルール（@font-face など）は変換せずそのまま返す。
- */
 function scopeSlideCssRule(rule: CSSRule): string {
   if (rule instanceof CSSStyleRule) {
-    // 通常のスタイルルールはセレクタだけ組み替えて宣言ブロックをそのまま使う。
     return `${scopeSlideSelectorList(rule.selectorText)} { ${rule.style.cssText} }`;
   }
 
   if (rule instanceof CSSMediaRule) {
-    // @media の中も同じルールで再帰的にスコープ変換する。
     const nested = Array.from(rule.cssRules)
       .map((childRule) => scopeSlideCssRule(childRule))
       .filter((ruleText) => ruleText.length > 0)
@@ -992,7 +897,6 @@ function scopeSlideCssRule(rule: CSSRule): string {
   }
 
   if (rule instanceof CSSSupportsRule) {
-    // @supports も同様に入れ子ルールを再帰変換する。
     const nested = Array.from(rule.cssRules)
       .map((childRule) => scopeSlideCssRule(childRule))
       .filter((ruleText) => ruleText.length > 0)
@@ -1004,10 +908,6 @@ function scopeSlideCssRule(rule: CSSRule): string {
   return rule.cssText;
 }
 
-/**
- * カンマ区切りのセレクタリスト（例: `h1, h2`）を
- * 各セレクタに対してスコープ変換してカンマ結合して返す。
- */
 function scopeSlideSelectorList(selectorText: string): string {
   return selectorText
     .split(",")
@@ -1015,14 +915,7 @@ function scopeSlideSelectorList(selectorText: string): string {
     .join(", ");
 }
 
-/**
- * 単一のセレクタを Marp の DOM 構造へ適合するよう変換する。
- *
- * 変換ルール:
- *   - `html` / `body` / `:root` / `div.marpit` で始まるセレクタはルート系とみなしてそのまま通す。
- *   - `section` で始まるセレクタは SLIDE_SCOPE_SELECTOR に差し替える。
- *   - その他（`h1` / `p` / `.classname` 等）は SLIDE_SCOPE_SELECTOR の子孫として補完する。
- */
+// ルート指定は保持し、section は Marp のパスへ置換、それ以外はその子孫として扱う。
 function scopeSlideSelector(selector: string): string {
   if (!selector) {
     return selector;
@@ -1034,17 +927,14 @@ function scopeSlideSelector(selector: string): string {
     selector.startsWith(":root") ||
     selector.startsWith("div.marpit")
   ) {
-    // ルート系セレクタや既に Marp 構造を前提にした指定はそのまま通す。
     return selector;
   }
 
   if (selector.startsWith("section")) {
-    // `section` で始まる場合は Marp の完全な section パスへ差し替える。
     // 例: `section.lead` → `div.marpit > svg > foreignObject > section.lead`
     return selector.replace(/^section\b/, SLIDE_SCOPE_SELECTOR);
   }
 
-  // それ以外（`h1`, `.lead`, `img` 等）は section 配下を対象とした指定として補完する。
   // 例: `h1` → `div.marpit > svg > foreignObject > section h1`
   return `${SLIDE_SCOPE_SELECTOR} ${selector}`;
 }

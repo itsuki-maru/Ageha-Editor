@@ -2,8 +2,6 @@
 import type { DocumentMode } from "@/interface";
 import { useI18n } from "@/i18n";
 
-// ツールバーは見た目とイベント通知に専念させ、
-// 実際の処理内容は Editor.vue 側でまとめて制御する構成にしている。
 defineProps<{
   isPreview: boolean | null;
   isScrollSync: boolean | null;

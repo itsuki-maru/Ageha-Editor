@@ -2,8 +2,6 @@
 import Help from "./Help.vue";
 import { useI18n } from "@/i18n";
 
-// Help.vue をモーダルとして表示するための薄いラッパーであり、
-// 閉じる操作やオーバーレイ表示だけを担当する。
 defineProps<{
   visible: boolean;
 }>();

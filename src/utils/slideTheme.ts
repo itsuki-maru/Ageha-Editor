@@ -1,5 +1,3 @@
-// Ageha Editor が標準で提供するスライドテーマ定義。
-// 文書側で独自テーマを持たない場合でも、最低限整った見た目になるようにしている。
 export const AGEHA_SLIDE_THEME = String.raw`/*
  * @theme ageha-slide
  * @auto-scaling true

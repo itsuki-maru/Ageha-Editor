@@ -1,8 +1,6 @@
 <script setup lang="ts">
 import { useI18n } from "@/i18n";
 
-// よく使う Markdown 記法をワンクリックで挿入するための補助パネル。
-// 実際の文字列挿入は親コンポーネント側の Ace エディタへ委譲する。
 defineProps<{
   isPreview: boolean | null;
   isHeightScreen: boolean;

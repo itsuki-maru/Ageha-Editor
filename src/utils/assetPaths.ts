@@ -1,7 +1,5 @@
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 
-// 画像などのローカルアセットパスを解決し、
-// 必要に応じて data URL へ埋め込める形へ変換するユーティリティ群。
 const URL_SCHEME_RE = /^(?:[a-z][a-z\d+\-.]*:)?\/\//i;
 const WINDOWS_ABS_PATH_RE = /^[a-zA-Z]:[\\/]/;
 const MARKDOWN_IMAGE_RE = /!\[([^\]]*)\]\(([^)\n]+)\)/g;
@@ -37,7 +35,6 @@ export function resolveAssetPath(rawPath: string, activeFilePath: string): strin
   }
 
   if (isAbsoluteFilePath(rawPath)) {
-    // すでに絶対パスなら追加解決は不要。
     return rawPath;
   }
 
@@ -48,7 +45,6 @@ export function resolveAssetPath(rawPath: string, activeFilePath: string): strin
   }
 
   try {
-    // 開いている Markdown ファイルの親ディレクトリを基準に相対パスを解決する。
     const baseUrl = toFileUrl(
       baseDir.endsWith("/") || baseDir.endsWith("\\") ? baseDir : `${baseDir}/`,
     );
@@ -84,7 +80,6 @@ export async function toEmbeddedAssetUrl(rawPath: string, activeFilePath: string
 
   let pending = embeddedAssetUrlCache.get(resolvedPath);
   if (!pending) {
-    // 初回だけ Rust 側でバイナリを読み、data URL へ変換する。
     pending = invoke<string>("read_binary_file_data_url", {
       targetFile: resolvedPath,
     }).catch((error) => {
