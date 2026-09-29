@@ -244,7 +244,7 @@ export function useExport(
       </html>`;
     }
 
-    // HTML エクスポート: KaTeX CSS・Mermaid JS をインラインで含んだスタンドアロン HTML を生成する。
+    // HTML エクスポート: 図は SVG に変換済みなので Mermaid JS を含めず、KaTeX CSS を埋め込む。
     return createHtml(rendered, cssData(), {
       title: translate("export.viewerTitle"),
       copiedLabel: translate("common.copied"),
