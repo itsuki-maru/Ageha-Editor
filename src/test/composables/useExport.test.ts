@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ref } from "vue";
 
 const mocks = vi.hoisted(() => ({
@@ -12,9 +12,9 @@ vi.mock("@tauri-apps/api/core", () => ({
 }));
 
 vi.mock("@tauri-apps/api/webviewWindow", () => ({
-  WebviewWindow: vi.fn().mockImplementation(() => ({
-    once: mocks.webviewOnce,
-  })),
+  WebviewWindow: vi.fn().mockImplementation(function () {
+    return { once: mocks.webviewOnce };
+  }),
 }));
 
 vi.mock("@/i18n", () => ({
@@ -28,7 +28,15 @@ describe("useExport", () => {
     vi.clearAllMocks();
   });
 
-  function createSubject(mode: "markdown" | "slides" = "markdown", content = "# Title") {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  function createSubject(
+    mode: "markdown" | "slides" = "markdown",
+    content = "# Title",
+    css = "body{}",
+  ) {
     const showMessage = vi.fn();
     const saveHtmlFile = vi.fn();
     const subject = useExport(
@@ -42,7 +50,7 @@ describe("useExport", () => {
         css: "section{}",
         metadata: { slideCount: 1 },
       }),
-      () => "body{}",
+      () => css,
       () => "section{}",
       async (html) => html.replace("mermaid", "svg"),
       async () => "<p>export</p>",
@@ -84,5 +92,47 @@ describe("useExport", () => {
       html: expect.stringContaining("slideshow-wrapper"),
     });
     expect(mocks.webviewOnce).toHaveBeenCalledWith("tauri://destroyed", expect.any(Function));
+  });
+
+  it("既存 CSS のページ余白を印刷時だけ上書きし、HTML 保存には印刷専用設定を混入させない", async () => {
+    const legacyCss = "@page { size: A4; margin: 1mm; } body { padding: 30px; }";
+    const { subject, saveHtmlFile } = createSubject("markdown", "# Title", legacyCss);
+    const popup = {
+      document: {
+        writeln: vi.fn(),
+        close: vi.fn(),
+        readyState: "complete",
+        images: [],
+        fonts: { ready: Promise.resolve() },
+      },
+      requestAnimationFrame: (callback: FrameRequestCallback) => {
+        callback(0);
+        return 0;
+      },
+      focus: vi.fn(),
+      print: vi.fn(),
+      close: vi.fn(),
+    };
+    vi.spyOn(window, "open").mockReturnValue(popup as unknown as Window);
+
+    await subject.printOut();
+
+    const printedHtml = popup.document.writeln.mock.calls[0][0] as string;
+    expect(printedHtml).toContain(legacyCss);
+    expect(printedHtml).toMatch(/@media print\s*\{[\s\S]*@page\s*\{\s*margin: 10mm !important;/);
+    expect(printedHtml).toMatch(
+      /html, body\s*\{\s*margin: 0 !important;\s*padding: 0 !important;\s*transform: none !important;/,
+    );
+    expect(printedHtml).not.toContain("scale(0.9)");
+    expect(printedHtml).toContain("<p>export</p>");
+    expect(popup.print).toHaveBeenCalledOnce();
+    expect(popup.close).toHaveBeenCalledOnce();
+
+    await subject.exportHtml();
+
+    const savedHtml = saveHtmlFile.mock.calls[0][0] as string;
+    expect(savedHtml).toContain(legacyCss);
+    expect(savedHtml).not.toContain("margin: 10mm !important;");
+    expect(savedHtml).not.toContain("transform: none !important;");
   });
 });

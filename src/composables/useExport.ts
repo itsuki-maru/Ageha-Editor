@@ -227,10 +227,17 @@ export function useExport(
           <link rel="stylesheet" href="katex.css">
           <style>${cssData()}
             @media print {
+              /* 本文の padding は改ページ後に繰り返されないため、用紙側で余白を確保する。
+                 保存済みの ageha.css にある旧設定よりも印刷用の設定を優先する。 */
+              @page { margin: 10mm !important; }
+              html, body {
+                margin: 0 !important;
+                padding: 0 !important;
+                transform: none !important;
+              }
               button.copy-btn { display: none !important; }
               iframe { display: none !important; }
             }
-            html { transform: scale(0.9); }
           </style>
         </head>
         <body>${printReadyHtml}</body>

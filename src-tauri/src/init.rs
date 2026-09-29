@@ -92,7 +92,7 @@ fn create_default_css(file_path: PathBuf) -> io::Result<()> {
     let css = r#"
     @page {
         size: A4;
-        margin: 1mm;
+        margin: 10mm;
     }
 
     body {
@@ -103,6 +103,13 @@ fn create_default_css(file_path: PathBuf) -> io::Result<()> {
       padding-bottom: 10px;
       background-color: white;
       padding: 30px;
+    }
+
+    @media print {
+      body {
+        margin: 0;
+        padding: 0;
+      }
     }
 
     body > *:first-child {
