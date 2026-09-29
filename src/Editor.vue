@@ -25,8 +25,6 @@ import { useRustArgsInitStore } from "./stores/appInits";
 import { EDITOR_FOCUS_DELAY_MS, IMAGE_FILE_EXTENSIONS, TEXT_FILE_EXTENSIONS } from "./constants";
 import { setLocale, useI18n } from "@/i18n";
 
-// このコンポーネントがアプリ本体であり、
-// エディタ・プレビュー・保存・出力まわりの処理を組み合わせて画面を構成する。
 // ---- Stores ----
 const rustArgsStore = useRustArgsInitStore();
 const localStorageItem = useLocalStorageStore();
@@ -42,7 +40,6 @@ const messageText = ref("");
 const { t, toggleLocale } = useI18n();
 
 function showMessage(message: string) {
-  // どの処理からでも同じ手順でメッセージモーダルを開けるようにしている。
   messageText.value = message;
   isMessageModal.value = true;
 }
@@ -86,17 +83,12 @@ const aceEditor = useAceEditor(editorRef, {
       editorContent.value = value;
     }
   },
-  // アクティブなファイルパスを取得
   getActiveFilePath: () => activeFilePath.value,
 });
 
-// editorContent の変化を Ace エディタに反映
 watch(editorContent, (newContent) => {
-  // 変更差分の検知を更新する。
   trackChange(newContent);
-  // 外部から本文が差し替わった場合でも Ace 側と表示内容がずれないようにする。
   aceEditor.setValue(newContent);
-  // 最新の本文は起動引数ストアにも残し、再利用しやすくする。
   rustArgsStore.rustArgsData.text_data = newContent;
 });
 
@@ -144,7 +136,6 @@ useScrollSync(
 
 // ---- ローカルストレージ初期化 ----
 onMounted(async () => {
-  // 前回保存した UI 設定を最初に復元する。
   await localStorageItem.init();
   isShowTools.value = localStorageItem.isShowToolsFromLocalStorage;
   isPreview.value = localStorageItem.isPreviewFromLocalStorage;
@@ -159,14 +150,12 @@ onMounted(async () => {
     const textData = rustArgsStore.rustArgsData.text_data;
     const filePath = rustArgsStore.rustArgsData.file_abs_path;
     if (textData || filePath) {
-      // 起動時に指定された文書があれば、その内容をそのまま編集対象として読み込む。
       loadContent(textData, filePath);
       editorContent.value = textData;
     }
     // 初期描画直後は Ace がまだ安定していないため、少し待ってからフォーカスする。
     setTimeout(() => {
       aceEditor.focus();
-      // 前回のVimモードの状態を反映
       aceEditor.setVimMode(isVimMode.value!);
     }, EDITOR_FOCUS_DELAY_MS);
   } catch (error) {
@@ -184,7 +173,6 @@ onMounted(() => {
       handleCopyButtonClick(target);
     }
 
-    // Markdown プレビュー内の外部リンクを OS デフォルトブラウザで開く。
     // <strong> や <code> などリンク内の子要素がクリックされる場合に備え closest で祖先を探す。
     // anchor.href はブラウザが絶対 URL に解決した値を返すため、タウリ内部 URL との混在を防ぐため
     // 生属性値 getAttribute("href") を使って検証する。
@@ -217,7 +205,6 @@ onMounted(() => {
 onMounted(async () => {
   await getCurrentWindow().onCloseRequested(async (event) => {
     if (!(await confirmUnsaved())) {
-      // ユーザーがキャンセルした場合はクローズ自体を止める。
       event.preventDefault();
     }
   });
@@ -236,7 +223,6 @@ listen("tauri://drag-drop", async (event) => {
 
     const textData = await readFile(dropFilePath);
     if (textData !== undefined) {
-      // テキスト系ファイルはそのまま開き直す扱いにする。
       loadContent(textData, dropFilePath);
       editorContent.value = textData;
       rustArgsStore.rustArgsData.text_data = textData;
@@ -245,7 +231,6 @@ listen("tauri://drag-drop", async (event) => {
   }
 
   if ((IMAGE_FILE_EXTENSIONS as readonly string[]).includes(extension)) {
-    // 画像ファイルは本文へ Markdown 記法として挿入する。
     const replacePath = dropFilePath?.replace(/\\/g, "/");
     const fileName = getFileName(replacePath);
     aceEditor.insertAtCursor(`![${fileName}](${replacePath})`);
@@ -254,25 +239,21 @@ listen("tauri://drag-drop", async (event) => {
 
 // ---- トグルハンドラ ----
 function handleInputTool() {
-  // 画面状態と永続化ストアを同時に更新する。
   isShowTools.value = !isShowTools.value;
   localStorageItem.setMarkdownTools(isShowTools.value);
 }
 
 function handlePreview() {
-  // プレビューの表示状態は次回起動時にも復元したいので保存しておく。
   isPreview.value = !isPreview.value;
   localStorageItem.setPreview(isPreview.value);
 }
 
 function handleScrollSync() {
-  // Markdown プレビューのスクロール同期設定をトグルし、次回起動用に保存する。
   isScrollSync.value = !isScrollSync.value;
   localStorageItem.setScrollSync(isScrollSync.value);
 }
 
 function handleVimMode() {
-  // UI 状態と Ace のキーバインドを同じタイミングで切り替える。
   isVimMode.value = !isVimMode.value;
   localStorageItem.setVimMode(isVimMode.value);
   aceEditor.setVimMode(isVimMode.value!);
@@ -287,14 +268,12 @@ function handleLocaleToggle() {
 async function readImage() {
   const imageFilePath = await selectFile(t("file.imageFilter"), ["png", "jpg", "jpeg", "svg"]);
   if (!imageFilePath) return;
-  // 選んだ画像は絶対パス付き Markdown 画像記法で挿入する。
   const fileName = getFileName(imageFilePath);
   aceEditor.insertAtCursor(`![${fileName}](${imageFilePath})`);
 }
 
 // ---- 新規インスタンス起動 ----
 async function openNewInstance() {
-  // 実行ファイル自身をもう一度起動して新しいウィンドウを開く。
   await invoke("spawn_self", { args: ["--new-window"] });
 }
 
@@ -330,7 +309,6 @@ useKeyboardShortcuts({
 </script>
 
 <template>
-  <!-- 機能ボタン -->
   <ToolbarButtons
     :is-preview="isPreview"
     :is-scroll-sync="isScrollSync"
@@ -352,9 +330,7 @@ useKeyboardShortcuts({
     @toggle-locale="handleLocaleToggle"
   />
 
-  <!-- エディタとプレビュー -->
   <div class="contents-area" :style="{ height: divHeight + 'px' }">
-    <!-- エディター -->
     <div
       class="left-area-isprev"
       :style="{ width: isPreview ? '50%' : '100%', marginRight: isPreview ? '10px' : '0px' }"
@@ -371,7 +347,6 @@ useKeyboardShortcuts({
         ></div>
       </div>
     </div>
-    <!-- プレビュー -->
     <div class="right-area-preview" v-if="isPreview">
       <div class="right-h3">
         <h3 class="editor-and-preview-title" id="title_h3_2">{{ previewTitle }}</h3>
@@ -394,7 +369,6 @@ useKeyboardShortcuts({
     </div>
   </div>
 
-  <!-- マークダウン入力支援ボタン -->
   <MarkdownTools
     v-show="isShowTools"
     :is-preview="isPreview"
@@ -402,10 +376,8 @@ useKeyboardShortcuts({
     @insert="aceEditor.insertAtCursor"
   />
 
-  <!-- ヘルプモーダル -->
   <HelpModal :visible="showHelp" @close="showHelp = false" />
 
-  <!-- メッセージモーダル -->
   <MessageModal :visible="isMessageModal" :message="messageText" @close="isMessageModal = false" />
 </template>
 
@@ -419,7 +391,6 @@ h3 {
   display: flex;
 }
 
-/* 画面左側エリア */
 .left-area-isprev {
   width: 50%;
   height: 100%;
@@ -476,7 +447,6 @@ h3#title_h3_1:after {
   border: solid 0.5px;
 }
 
-/* 画面右側エリア */
 .editor-and-preview-title {
   font-size: 16px;
 }

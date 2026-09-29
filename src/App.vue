@@ -3,8 +3,6 @@ import Editor from "./Editor.vue";
 import { message } from "@tauri-apps/plugin-dialog";
 import { useI18n } from "@/i18n";
 
-// ルートコンポーネントではアプリ全体の外枠だけを担当し、
-// 実際の編集機能は Editor.vue 側へ委譲する。
 const { t } = useI18n();
 
 async function openVersion() {

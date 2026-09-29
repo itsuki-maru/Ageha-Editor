@@ -1,8 +1,6 @@
 <script setup lang="ts">
 import { useI18n } from "@/i18n";
 
-// 保存失敗や簡単な通知など、
-// エディタ全体で共通利用するシンプルなメッセージモーダル。
 defineProps<{
   visible: boolean;
   message: string;

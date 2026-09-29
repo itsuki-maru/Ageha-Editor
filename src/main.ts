@@ -12,12 +12,10 @@ const app = createApp(App);
 const pinia = createPinia();
 app.use(pinia);
 
-// Rustのバックエンドからのデータ取得（非同期）
 useRustArgsInitStore(pinia)
   .init()
   .finally(() => {
     const rustArgsStore = useRustArgsInitStore();
-    // Rust側から取得したCSSテキストを適用
     let styleEl = document.getElementById("user-css") as HTMLStyleElement | null;
     if (!styleEl) {
       styleEl = document.createElement("style");

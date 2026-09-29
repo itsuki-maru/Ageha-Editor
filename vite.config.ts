@@ -3,13 +3,11 @@ import vue from "@vitejs/plugin-vue";
 import { fileURLToPath, URL } from 'node:url'
 import { readFileSync } from "node:fs";
 
-// `package.json`を読み込み
 const pkgJson = JSON.parse(readFileSync("./package.json", "utf-8"));
 
 // @ts-expect-error process is a nodejs global
 const host = process.env.TAURI_DEV_HOST;
 
-// https://vitejs.dev/config/
 export default defineConfig(async () => ({
   plugins: [vue()],
 

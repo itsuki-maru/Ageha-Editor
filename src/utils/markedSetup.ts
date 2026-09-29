@@ -4,20 +4,16 @@ import katex from "katex";
 import { toPreviewAssetUrl } from "@/utils/assetPaths";
 import { translate } from "@/i18n";
 
-// Markdown モード専用の marked 拡張とレンダラ差し替えをここへ集約している。
-// Ageha 独自記法もこのファイルを起点にパースされる。
 // NOTE: Marked.js のカスタム拡張トークンは TokenizerAndRendererExtension 型と
 // 互換性がない部分があるため（tokenizer が null を返す、renderer の引数型が異なる等）、
 // 拡張トークンの型は明示的にキャストして使用している。
 
-// videoトークンの型定義
 interface CustomVideoToken {
   type: "video" | Token["type"];
   href: string;
   text: string;
 }
 
-// カスタムトークン"video"の定義
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const videoToken: any = {
   name: "video",
@@ -43,14 +39,12 @@ const videoToken: any = {
   },
 };
 
-// カスタムトークンの型定義 YouTubeのみ埋め込みを実現
 interface CustomYouTubeToken {
   type: "youtube" | Token["type"];
   href: string;
   text: string;
 }
 
-// カスタムトークン"youtube"の定義
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const youtubeToken: any = {
   name: "youtube",
@@ -115,7 +109,6 @@ function extractYouTubeId(rawUrl: string): string | null {
   }
 }
 
-// 共通インターフェース
 interface CustomDetailsToken {
   type: "details" | "note" | "warning" | Token["type"];
   raw: string;
@@ -123,7 +116,6 @@ interface CustomDetailsToken {
   tokens: Token[];
 }
 
-// ネスト対応トークナイザの共通関数
 function createNestedTokenizer(typeName: "details" | "note" | "warning") {
   return {
     name: typeName,
@@ -184,12 +176,10 @@ function createNestedTokenizer(typeName: "details" | "note" | "warning") {
   };
 }
 
-// それぞれのトークンを生成
 const detailsToken = createNestedTokenizer("details");
 const noteToken = createNestedTokenizer("note");
 const warningToken = createNestedTokenizer("warning");
 
-// markedのスラッグ化機能をカスタマイズ
 const renderer = new Renderer();
 let activeMarkdownFilePath = "";
 let usePreviewAssetUrls = true;
@@ -207,13 +197,11 @@ function resetMarkedHeadingSlugs() {
   headingSlugCounts.clear();
 }
 
-// ヘッダーを定義
 renderer.heading = function (tokens: Tokens.Heading) {
   const id = createHeadingId(tokens.text);
   return `<h${tokens.depth} id="${id}" class="head${tokens.depth}">${tokens.text}</h${tokens.depth}>\n`;
 };
 
-// 外部リンクを別タブで開かせるカスタムレンダラ設定
 const originalLinkRenderer = renderer.link.bind(renderer);
 
 renderer.link = (tokens: Tokens.Link) => {
@@ -228,7 +216,6 @@ renderer.link = (tokens: Tokens.Link) => {
   return html;
 };
 
-// mermaid / コードブロックの処理
 renderer.code = (tokens: Tokens.Code) => {
   if (tokens.lang == "mermaid") {
     return '<pre class="mermaid">' + escapeHtml(tokens.text) + "\n</pre>";
@@ -262,7 +249,6 @@ renderer.image = (tokens: Tokens.Image) => {
   return `<img src="${imageHref}" alt="${text}" loading="lazy" decoding="async" ${widthAttr}>`;
 };
 
-// HTMLエスケープ関数
 function escapeHtml(html: string) {
   return html
     .replace(/&/g, "&amp;")
@@ -288,7 +274,6 @@ function createHeadingId(text: string): string {
   return count === 0 ? baseSlug : `${baseSlug}-${count + 1}`;
 }
 
-// カスタムトークンの型定義
 interface CustomKatexToken {
   type: "math" | Token["type"];
   text: string;
@@ -339,7 +324,6 @@ const mathExtensionToken: any = {
   },
 };
 
-// カスタムトークンpagebreakの型定義
 interface CustomPagebreakToken {
   type: "pagebreak" | Token["type"];
   text: string;
@@ -369,7 +353,6 @@ const PageBreakToken: any = {
   },
 };
 
-// app-youtubeからiframeに置換
 function renderIframe(html: string): string {
   return html.replace(
     /<app-youtube\s+[^>]*video-id=["']([\w-]{11})["'][^>]*>(?:<\/app-youtube>)?/g,
