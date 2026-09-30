@@ -276,17 +276,17 @@ mod tests {
             split_path_input("images\\ag"),
             (String::from("images/"), String::from("ag"))
         );
-        assert_eq!(
-            split_path_input("ag"),
-            (String::new(), String::from("ag"))
-        );
+        assert_eq!(split_path_input("ag"), (String::new(), String::from("ag")));
     }
 
     #[test]
     fn normalizes_root_relative_image_directory_as_document_relative() {
         assert_eq!(normalize_relative_image_dir_part("/"), "./");
         assert_eq!(normalize_relative_image_dir_part("/images/"), "./images/");
-        assert_eq!(normalize_relative_image_dir_part("//server/share/"), "//server/share/");
+        assert_eq!(
+            normalize_relative_image_dir_part("//server/share/"),
+            "//server/share/"
+        );
         assert_eq!(normalize_relative_image_dir_part("images/"), "images/");
     }
 
@@ -312,8 +312,8 @@ mod tests {
     fn saves_file_contents() {
         let path = unique_temp_file_path();
 
-        let status = save_file_inner(&path.to_string_lossy(), "hello ageha")
-            .expect("file should be saved");
+        let status =
+            save_file_inner(&path.to_string_lossy(), "hello ageha").expect("file should be saved");
 
         assert_eq!(status.status_code, 200);
         assert_eq!(status.message, "Save Ok.");
