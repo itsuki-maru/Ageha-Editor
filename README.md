@@ -186,14 +186,15 @@ $$
 
 ### 必要環境
 
-- Node.js 18+
-- Rust 1.70+
-- Tauri CLI v2
+- Node.js 24 系（CI とリリースで使用するバージョンは `.node-version` で管理）
+- Rust stable（Rust 2024 Edition に対応するツールチェーン）
+- Tauri CLI v2（npm の開発依存としてインストール）
+- OS ごとの [Tauri 開発環境](https://v2.tauri.app/start/prerequisites/)
 
 ### セットアップと実行
 
 ```bash
-npm install
+npm ci
 npm run tauri dev
 ```
 
@@ -208,24 +209,38 @@ npm run tauri build
 
 ```bash
 npm test
-cd src-tauri
-cargo test
+cargo fmt --manifest-path src-tauri/Cargo.toml --all -- --check
+cargo test --manifest-path src-tauri/Cargo.toml --locked
 ```
 
 - フロントエンドの単体テストは Vitest を使用
 - Rust バックエンドの単体テストは Cargo の標準テスト機能を使用
 
+### CI
+
+`.github/workflows/ci.yml` は `main`・`develop` への PR と push、および Actions からの手動実行で動作する。
+
+- **Frontend**（Ubuntu）：`npm ci` → `npm test` → 配布ファイル収集処理のテスト → `npm run build`（型チェックを含む）
+- **Rust**（Windows）：整形チェック → フロントエンド成果物のビルド → `cargo test --locked`
+
+同じブランチに更新が続いた場合、古い CI 実行はキャンセルされる。npm と Cargo のロックファイルを使用し、依存関係のキャッシュを利用する。
+
 ### リリース
 
-リリースは GitHub Actions の `release.yml` ワークフローで行う。Linux / macOS (Universal) / Windows のインストーラーを自動ビルドし、ドラフトリリースとして GitHub にアップロードする。
+リリースは GitHub Actions の `release.yml` ワークフローで行う。`v*` タグの push、または Actions の **Release → Run workflow** で既存の `tag_name` を指定すると実行できる。手動実行のワークフローは `main` を選択する。
+
+指定タグが存在し、そのコミットが `main` の履歴に含まれることを検証する。そのコミットに対して通常 CI を再実行し、成功後に同じコミットから Linux（AppImage / deb）、macOS Universal（dmg）、Windows（NSIS exe / MSI）のインストーラーをビルドする。必要なファイルの欠落・空ファイルはエラーとし、`checksums.txt` に SHA-256 を記録して検証する。作成するリリースはドラフトで、公開は手動で行う。
+
+書き込み権限はドラフトリリース作成ジョブだけに付与する。同じタグのリリース実行は直列化し、配布直前にもタグが検証時のコミットを指していることを確認する。
 
 #### テスト手順（本番実行前の確認）
 
-仮タグを push してワークフローが正常に動作するか確認する。
+CI の変更を `main` にマージした後、そのコミットに仮タグを付け、ワークフローが正常に動作するか確認する。`main` に含まれないブランチのタグは拒否される。
 
 ```bash
-# 1. テスト用ブランチを作成
-git checkout -b test/release-workflow
+# 1. 最新の main に移動
+git switch main
+git pull --ff-only origin main
 
 # 2. 仮タグを push（ワークフローがトリガーされる）
 git tag v0.0.0-test
@@ -253,14 +268,17 @@ GitHub UI で **Releases → ドラフト → Delete** からドラフトリリ�
 
 ```bash
 # 1. バージョンを更新（package.json / src-tauri/Cargo.toml / src-tauri/tauri.conf.json）
+# package-lock.json と src-tauri/Cargo.lock のアプリ自身のバージョンも同期する
 
 # 2. コミット
-git add package.json src-tauri/Cargo.toml src-tauri/tauri.conf.json
+git add package.json package-lock.json src-tauri/Cargo.toml src-tauri/Cargo.lock src-tauri/tauri.conf.json
 git commit -m "Prepare for release vX.Y.Z"
 
-# 3. タグを付けて push（ワークフローがトリガーされる）
+# 3. 変更を main にマージし、CI の成功を確認してからタグを付ける
+git switch main
+git pull --ff-only origin main
 git tag vX.Y.Z
-git push origin main --tags
+git push origin vX.Y.Z
 ```
 
 ワークフロー完了後、GitHub の **Releases** にドラフトリリースが作成されるので、内容を確認して **Publish release** で公開する。

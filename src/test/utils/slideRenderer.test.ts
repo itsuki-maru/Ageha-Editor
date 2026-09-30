@@ -10,14 +10,16 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("@marp-team/marp-core", () => ({
-  Marp: vi.fn().mockImplementation(() => ({
-    themeSet: {
-      add: mocks.addTheme,
-      get: mocks.getTheme,
-      default: undefined,
-    },
-    render: mocks.render,
-  })),
+  Marp: vi.fn().mockImplementation(function () {
+    return {
+      themeSet: {
+        add: mocks.addTheme,
+        get: mocks.getTheme,
+        default: undefined,
+      },
+      render: mocks.render,
+    };
+  }),
 }));
 
 vi.mock("@/utils/assetPaths", () => ({

@@ -7,18 +7,60 @@ on:
   workflow_dispatch:
     inputs:
       tag_name:
-        description: "Release tag (e.g. v1.0.0)"
+        description: "Existing release tag on main (e.g. v1.0.0)"
         required: true
+        type: string
 
 permissions:
-  contents: write
+  contents: read
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+concurrency:
+  group: release-${{ inputs.tag_name || github.ref_name }}
+  cancel-in-progress: false
 
 jobs:
-  # 1. Build (matrix: Linux / macOS universal / Windows)
+  validate-release-source:
+    name: Validate release source
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      tag_name: ${{ steps.source.outputs.tag_name }}
+      commit: ${{ steps.source.outputs.commit }}
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Verify release tag is on main
+        id: source
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ inputs.tag_name || github.ref_name }}
+        run: |
+          set -euo pipefail
+          if [[ "$RELEASE_TAG" != v* ]] || ! git check-ref-format "refs/tags/$RELEASE_TAG"; then
+            echo "Invalid release tag: $RELEASE_TAG" >&2
+            exit 1
+          fi
+          tag_commit=$(git rev-parse --verify "refs/tags/$RELEASE_TAG^{commit}")
+          if ! git merge-base --is-ancestor "$tag_commit" refs/remotes/origin/main; then
+            echo "Release tag '$RELEASE_TAG' is not based on main." >&2
+            exit 1
+          fi
+          printf 'tag_name=%s\ncommit=%s\n' "$RELEASE_TAG" "$tag_commit" >> "$GITHUB_OUTPUT"
+
+  checks:
+    name: Release checks
+    needs: validate-release-source
+    uses: ./.github/workflows/ci.yml
+    with:
+      source_ref: ${{ needs.validate-release-source.outputs.commit }}
+
   build:
+    needs: [validate-release-source, checks]
+    name: Build (${{ matrix.artifact_name }})
     strategy:
       fail-fast: false
       matrix:
@@ -26,28 +68,34 @@ jobs:
           - platform: ubuntu-22.04
             artifact_name: linux
             rust_targets: ""
-            tauri_args: ""
-
+            tauri_args: "--bundles appimage,deb"
+            bundle_path: src-tauri/target/release/bundle
+            extensions: ".AppImage,.deb"
           - platform: macos-latest
             artifact_name: macos
             rust_targets: "aarch64-apple-darwin,x86_64-apple-darwin"
-            tauri_args: "--target universal-apple-darwin"
-
+            tauri_args: "--target universal-apple-darwin --bundles dmg"
+            bundle_path: src-tauri/target/universal-apple-darwin/release/bundle
+            extensions: ".dmg"
           - platform: windows-latest
             artifact_name: windows
             rust_targets: ""
-            tauri_args: ""
-
+            tauri_args: "--bundles nsis,msi"
+            bundle_path: src-tauri/target/release/bundle
+            extensions: ".exe,.msi"
     runs-on: ${{ matrix.platform }}
-
+    timeout-minutes: 90
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - name: Checkout validated commit
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.validate-release-source.outputs.commit }}
+          persist-credentials: false
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
-          node-version: 20
+          node-version-file: .node-version
           cache: npm
 
       - name: Install Rust (stable)
@@ -60,97 +108,103 @@ jobs:
         with:
           workspaces: src-tauri -> target
 
-      # WebKit2GTK 4.1 is required for Tauri v2 on Linux
       - name: Install Linux system dependencies
-        if: matrix.platform == 'ubuntu-22.04'
+        if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y \
             libwebkit2gtk-4.1-dev \
-            libappindicator3-dev \
-            librsvg2-dev \
-            patchelf
+            build-essential curl wget file \
+            libxdo-dev libssl-dev libayatana-appindicator3-dev \
+            librsvg2-dev patchelf
 
       - name: Install Node dependencies
         run: npm ci
 
-      # Use the CLI directly to avoid tauri-action creating an unintended release
+      # beforeBuildCommand runs the frontend type-check and build.
       - name: Build Tauri app
-        run: npm run tauri -- build ${{ matrix.tauri_args }}
+        shell: bash
+        run: npm run tauri -- build ${{ matrix.tauri_args }} -- --locked
 
-      # ── Collect installer artifacts ──────────────────────────
-      - name: Collect artifacts (Linux)
-        if: matrix.platform == 'ubuntu-22.04'
-        run: |
-          mkdir -p release-pkg
-          find src-tauri/target/release/bundle \
-            \( -name "*.AppImage" -o -name "*.deb" \) \
-            -exec cp {} release-pkg/ \;
+      - name: Collect and validate installers
+        env:
+          BUNDLE_PATH: ${{ matrix.bundle_path }}
+          BUNDLE_EXTENSIONS: ${{ matrix.extensions }}
+        run: node .github/scripts/collect-release-artifacts.mjs
 
-      - name: Collect artifacts (macOS)
-        if: matrix.platform == 'macos-latest'
-        run: |
-          mkdir -p release-pkg
-          find src-tauri/target/universal-apple-darwin/release/bundle \
-            -name "*.dmg" \
-            -exec cp {} release-pkg/ \;
-
-      - name: Collect artifacts (Windows)
-        if: matrix.platform == 'windows-latest'
-        shell: pwsh
-        run: |
-          New-Item -ItemType Directory -Force release-pkg | Out-Null
-          # Collect NSIS installer (.exe) and WiX installer (.msi)
-          # Exclude files under 'deps' or debug paths
-          Get-ChildItem src-tauri\target\release\bundle -Recurse -Include *.exe, *.msi |
-            Where-Object { $_.FullName -notmatch '\\(deps|debug)\\' } |
-            Copy-Item -Destination release-pkg
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+      - name: Upload installers
+        uses: actions/upload-artifact@v7
         with:
-          name: ${{ matrix.artifact_name }}
+          name: installers-${{ matrix.artifact_name }}
           path: release-pkg/
           if-no-files-found: error
 
-  # 2. Release — merge artifacts, generate checksums, publish
   release:
-    needs: build
+    name: Create draft release
+    needs: [validate-release-source, build]
     runs-on: ubuntu-latest
-
+    timeout-minutes: 10
+    permissions:
+      contents: write
     steps:
-      # Resolve the release tag from either workflow_dispatch input or the pushed tag
-      - name: Resolve release tag
-        id: tag
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "name=${{ inputs.tag_name }}" >> $GITHUB_OUTPUT
-          else
-            echo "name=${{ github.ref_name }}" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Download all platform artifacts
-        uses: actions/download-artifact@v4
+      - name: Checkout validated commit and current tags
+        uses: actions/checkout@v7
         with:
+          ref: ${{ needs.validate-release-source.outputs.commit }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Verify tag still points to validated commit
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ needs.validate-release-source.outputs.tag_name }}
+          RELEASE_COMMIT: ${{ needs.validate-release-source.outputs.commit }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse --verify "refs/tags/$RELEASE_TAG^{commit}")" = "$RELEASE_COMMIT"
+
+      - name: Download installers
+        uses: actions/download-artifact@v8
+        with:
+          pattern: installers-*
           path: artifacts
           merge-multiple: true
 
-      - name: List collected files
-        run: ls -lh artifacts/
-
-      - name: Generate SHA-256 checksums
+      - name: Validate installers and generate SHA-256 checksums
+        shell: bash
+        working-directory: artifacts
         run: |
-          cd artifacts
-          find . -maxdepth 1 -type f -exec sha256sum {} + > checksums.txt
-          echo "=== checksums.txt ==="
-          cat checksums.txt
+          set -euo pipefail
+          shopt -s nullglob
+          for extension in AppImage deb dmg exe msi; do
+            files=( *."$extension" )
+            if (( ${#files[@]} == 0 )); then
+              echo "Missing installer type: $extension" >&2
+              exit 1
+            fi
+            for file in "${files[@]}"; do
+              test -s "$file"
+            done
+          done
+          # Exclude the output file so it cannot checksum itself.
+          find . -maxdepth 1 -type f ! -name checksums.txt -print0 |
+            sort -z | xargs -0 sha256sum > checksums.txt
+          sha256sum --check checksums.txt
 
-      - name: Create GitHub Release and upload assets
-        uses: softprops/action-gh-release@v2
+      - name: Create GitHub draft release and upload assets
+        uses: softprops/action-gh-release@v3
         with:
-          tag_name: ${{ steps.tag.outputs.name }}
-          name: Ageha Editor ${{ steps.tag.outputs.name }}
+          tag_name: ${{ needs.validate-release-source.outputs.tag_name }}
+          target_commitish: ${{ needs.validate-release-source.outputs.commit }}
+          name: Ageha Editor ${{ needs.validate-release-source.outputs.tag_name }}
           draft: true
           prerelease: false
           generate_release_notes: true
-          files: artifacts/**
+          fail_on_unmatched_files: true
+          files: |
+            artifacts/*.AppImage
+            artifacts/*.deb
+            artifacts/*.dmg
+            artifacts/*.exe
+            artifacts/*.msi
+            artifacts/checksums.txt

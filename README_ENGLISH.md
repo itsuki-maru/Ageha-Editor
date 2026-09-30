@@ -196,14 +196,15 @@ By editing these files, you can customize the styling used in preview, printing,
 
 ### Requirements
 
-- Node.js 18+
-- Rust 1.70+
-- Tauri CLI v2
+- Node.js 24 (the version used by CI and releases is managed in `.node-version`)
+- Rust stable (a toolchain supporting Rust 2024 Edition)
+- Tauri CLI v2 (installed as an npm development dependency)
+- Platform-specific [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/)
 
 ### Setup and Run
 
 ```bash
-npm install
+npm ci
 npm run tauri dev
 ```
 
@@ -218,24 +219,38 @@ npm run tauri build
 
 ```bash
 npm test
-cd src-tauri
-cargo test
+cargo fmt --manifest-path src-tauri/Cargo.toml --all -- --check
+cargo test --manifest-path src-tauri/Cargo.toml --locked
 ```
 
 - Frontend unit tests use Vitest
 - Rust backend unit tests use Cargo's built-in test runner
 
+### CI
+
+`.github/workflows/ci.yml` runs on pull requests targeting `main` or `develop`, pushes to those branches, and manual dispatch from Actions.
+
+- **Frontend** (Ubuntu): `npm ci` → `npm test` → release artifact collection tests → `npm run build` (including type-checking)
+- **Rust** (Windows): formatting check → frontend asset build → `cargo test --locked`
+
+New updates cancel older CI runs for the same branch. Both npm and Cargo use lockfiles and dependency caches.
+
 ### Release
 
-Releases are handled by the GitHub Actions workflow `release.yml`. It automatically builds installers for Linux, macOS (Universal), and Windows, then uploads them to GitHub as a draft release.
+Releases are handled by the GitHub Actions workflow `release.yml`. Push a `v*` tag, or choose **Release → Run workflow** in Actions and enter an existing `tag_name`. Select `main` as the workflow branch for manual runs.
+
+The workflow verifies that the tag exists and its commit belongs to the history of `main`. It reruns the regular CI checks against that commit, then builds Linux (AppImage / deb), macOS Universal (dmg), and Windows (NSIS exe / MSI) installers from the same commit. Missing or empty installers fail the release. SHA-256 hashes are recorded in `checksums.txt` and verified before uploading. Releases are created as drafts and published manually.
+
+Only the draft release job has write permission. Runs for the same tag are serialized, and the tag is checked again before upload to ensure it still points to the validated commit.
 
 #### Test Procedure Before a Production Release
 
-Push a temporary tag to confirm that the workflow completes successfully.
+After merging the CI changes into `main`, tag that commit temporarily to confirm that the workflow completes successfully. Tags on commits outside the history of `main` are rejected.
 
 ```bash
-# 1. Create a branch for release workflow testing
-git checkout -b test/release-workflow
+# 1. Switch to the latest main
+git switch main
+git pull --ff-only origin main
 
 # 2. Push a temporary tag (this triggers the workflow)
 git tag v0.0.0-test
@@ -263,14 +278,17 @@ Also delete the draft release from the GitHub UI under **Releases → Draft → 
 
 ```bash
 # 1. Update the version (package.json / src-tauri/Cargo.toml / src-tauri/tauri.conf.json)
+# Also synchronize the app's own version in package-lock.json and src-tauri/Cargo.lock
 
 # 2. Commit
-git add package.json src-tauri/Cargo.toml src-tauri/tauri.conf.json
+git add package.json package-lock.json src-tauri/Cargo.toml src-tauri/Cargo.lock src-tauri/tauri.conf.json
 git commit -m "Prepare for release vX.Y.Z"
 
-# 3. Tag and push (this triggers the workflow)
+# 3. Merge the changes into main and wait for CI to pass before tagging
+git switch main
+git pull --ff-only origin main
 git tag vX.Y.Z
-git push origin main --tags
+git push origin vX.Y.Z
 ```
 
 After the workflow finishes, a draft release will appear in **Releases** on GitHub. Review it and click **Publish release**.
