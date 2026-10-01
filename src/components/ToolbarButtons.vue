@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { STYLE_PACK_IDS, type StylePackId } from "@/utils/stylePacks";
 import type { DocumentMode } from "@/interface";
 import { useI18n } from "@/i18n";
 
@@ -7,9 +8,11 @@ defineProps<{
   isScrollSync: boolean | null;
   isVimMode: boolean | null;
   documentMode: DocumentMode;
+  stylePack: StylePackId;
 }>();
 
 defineEmits<{
+  "change-style-pack": [id: string];
   "file-open": [];
   "file-save": [];
   "read-image": [];
@@ -24,6 +27,7 @@ defineEmits<{
   "show-help": [];
   "toggle-vim-mode": [];
   "toggle-locale": [];
+  "toggle-document-mode": [];
 }>();
 
 const { t, languageLabel } = useI18n();
@@ -31,9 +35,30 @@ const { t, languageLabel } = useI18n();
 
 <template>
   <div class="top-right-zone">
-    <span class="mode-badge" :class="`mode-${documentMode}`">
+    <label class="style-picker">
+      <select
+        :value="stylePack"
+        :aria-label="t('styles.label')"
+        :title="t('styles.hint')"
+        @change="$emit('change-style-pack', ($event.target as HTMLSelectElement).value)"
+      >
+        <option v-for="id in STYLE_PACK_IDS" :key="id" :value="id">
+          {{ t("styles." + id) }}
+        </option>
+      </select>
+    </label>
+    <button
+      type="button"
+      class="mode-badge"
+      :class="`mode-${documentMode}`"
+      :title="t(documentMode === 'slides' ? 'toolbar.switchToMarkdown' : 'toolbar.switchToSlides')"
+      :aria-label="
+        t(documentMode === 'slides' ? 'toolbar.switchToMarkdown' : 'toolbar.switchToSlides')
+      "
+      @click="$emit('toggle-document-mode')"
+    >
       {{ documentMode === "slides" ? t("toolbar.slidesMode") : t("toolbar.markdownMode") }}
-    </span>
+    </button>
   </div>
   <div id="btn-head-zone">
     <div id="btn-head-left">
@@ -122,6 +147,35 @@ const { t, languageLabel } = useI18n();
 </template>
 
 <style scoped>
+.style-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  white-space: nowrap;
+  font-size: 12px;
+  color: #f0f0f0;
+}
+.style-picker select {
+  font: inherit;
+  box-sizing: border-box;
+  height: 26px;
+  padding: 0 8px;
+  border: 1px solid #b8c4bf;
+  border-radius: 5px;
+  background: white;
+  color: #253044;
+}
+.style-picker select:focus-visible {
+  outline: 2px solid #116956;
+  outline-offset: 2px;
+}
+#btn-head-zone,
+#btn-head-left,
+#btn-head-right {
+  flex-wrap: wrap;
+}
+
 #btn-head-zone {
   display: flex;
   justify-content: space-between;
@@ -149,6 +203,8 @@ const { t, languageLabel } = useI18n();
 }
 
 .mode-badge {
+  cursor: pointer;
+  font-family: inherit;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -161,6 +217,15 @@ const { t, languageLabel } = useI18n();
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
+}
+
+.mode-badge:hover {
+  filter: brightness(1.08);
+}
+
+.mode-badge:focus-visible {
+  outline: 2px solid #116956;
+  outline-offset: 3px;
 }
 
 .btn-head-text {

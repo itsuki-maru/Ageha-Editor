@@ -1,3 +1,4 @@
+import { normalizeStylePack } from "@/utils/stylePacks";
 import { defineStore } from "pinia";
 import { load, type Store as TauriStore } from "@tauri-apps/plugin-store";
 import type { LocalStorageItem } from "../interface";
@@ -13,6 +14,7 @@ const DEFAULT_STATE: LocalStorageItem = {
   isScrollSyncFromLocalStorage: true,
   isVimModeFromLocalStorage: false,
   localeFromLocalStorage: "ja",
+  stylePackFromLocalStorage: "standard",
 };
 
 // init() の多重呼び出しによる購読の重複を防ぐ。
@@ -42,7 +44,11 @@ function getStore(): Promise<TauriStore> {
 function normalize(input: unknown): LocalStorageItem {
   try {
     const obj = (typeof input === "string" ? JSON.parse(input) : input) ?? {};
-    return { ...DEFAULT_STATE, ...(obj as Partial<LocalStorageItem>) };
+    return {
+      ...DEFAULT_STATE,
+      ...(obj as Partial<LocalStorageItem>),
+      stylePackFromLocalStorage: normalizeStylePack(obj.stylePackFromLocalStorage),
+    };
   } catch {
     return { ...DEFAULT_STATE };
   }
@@ -93,6 +99,7 @@ export const useLocalStorageStore = defineStore({
             isScrollSyncFromLocalStorage: state.isScrollSyncFromLocalStorage,
             isVimModeFromLocalStorage: state.isVimModeFromLocalStorage,
             localeFromLocalStorage: state.localeFromLocalStorage,
+            stylePackFromLocalStorage: normalizeStylePack(state.stylePackFromLocalStorage),
           };
           await writeState(plain);
           notifyPeers(plain);
@@ -110,6 +117,7 @@ export const useLocalStorageStore = defineStore({
           s.isShowToolsFromLocalStorage === next.isShowToolsFromLocalStorage &&
           s.isScrollSyncFromLocalStorage === next.isScrollSyncFromLocalStorage &&
           s.isVimModeFromLocalStorage === next.isVimModeFromLocalStorage &&
+          s.stylePackFromLocalStorage === next.stylePackFromLocalStorage &&
           s.localeFromLocalStorage === next.localeFromLocalStorage
         )
           return;
@@ -117,6 +125,9 @@ export const useLocalStorageStore = defineStore({
       });
     },
 
+    setStylePack(id: string) {
+      this.stylePackFromLocalStorage = normalizeStylePack(id);
+    },
     setPreview(isPreview: boolean | null) {
       this.isPreviewFromLocalStorage = isPreview;
     },

@@ -25,6 +25,7 @@ export function useExport(
   renderMarkdownHtmlForViewer: () => Promise<string>,
   saveHtmlFile: (htmlContent: string) => Promise<void>,
   showMessage: (msg: string) => void,
+  renderSlidesDocumentForExport?: () => Promise<string>,
 ) {
   // SVG foreignObject の描画前に印刷される問題を避けるため、スライドはファイル URL で開く。
   async function printOut(): Promise<void> {
@@ -34,7 +35,7 @@ export function useExport(
     }
 
     if (documentMode.value === "slides") {
-      const baseSlidesHtml = getSlidesDocumentHtml();
+      const baseSlidesHtml = await getSlidesDocumentHtml();
       const printHtml = customizeSlideHtmlDocument(baseSlidesHtml, {
         title: translate("export.printTitle"),
         extraStyle: "@media print { html, body { background: #f4f7fb; } }",
@@ -154,7 +155,7 @@ export function useExport(
   /** isPrint が true の場合は印刷用スタイルを追加する。 */
   async function createExportHtml(isPrint: boolean): Promise<string> {
     if (documentMode.value === "slides") {
-      const baseSlidesHtml = getSlidesDocumentHtml();
+      const baseSlidesHtml = await getSlidesDocumentHtml();
       return customizeSlideHtmlDocument(baseSlidesHtml, {
         title: isPrint ? translate("export.printTitle") : translate("export.slidesTitle"),
         // 印刷時だけ背景色を明示して白紙にならないようにする。
@@ -189,7 +190,7 @@ export function useExport(
             }
           </style>
         </head>
-        <body>${printReadyHtml}</body>
+        <body id="ageha-document">${printReadyHtml}</body>
       </html>`;
     }
 
@@ -201,7 +202,7 @@ export function useExport(
 
   async function createViewerHtml(): Promise<string> {
     if (documentMode.value === "slides") {
-      return customizeSlideHtmlDocument(getSlidesDocumentHtml(), {
+      return customizeSlideHtmlDocument(await getSlidesDocumentHtml(), {
         title: translate("export.slidesTitle"),
       });
     }
@@ -223,11 +224,12 @@ export function useExport(
       return;
     }
 
-    const html = createSlideshowHtmlDocument(getSlidesDocumentHtml());
+    const html = createSlideshowHtmlDocument(await getSlidesDocumentHtml());
     await openNativeViewer(html, { title: translate("export.slideshowTitle"), maximized: true });
   }
 
-  function getSlidesDocumentHtml(): string {
+  async function getSlidesDocumentHtml(): Promise<string> {
+    if (renderSlidesDocumentForExport) return renderSlidesDocumentForExport();
     if (previewFrameHtml.value) {
       return previewFrameHtml.value;
     }

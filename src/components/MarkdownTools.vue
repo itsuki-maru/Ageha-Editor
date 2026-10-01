@@ -8,6 +8,7 @@ defineProps<{
 
 const emit = defineEmits<{
   insert: [text: string];
+  "enable-slides": [];
 }>();
 
 function insert(text: string) {
@@ -113,11 +114,7 @@ const { t } = useI18n();
     <button class="btn-input-tools" :title="t('tools.mail')" @click="insert('[](mailto:)')">
       <img src="/mail_24.png" class="btn-input-tools-img" alt="mail_24.png" />
     </button>
-    <button
-      class="btn-input-tools"
-      :title="t('tools.slides')"
-      @click="insert(t('tools.slideTemplate'))"
-    >
+    <button class="btn-input-tools" :title="t('tools.slides')" @click="emit('enable-slides')">
       <img
         src="/wallpaper_slideshow_24.png"
         class="btn-input-tools-img"
