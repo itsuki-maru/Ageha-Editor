@@ -6,7 +6,7 @@ import type { MarkedOptions } from "marked";
 import mermaid from "mermaid";
 import type { DocumentMode, SlideRenderResult } from "@/interface";
 import { embedLocalImageSourcesInHtml } from "@/utils/assetPaths";
-import { detectDocumentMode } from "@/utils/documentMode";
+import { detectDocumentMode, stripMarpFrontmatter } from "@/utils/documentMode";
 import { createSlideHtmlDocument } from "@/utils/htmlTemplate";
 import { renderSlides } from "@/utils/slideRenderer";
 import {
@@ -131,6 +131,27 @@ export function useMarkdownPreview(
     { flush: "post", immediate: true },
   );
 
+  // Rebuild only the frame on a style change, preserving the rendered slide content.
+  watch(
+    slideCustomCss,
+    () => {
+      const rendered = slideRender.value;
+      if (documentMode.value === "slides" && rendered) {
+        previewFrameHtml.value = createSlideHtmlDocument(rendered.html, rendered.css, {
+          userStyle: slideCustomCss.value,
+        });
+      }
+    },
+    { flush: "sync" },
+  );
+
+  async function renderSlidesDocumentForExport(): Promise<string> {
+    // Render the current source even when preview is hidden or a debounce is pending.
+    const rendered = await renderSlides(editorContent.value, activeFilePath.value);
+    const html = await renderSlideMermaidToSvg(rendered.html);
+    return createSlideHtmlDocument(html, rendered.css, { userStyle: slideCustomCss.value });
+  }
+
   async function renderMarkdownContent(md: string, filePath: string) {
     const currentSequence = ++renderSequence;
     const startedAt = performance.now();
@@ -162,7 +183,7 @@ export function useMarkdownPreview(
     setMarkedRendererPreviewAssetUrls(!options.embedLocalImages);
     resetMarkedHeadingSlugs();
     try {
-      const htmlStr = marked.parse(md, markedOptions);
+      const htmlStr = marked.parse(stripMarpFrontmatter(md), markedOptions);
       const htmlWithAssets = options.embedLocalImages
         ? await embedLocalImageSourcesInHtml(htmlStr as string, filePath)
         : (htmlStr as string);
@@ -291,5 +312,6 @@ export function useMarkdownPreview(
     renderMermaidToSvg,
     renderMarkdownHtmlForExport,
     renderMarkdownHtmlForViewer,
+    renderSlidesDocumentForExport,
   };
 }

@@ -21,6 +21,7 @@ vi.mock("@/i18n", () => ({
   translate: (key: string) => key,
 }));
 
+import { resolveStylePack } from "@/utils/stylePacks";
 import { useExport } from "@/composables/useExport";
 
 describe("useExport", () => {
@@ -94,8 +95,10 @@ describe("useExport", () => {
     expect(mocks.webviewOnce).toHaveBeenCalledWith("tauri://destroyed", expect.any(Function));
   });
 
-  it("既存 CSS のページ余白を印刷時だけ上書きし、HTML 保存には印刷専用設定を混入させない", async () => {
-    const legacyCss = "@page { size: A4; margin: 1mm; } body { padding: 30px; }";
+  it.each([
+    "@page { size: A4; margin: 1mm; } body { padding: 30px; }",
+    ...["simple", "dark", "paper"].map((pack) => resolveStylePack(pack, "", "").markdownCss),
+  ])("prints the selected CSS with its scope and print margins", async (legacyCss) => {
     const { subject, saveHtmlFile } = createSubject("markdown", "# Title", legacyCss);
     const popup = {
       document: {
@@ -119,6 +122,7 @@ describe("useExport", () => {
 
     const printedHtml = popup.document.writeln.mock.calls[0][0] as string;
     expect(printedHtml).toContain(legacyCss);
+    expect(printedHtml).toContain('<body id="ageha-document">');
     expect(printedHtml).toMatch(/@media print\s*\{[\s\S]*@page\s*\{\s*margin: 10mm !important;/);
     expect(printedHtml).toMatch(
       /html, body\s*\{\s*margin: 0 !important;\s*padding: 0 !important;\s*transform: none !important;/,
@@ -135,4 +139,20 @@ describe("useExport", () => {
     expect(savedHtml).not.toContain("margin: 10mm !important;");
     expect(savedHtml).not.toContain("transform: none !important;");
   });
+  it.each(["dark", "paper", "simple"])(
+    "passes %s output CSS to the viewer and export",
+    async (pack) => {
+      mocks.invoke.mockResolvedValue("C:/tmp/viewer.html");
+      const css = resolveStylePack(pack, "", "").markdownCss;
+      const { subject, saveHtmlFile } = createSubject("markdown", "# Title", css);
+      await subject.openViewer();
+      const viewerHtml = mocks.invoke.mock.calls.find((call) => call[0] === "save_temp_html")![1]
+        .html;
+      expect(viewerHtml).toContain(css);
+      expect(viewerHtml).toContain('id="ageha-document"');
+      await subject.exportHtml();
+      expect(saveHtmlFile.mock.calls[0][0]).toContain(css);
+      expect(saveHtmlFile.mock.calls[0][0]).toContain('id="ageha-document"');
+    },
+  );
 });

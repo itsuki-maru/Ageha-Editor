@@ -37,8 +37,69 @@ vi.mock("@/i18n", () => ({
 
 import { mountComposable } from "../testUtils";
 import { useMarkdownPreview } from "@/composables/useMarkdownPreview";
+import { setDocumentMode } from "@/utils/documentMode";
 
 describe("useMarkdownPreview", () => {
+  it("exports current slides with the selected CSS while preview is hidden", async () => {
+    const source = ref("---\nmarp: true\n---\n# New source");
+    const css = ref("section { color: red; }");
+    const { result, unmount } = await mountComposable(() =>
+      useMarkdownPreview(source, ref(""), css, ref(false)),
+    );
+    try {
+      css.value = "section { color: blue; }";
+      const html = await result.renderSlidesDocumentForExport();
+      expect(mocks.renderSlides).toHaveBeenCalledWith(source.value, "");
+      expect(html).toContain("color: blue");
+      expect(html).not.toContain("color: red");
+      expect(html).toContain("<svg>graph</svg>");
+    } finally {
+      unmount();
+      vi.useRealTimers();
+    }
+  });
+
+  it("updates slide CSS immediately without rendering the source again", async () => {
+    const css = ref("section { color: red; }");
+    const { result, unmount } = await mountComposable(() =>
+      useMarkdownPreview(ref("---\nmarp: true\n---\n# Title"), ref(""), css, ref(true)),
+    );
+    try {
+      await vi.advanceTimersByTimeAsync(300);
+      const count = mocks.renderSlides.mock.calls.length;
+      css.value = "section { color: blue; }";
+      expect(result.previewFrameHtml.value).toContain("color: blue");
+      expect(result.previewFrameHtml.value).not.toContain("color: red");
+      expect(mocks.renderSlides).toHaveBeenCalledTimes(count);
+    } finally {
+      unmount();
+      vi.useRealTimers();
+    }
+  });
+
+  it("プレビュー非表示でも切り替えを反映し、再表示時に描画する", async () => {
+    const markdown = ref("# Body");
+    const visible = ref(false);
+    const { result, unmount } = await mountComposable(() =>
+      useMarkdownPreview(markdown, ref(""), ref(""), visible),
+    );
+    markdown.value = setDocumentMode(markdown.value, "slides");
+    await nextTick();
+    expect(result.documentMode.value).toBe("slides");
+    expect(mocks.renderSlides).not.toHaveBeenCalled();
+    visible.value = true;
+    await nextTick();
+    await vi.advanceTimersByTimeAsync(300);
+    expect(mocks.renderSlides).toHaveBeenCalled();
+    markdown.value = setDocumentMode(markdown.value, "markdown");
+    await nextTick();
+    await vi.advanceTimersByTimeAsync(200);
+    expect(result.documentMode.value).toBe("markdown");
+    expect(result.previewFrameHtml.value).toBe("");
+    unmount();
+    vi.useRealTimers();
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
     vi.useFakeTimers();
@@ -49,6 +110,44 @@ describe("useMarkdownPreview", () => {
       css: "section{}",
       metadata: { slideCount: 1 },
     });
+  });
+
+  it("スライドから戻すと設定欄を描画せず、元の設定と本文を保存用に保持する", async () => {
+    const source =
+      "---\nmarp: true\ntitle: Metadata title\ntheme: custom\n---\n# Body\n\n---\n\nText";
+    const markdown = ref(source);
+    const { result, unmount } = await mountComposable(() =>
+      useMarkdownPreview(markdown, ref(""), ref(""), ref(true)),
+    );
+    try {
+      for (let i = 0; i < 2; i++) {
+        markdown.value = setDocumentMode(markdown.value, "slides");
+        await nextTick();
+        await vi.advanceTimersByTimeAsync(300);
+        expect(mocks.renderSlides).toHaveBeenLastCalledWith(source, "");
+        markdown.value = setDocumentMode(markdown.value, "markdown");
+        await nextTick();
+        await vi.advanceTimersByTimeAsync(200);
+        expect(result.documentMode.value).toBe("markdown");
+        const outputs = [
+          result.parsedHtml.value,
+          await result.renderMarkdownHtmlForViewer(),
+          await result.renderMarkdownHtmlForExport(),
+        ];
+        for (const html of outputs) {
+          expect(html).not.toContain("marp:");
+          expect(html).not.toContain("Metadata title");
+          expect(html).not.toContain("theme:");
+          expect(html).toContain('<h1 id="body" class="head1">Body</h1>');
+          expect(html).toContain("<hr");
+          expect(html).toContain("<p>Text</p>");
+        }
+        expect(markdown.value).toBe(source.replace("marp: true", "marp: false"));
+      }
+    } finally {
+      unmount();
+      vi.useRealTimers();
+    }
   });
 
   it("Markdown をデバウンス後に HTML 化し、危険なタグを除去する", async () => {

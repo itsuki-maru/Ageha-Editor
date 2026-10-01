@@ -91,6 +91,34 @@ export function useAceEditor(editorRef: Ref<HTMLDivElement | null>, options: Use
     editor.value.focus();
   }
 
+  /** 差分だけを置換し、選択位置の追従と既存の Undo 履歴を保持する。 */
+  function applyContentEdit(text: string): void {
+    const ed = editor.value;
+    if (!ed) return;
+    const previous = ed.getValue();
+    if (previous === text) return;
+    let start = 0;
+    while (start < previous.length && start < text.length && previous[start] === text[start])
+      start++;
+    let oldEnd = previous.length;
+    let newEnd = text.length;
+    while (oldEnd > start && newEnd > start && previous[oldEnd - 1] === text[newEnd - 1]) {
+      oldEnd--;
+      newEnd--;
+    }
+    const doc = ed.session.getDocument();
+    const from = doc.indexToPosition(start, 0);
+    const to = doc.indexToPosition(oldEnd, 0);
+    const Range = ace.require("ace/range").Range;
+    ed.session.markUndoGroup();
+    ed.session.replace(
+      new Range(from.row, from.column, to.row, to.column),
+      text.slice(start, newEnd),
+    );
+    ed.session.markUndoGroup();
+    ed.focus();
+  }
+
   function setVimMode(enabled: boolean): void {
     if (!editor.value) return;
     // Ace では空文字を渡すと標準キーバインドへ戻せる。
@@ -114,6 +142,7 @@ export function useAceEditor(editorRef: Ref<HTMLDivElement | null>, options: Use
     getValue,
     setValue,
     insertAtCursor,
+    applyContentEdit,
     setVimMode,
     focus,
     getSession,

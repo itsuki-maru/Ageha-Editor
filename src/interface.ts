@@ -6,6 +6,7 @@ export interface LocalStorageItem {
   isPreviewFromLocalStorage: boolean | null;
   isScrollSyncFromLocalStorage: boolean | null;
   isVimModeFromLocalStorage: boolean | null;
+  stylePackFromLocalStorage?: string;
   localeFromLocalStorage: AppLocale | null;
 }
 

@@ -11,16 +11,23 @@ vi.mock("@tauri-apps/api/core", () => ({
   invoke: mocks.invoke,
 }));
 
-vi.mock("ace-builds", () => ({
-  edit: mocks.edit,
-  require: () => ({
-    CodeMirror: {
-      Vim: {
-        defineEx: mocks.defineEx,
-      },
-    },
-  }),
-}));
+vi.mock("ace-builds", async () => {
+  const actual = await vi.importActual<typeof import("ace-builds")>("ace-builds");
+  return {
+    ...actual,
+    edit: mocks.edit,
+    require: (name: string) =>
+      name !== "ace/keyboard/vim"
+        ? actual.require(name)
+        : {
+            CodeMirror: {
+              Vim: {
+                defineEx: mocks.defineEx,
+              },
+            },
+          },
+  };
+});
 
 vi.mock("ace-builds/src-noconflict/ext-searchbox", () => ({}));
 vi.mock("ace-builds/src-noconflict/ext-language_tools", () => ({}));
@@ -62,6 +69,39 @@ function createEditorMock() {
 describe("useAceEditor", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it("モード切り替えを独立した Undo / Redo として扱い本文のカーソルを追従させる", async () => {
+    const ace = await vi.importActual<typeof import("ace-builds")>("ace-builds");
+    const session = new ace.EditSession("# Body");
+    session.setUndoManager(new ace.UndoManager());
+    const { editor } = createEditorMock();
+    const ed = { ...editor, session, getValue: () => session.getValue() };
+    mocks.edit.mockReturnValue(ed);
+    session.selection.moveCursorTo(0, 3);
+    session.insert({ row: 0, column: 6 }, "!");
+    const { result, unmount } = await mountComposable(() =>
+      useAceEditor(ref(document.createElement("div")), {
+        vimMode: ref(false),
+        onSave: vi.fn(),
+        onChange: vi.fn(),
+      }),
+    );
+    const updated = "---\nmarp: true\n---\n# Body!";
+    result.applyContentEdit(updated);
+    expect(session.getValue()).toBe(updated);
+    expect(session.selection.getCursor()).toEqual({ row: 3, column: 3 });
+    session.getUndoManager().undo(session);
+    expect(session.getValue()).toBe("# Body!");
+    session.getUndoManager().redo(session);
+    expect(session.getValue()).toBe(updated);
+    result.applyContentEdit(updated.replace("true", "false"));
+    session.getUndoManager().undo(session);
+    expect(session.getValue()).toBe(updated);
+    session.getUndoManager().undo(session);
+    session.getUndoManager().undo(session);
+    expect(session.getValue()).toBe("# Body");
+    unmount();
   });
 
   it("マウント時に Ace を初期化し、公開 API で値やカーソル挿入を扱う", async () => {

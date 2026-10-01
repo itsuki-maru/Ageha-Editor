@@ -298,3 +298,13 @@ After the workflow finishes, a draft release will appear in **Releases** on GitH
 ## License
 
 MIT
+
+## Style packs
+
+Choose Standard, Simple, Dark, or Paper from the toolbar's Style menu.
+Each pack styles both Markdown and slides. The choice is remembered across restarts
+and applies to HTML export, printing, and newly opened viewers and slideshows.
+Reopen existing viewer windows to apply a changed style.
+
+Standard preserves your existing custom CSS. Other packs use bundled styles without
+modifying your CSS files. The choice is an application preference and does not modify Markdown source.

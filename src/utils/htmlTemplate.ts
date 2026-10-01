@@ -535,7 +535,7 @@ export function createHtml(html: string, style: string, options: HtmlDocumentOpt
     <style>${MARKDOWN_VIEWER_RESPONSIVE_STYLE}</style>
     ${tocStyle}
     </head>
-    <body class="${bodyClass}">
+    <body id="ageha-document" class="${bodyClass}">
     ${tocButton}
     <div class="viewer-layout">
     <main class="container-fluid" id="main-content">${html}</main>

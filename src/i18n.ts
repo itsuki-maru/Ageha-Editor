@@ -9,6 +9,14 @@ type MessageParams = Record<string, string | number>;
 
 const messages: Record<AppLocale, MessageTree> = {
   ja: {
+    styles: {
+      label: "スタイル",
+      standard: "標準",
+      simple: "シンプル",
+      dark: "ダーク",
+      paper: "ペーパー",
+      hint: "本文とスライドの見た目を変更。独自CSSは標準で適用されます。",
+    },
     app: {
       versionTitle: "Version",
       versionMessage: "Ageha Editor: Version {version}",
@@ -32,7 +40,9 @@ const messages: Record<AppLocale, MessageTree> = {
     },
     toolbar: {
       markdownMode: "Markdown",
-      slidesMode: "Slides",
+      slidesMode: "Slide",
+      switchToMarkdown: "Markdown モードに切り替え",
+      switchToSlides: "Slide モードに切り替え",
       openFile: "ファイルを開く\nショートカット: Ctrl + o",
       saveFile: "保存\nショートカット: Ctrl + s",
       readImage: "画像読み込み\nショートカット: Ctrl + r",
@@ -68,12 +78,11 @@ const messages: Record<AppLocale, MessageTree> = {
       pageBreak: "@@@（改ページ）を挿入",
       tel: "[](tel:+81) を挿入\n0 を省略した番号をハイフンなしで入力\n例）080-1234-5678 => +818012345678",
       mail: "[](mailto:) を挿入\nmailto:maru@example.com のようにメールアドレスを入力",
-      slides: "スライドモードに変更\nmarp: true を挿入",
+      slides: "スライドモードに変更\n文書先頭の marp 設定を更新",
       detailsTemplate: ":::details タイトル\n非表示にする内容\n:::",
       noteTemplate: ":::note タイトル\n内容\n:::",
       warningTemplate: ":::warning タイトル\n内容\n:::",
       mathTemplate: "$$\n数式\n$$",
-      slideTemplate: "---\nmarp: true\n\n---",
       linkTemplate: "[Title](URL)",
     },
     dialog: {
@@ -103,7 +112,7 @@ const messages: Record<AppLocale, MessageTree> = {
         "「マークダウン」は特定の記号と組み合わせることで文書を整形する手法であり、Wikipedia などで使用されているこの形式は、インターネットやイントラネット上で共有・公開される文書の作成に適しています。まずはマークダウン文書をコピー＆ペーストで簡単に作成してみましょう。",
       slidesTitle: "スライド文書を作成",
       slidesIntro:
-        "Ageha Editor は文書先頭の frontmatter に marp: true を書くと、スライドモードとしてプレビューします。スライドの区切りは --- を使います。",
+        "右上の Markdown / Slide ボタンをクリックするとモードを切り替えられます。文書先頭の frontmatter の marp 設定が自動更新され、ファイル保存時に一緒に保存されます。marp: true を直接書くこともできます。スライドの区切りは --- を使います。",
       slidesCss:
         "スライド専用の見た目は、ユーザー設定フォルダ内の ~/.ageha/ageha-slide.css を編集すると上書きできます。この CSS はプレビュー、別ウィンドウ表示、HTML 出力、印刷に共通で反映されます。",
       bodyLead:
@@ -131,6 +140,14 @@ const messages: Record<AppLocale, MessageTree> = {
     },
   },
   en: {
+    styles: {
+      label: "Style",
+      standard: "Standard",
+      simple: "Simple",
+      dark: "Dark",
+      paper: "Paper",
+      hint: "Change document and slide styles. Custom CSS applies to Standard.",
+    },
     app: {
       versionTitle: "Version",
       versionMessage: "Ageha Editor: Version {version}",
@@ -154,7 +171,9 @@ const messages: Record<AppLocale, MessageTree> = {
     },
     toolbar: {
       markdownMode: "Markdown",
-      slidesMode: "Slides",
+      slidesMode: "Slide",
+      switchToMarkdown: "Switch to Markdown mode",
+      switchToSlides: "Switch to Slide mode",
       openFile: "Open file\nShortcut: Ctrl + O",
       saveFile: "Save\nShortcut: Ctrl + S",
       readImage: "Insert image\nShortcut: Ctrl + R",
@@ -190,12 +209,11 @@ const messages: Record<AppLocale, MessageTree> = {
       pageBreak: "Insert @@@ (page break)",
       tel: "Insert [](tel:+81)\nEnter the number without the leading 0 and without hyphens\nExample: 080-1234-5678 => +818012345678",
       mail: "Insert [](mailto:)\nEnter an email address like mailto:maru@example.com",
-      slides: "Switch to slide mode\nInsert marp: true",
+      slides: "Switch to slide mode\nUpdate marp in the document frontmatter",
       detailsTemplate: ":::details Title\nHidden content\n:::",
       noteTemplate: ":::note Title\nContent\n:::",
       warningTemplate: ":::warning Title\nContent\n:::",
       mathTemplate: "$$\nformula\n$$",
-      slideTemplate: "---\nmarp: true\n\n---",
       linkTemplate: "[Title](URL)",
     },
     dialog: {
@@ -225,7 +243,7 @@ const messages: Record<AppLocale, MessageTree> = {
         "Markdown is a lightweight way to format text with simple symbols. It is widely used on the web, including sites like Wikipedia, and is well suited for documents shared on the internet or an intranet. Start by copying and pasting the sample below.",
       slidesTitle: "Create slide documents",
       slidesIntro:
-        "Ageha Editor switches to slide mode when you put marp: true in the frontmatter at the top of the document. Use --- to separate slides.",
+        "Click the Markdown / Slide button at the top right to switch modes. This updates the marp setting in the document frontmatter, which is saved with the document. You can also write marp: true directly. Use --- to separate slides.",
       slidesCss:
         "You can override the slide appearance by editing ~/.ageha/ageha-slide.css in the user settings folder. The same CSS is applied to preview, separate windows, HTML export, and printing.",
       bodyLead:

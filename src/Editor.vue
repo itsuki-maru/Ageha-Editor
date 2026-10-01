@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { resolveStylePack, normalizeStylePack } from "@/utils/stylePacks";
 import { computed, onMounted, ref, watch } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
@@ -24,6 +25,8 @@ import { useLocalStorageStore } from "./stores/localStorages";
 import { useRustArgsInitStore } from "./stores/appInits";
 import { EDITOR_FOCUS_DELAY_MS, IMAGE_FILE_EXTENSIONS, TEXT_FILE_EXTENSIONS } from "./constants";
 import { setLocale, useI18n } from "@/i18n";
+import { detectDocumentMode, setDocumentMode } from "@/utils/documentMode";
+import type { DocumentMode } from "@/interface";
 
 // ---- Stores ----
 const rustArgsStore = useRustArgsInitStore();
@@ -53,7 +56,30 @@ const previewArea = ref<HTMLElement | null>(null);
 
 // ---- エディタ内容の管理 ----
 const editorContent = ref("");
-const slideCustomCss = computed(() => rustArgsStore.rustArgsData.slide_css_data);
+const selectedStylePack = computed(() =>
+  normalizeStylePack(localStorageItem.stylePackFromLocalStorage),
+);
+const activeStyle = computed(() =>
+  resolveStylePack(
+    selectedStylePack.value,
+    rustArgsStore.rustArgsData.css_data,
+    rustArgsStore.rustArgsData.slide_css_data,
+  ),
+);
+const slideCustomCss = computed(() => activeStyle.value.slideCss);
+watch(
+  () => activeStyle.value.previewCss,
+  (css) => {
+    let style = document.getElementById("user-css");
+    if (!style) {
+      style = document.createElement("style");
+      style.id = "user-css";
+      document.head.appendChild(style);
+    }
+    style.textContent = css;
+  },
+  { immediate: true, flush: "sync" },
+);
 
 // ---- ファイル操作 ----
 const {
@@ -102,6 +128,7 @@ const {
   renderMermaidToSvg,
   renderMarkdownHtmlForExport,
   renderMarkdownHtmlForViewer,
+  renderSlidesDocumentForExport,
 } = useMarkdownPreview(editorContent, activeFilePath, slideCustomCss, isPreview);
 const previewTitle = computed(() =>
   documentMode.value === "slides" ? t("editor.slidePreview") : t("editor.preview"),
@@ -117,13 +144,14 @@ const { printOut, exportHtml, openViewer, openSlideshow } = useExport(
   parsedHtml,
   previewFrameHtml,
   slideRender,
-  () => rustArgsStore.rustArgsData.css_data,
-  () => rustArgsStore.rustArgsData.slide_css_data,
+  () => activeStyle.value.markdownCss,
+  () => activeStyle.value.slideCss,
   renderMermaidToSvg,
   renderMarkdownHtmlForExport,
   renderMarkdownHtmlForViewer,
   saveHtmlFile,
   showMessage,
+  renderSlidesDocumentForExport,
 );
 
 // ---- スクロール同期 ----
@@ -136,7 +164,6 @@ useScrollSync(
 
 // ---- ローカルストレージ初期化 ----
 onMounted(async () => {
-  await localStorageItem.init();
   isShowTools.value = localStorageItem.isShowToolsFromLocalStorage;
   isPreview.value = localStorageItem.isPreviewFromLocalStorage;
   isScrollSync.value = localStorageItem.isScrollSyncFromLocalStorage;
@@ -238,6 +265,14 @@ listen("tauri://drag-drop", async (event) => {
 });
 
 // ---- トグルハンドラ ----
+function changeDocumentMode(mode: DocumentMode) {
+  aceEditor.applyContentEdit(setDocumentMode(aceEditor.getValue(), mode));
+}
+
+function toggleDocumentMode() {
+  changeDocumentMode(detectDocumentMode(aceEditor.getValue()) === "slides" ? "markdown" : "slides");
+}
+
 function handleInputTool() {
   isShowTools.value = !isShowTools.value;
   localStorageItem.setMarkdownTools(isShowTools.value);
@@ -314,6 +349,8 @@ useKeyboardShortcuts({
     :is-scroll-sync="isScrollSync"
     :is-vim-mode="isVimMode"
     :document-mode="documentMode"
+    :style-pack="selectedStylePack"
+    @change-style-pack="localStorageItem.setStylePack"
     @file-open="fileOpen"
     @file-save="fileSave"
     @read-image="readImage"
@@ -328,6 +365,7 @@ useKeyboardShortcuts({
     @show-help="showHelp = true"
     @toggle-vim-mode="handleVimMode"
     @toggle-locale="handleLocaleToggle"
+    @toggle-document-mode="toggleDocumentMode"
   />
 
   <div class="contents-area" :style="{ height: divHeight + 'px' }">
@@ -374,6 +412,7 @@ useKeyboardShortcuts({
     :is-preview="isPreview"
     :is-height-screen="isHeightScreen"
     @insert="aceEditor.insertAtCursor"
+    @enable-slides="changeDocumentMode('slides')"
   />
 
   <HelpModal :visible="showHelp" @close="showHelp = false" />
