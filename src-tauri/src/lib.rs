@@ -9,6 +9,7 @@ use handler::file::{
     delete_file, list_image_path_suggestions, read_binary_file_data_url, read_file,
     request_launch_args, save_file, save_temp_html,
 };
+use handler::pdf::export_slide_pdf;
 use handler::spawn_self::spawn_self;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -40,6 +41,7 @@ pub fn run(args_file_path: String, css_file_path: String, slide_css_file_path: S
             delete_file,
             request_launch_args,
             spawn_self,
+            export_slide_pdf,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

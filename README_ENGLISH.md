@@ -106,16 +106,24 @@ marp: true
 
 ![Ageha Editor](https://ageha-editor.pages.dev/ageha-editor-slideshow.png)
 
-Available only in slide mode. Opens a presentation window that shows one slide at a time.
+Available only in slide mode. Opens a fullscreen presentation that shows one slide at a time.
 
 | Action                     | Behavior                           |
 | -------------------------- | ---------------------------------- |
 | `→` / `↓` / `Space`        | Next slide                         |
 | `←` / `↑`                  | Previous slide                     |
 | `Home` / `End`             | First / last slide                 |
+| `Esc`                      | Exit fullscreen                    |
+| `F11`                      | Toggle fullscreen                  |
 | Click right half of screen | Next slide                         |
 | Click left half of screen  | Previous slide                     |
 | Hover near bottom          | Show navigation UI (`← counter →`) |
+
+#### Save slides as PDF (Windows)
+
+Use the PDF button in slide mode to choose a destination and save a PDF with the slide's page dimensions and no margins. WebView2 renders the backgrounds and text directly to PDF. Export waits for images and fonts, and the PDF button is disabled while saving.
+
+Use Print (`Ctrl+Alt+P`) for paper output. Saving through the print dialog may introduce margins depending on the paper size. On other platforms, use the existing print dialog to save PDFs.
 
 ### Mermaid Diagrams
 

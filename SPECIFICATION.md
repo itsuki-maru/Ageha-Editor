@@ -410,7 +410,8 @@ Editor.vue は Vue 3 Composition API の Composable パターンにより責務�
 | HTML 出力        | Marp の `html + css` を単一 HTML として出力                                   |
 | 印刷 / PDF       | スライド用 HTML を別ウィンドウで開き、ブラウザ印刷ダイアログ経由で出力        |
 | 別ウィンドウ表示 | スライド用 HTML をそのまま表示（WebviewWindow、アドレスバーなし）             |
-| スライドショー   | 1 枚ずつ全画面表示する発表モード（WebviewWindow 最大化、アドレスバーなし）    |
+| PDF専用保存      | WindowsのWebView2 PrintToPdfでスライド寸法・余白ゼロ・背景ありで保存          |
+| スライドショー   | 1 枚ずつ全画面表示する発表モード（WebviewWindow fullscreen、アドレスバーなし） |
 | 対応する追加機能 | Mermaid、KaTeX 数式、絶対/相対画像パス解決                                    |
 | v1 の対象外      | Ageha 独自 block 記法 (`note` / `warning` / `details` / YouTube / video など) |
 
@@ -508,6 +509,10 @@ Marked.js に以下のカスタムトークンを拡張登録している。
 - カスタム CSS を適用 (`markdown`: `ageha.css`, `slides`: `ageha-slide.css`)
 - ウィンドウスケーリング対応
 
+#### スライドPDF専用保存（Windows）
+
+スライドモードのPDF専用ボタンはWindowsで利用可能。`slidePdf.ts` がSVGのviewBoxから寸法を取得し、印刷用CSSと画像・フォントの準備完了通知を追加する。`handler/pdf.rs` が非表示WebViewを作成し、読み込み完了後にWebView2の `PrintToPdf` を実行する。PDF完成後に保存先を置き換え、一時ファイルとWebViewを片付ける。失敗・タイムアウト時は成功通知を出さない。
+
 #### HTML エクスポート (`Ctrl+Alt+F`)
 
 - スタンドアロン HTML ファイルとして出力
@@ -525,7 +530,8 @@ Marked.js に以下のカスタムトークンを拡張登録している。
 #### スライドショー (`Ctrl+Alt+S`)
 
 - `slides` モード時のみ有効
-- スライドを 1 枚ずつ表示する発表モードのウィンドウを WebviewWindow（最大化・アドレスバーなし）で開く
+- スライドを 1 枚ずつ表示する発表モードのウィンドウを WebviewWindow（全画面・アドレスバーなし）で開く
+- `Esc` で全画面解除、`F11` で全画面切替
 - キー操作: `→`/`↓`/`Space`=次、`←`/`↑`=前、`Home`/`End`=最初/最後
 - クリック操作: 画面右半分=次、左半分=前
 - 画面下部ナビゲーション UI: マウスホバーで表示

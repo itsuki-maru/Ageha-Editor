@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import {
   createHtml,
@@ -11,7 +11,8 @@ describe("htmlTemplate", () => {
   it.each([0, 1, 3])("図が %i 個でも軽量な HTML を生成し、変換済み SVG を保持する", (count) => {
     const diagrams = Array.from(
       { length: count },
-      (_, index) => `<svg id="diagram-${index}" viewBox="0 0 100 50"><text>Diagram ${index}</text></svg>`,
+      (_, index) =>
+        `<svg id="diagram-${index}" viewBox="0 0 100 50"><text>Diagram ${index}</text></svg>`,
     ).join("");
     const html = createHtml(`<h1 id="title">Title</h1>${diagrams}`, "body{}");
     const doc = new DOMParser().parseFromString(html, "text/html");
@@ -120,5 +121,39 @@ describe("htmlTemplate", () => {
     expect(html).toContain("slideshow-wrapper");
     expect(html).toContain("ss-prev");
     expect(html).toContain("showSlide");
+  });
+
+  it("全画面の解除・切替とページ送りを独立して操作できる", async () => {
+    const html = createSlideshowHtmlDocument(
+      '<html><head></head><body><div class="marpit"><svg viewBox="0 0 1280 720"></svg><svg viewBox="0 0 1280 720"></svg></div></body></html>',
+    );
+    const doc = new DOMParser().parseFromString(html, "text/html");
+    const invoke = vi.fn().mockResolvedValue(false);
+    const nativeWindow = {
+      innerWidth: 1920,
+      innerHeight: 1080,
+      addEventListener: vi.fn(),
+      __TAURI_INTERNALS__: { invoke, metadata: { currentWindow: { label: "viewer-test" } } },
+    };
+    new Function("document", "window", doc.querySelector("script")!.textContent!)(
+      doc,
+      nativeWindow,
+    );
+    expect(doc.querySelector("#slideshow-wrapper")?.getAttribute("style")).toContain("scale(1.5)");
+    doc.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+    expect(invoke).toHaveBeenCalledWith("plugin:window|set_fullscreen", {
+      label: "viewer-test",
+      value: false,
+    });
+    expect(doc.querySelector("#slide-counter")?.textContent).toBe("1 / 2");
+    doc.dispatchEvent(new KeyboardEvent("keydown", { key: "F11" }));
+    await vi.waitFor(() =>
+      expect(invoke).toHaveBeenCalledWith("plugin:window|set_fullscreen", {
+        label: "viewer-test",
+        value: true,
+      }),
+    );
+    doc.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight" }));
+    expect(doc.querySelector("#slide-counter")?.textContent).toBe("2 / 2");
   });
 });

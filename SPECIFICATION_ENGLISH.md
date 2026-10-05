@@ -383,6 +383,7 @@ Editor.vue is organized by responsibility using Vue 3 Composition API composable
 | User CSS | Applies `~/.ageha/ageha-slide.css` after the built-in theme |
 | HTML export | Outputs Marp-generated `html + css` as a single HTML document |
 | Print / PDF | Opens slide HTML in a separate window and prints via the browser print dialog |
+| Direct PDF save | Windows WebView2 PrintToPdf with slide dimensions, zero margins and backgrounds |
 | Separate viewer | Displays slide HTML as-is in a `WebviewWindow` without an address bar |
 | Slideshow | Fullscreen presentation mode showing one slide at a time |
 | Supported extras | Mermaid, KaTeX math, absolute/relative image resolution |
@@ -486,6 +487,7 @@ Supported writing-assistance buttons include:
 
 - Available only in `slides` mode
 - Opens a fullscreen presentation window showing one slide at a time
+- `Esc` exits fullscreen; `F11` toggles fullscreen
 - Keyboard: `→` / `↓` / `Space` = next, `←` / `↑` = previous, `Home` / `End` = first / last
 - Mouse: right half = next, left half = previous
 - Bottom navigation UI appears on hover

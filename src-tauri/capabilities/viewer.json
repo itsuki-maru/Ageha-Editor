@@ -5,6 +5,7 @@
   "windows": ["viewer-*"],
   "permissions": [
     "core:default",
+    "core:window:allow-set-fullscreen",
     "opener:allow-open-url"
   ]
 }

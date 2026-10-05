@@ -755,6 +755,32 @@ const SLIDESHOW_SCRIPT = `
 
   document.addEventListener('keydown', function (e) {
     switch (e.key) {
+      case 'Escape':
+        e.preventDefault();
+        if (window.__TAURI_INTERNALS__) {
+          window.__TAURI_INTERNALS__.invoke('plugin:window|set_fullscreen', {
+            label: window.__TAURI_INTERNALS__.metadata.currentWindow.label, value: false
+          }).catch(console.error);
+        } else if (document.fullscreenElement) {
+          document.exitFullscreen().catch(console.error);
+        }
+        break;
+      case 'F11':
+        e.preventDefault();
+        if (window.__TAURI_INTERNALS__) {
+          var label = window.__TAURI_INTERNALS__.metadata.currentWindow.label;
+          window.__TAURI_INTERNALS__.invoke('plugin:window|is_fullscreen', { label: label })
+            .then(function (value) {
+              return window.__TAURI_INTERNALS__.invoke('plugin:window|set_fullscreen', {
+                label: label, value: !value
+              });
+            }).catch(console.error);
+        } else if (document.fullscreenElement) {
+          document.exitFullscreen().catch(console.error);
+        } else {
+          document.documentElement.requestFullscreen().catch(console.error);
+        }
+        break;
       case 'ArrowRight': case 'ArrowDown': case ' ':
         e.preventDefault(); showSlide(current + 1); break;
       case 'ArrowLeft': case 'ArrowUp':

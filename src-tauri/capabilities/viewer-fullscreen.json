@@ -1,0 +1,18 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "viewer-fullscreen",
+  "description": "スライド表示用のasset URLに全画面操作だけを許可する",
+  "local": false,
+  "remote": {
+    "urls": [
+      "http://asset.localhost/*",
+      "https://asset.localhost/*",
+      "asset://localhost/*"
+    ]
+  },
+  "windows": ["viewer-*"],
+  "permissions": [
+    "core:window:allow-is-fullscreen",
+    "core:window:allow-set-fullscreen"
+  ]
+}
