@@ -1,6 +1,6 @@
 # Release Notes
 
-## Unreleased
+## v0.5.2
 
 - スライドショーを全画面表示で開始し、Escで解除、F11で切替に対応
 - Windowsのスライドモードに余白なしのPDF専用保存ボタンを追加
