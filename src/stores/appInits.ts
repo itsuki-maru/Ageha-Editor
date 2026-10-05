@@ -32,8 +32,7 @@ export const useRustArgsInitStore = defineStore({
         if (result) {
           this.rustArgsData = result;
         }
-      } catch (_error) {
-      }
+      } catch (_error) {}
     },
 
     clear() {

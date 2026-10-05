@@ -9,6 +9,7 @@ defineProps<{
   isVimMode: boolean | null;
   documentMode: DocumentMode;
   stylePack: StylePackId;
+  isExportingPdf?: boolean;
 }>();
 
 defineEmits<{
@@ -18,6 +19,7 @@ defineEmits<{
   "read-image": [];
   "print-out": [];
   "export-html": [];
+  "export-pdf": [];
   "toggle-preview": [];
   "toggle-scroll-sync": [];
   "toggle-tools": [];
@@ -31,6 +33,8 @@ defineEmits<{
 }>();
 
 const { t, languageLabel } = useI18n();
+// Direct PDF rendering currently uses the Windows WebView2 API.
+const supportsPdfExport = navigator.userAgent.includes("Windows");
 </script>
 
 <template>
@@ -71,11 +75,32 @@ const { t, languageLabel } = useI18n();
       <button class="btn-head-image" :title="t('toolbar.readImage')" @click="$emit('read-image')">
         <img src="/smartphone_line24.png" class="btn-img" alt="smartphone_line24.png" />
       </button>
-      <button class="btn-head-image" :title="t('toolbar.printOut')" @click="$emit('print-out')">
+      <button
+        class="btn-head-image"
+        :title="
+          t(
+            documentMode === 'slides' && supportsPdfExport
+              ? 'toolbar.printSlides'
+              : 'toolbar.printOut',
+          )
+        "
+        @click="$emit('print-out')"
+      >
         <img src="/print_24.png" class="btn-img" alt="print_24.png" />
       </button>
       <button class="btn-head-image" :title="t('toolbar.exportHtml')" @click="$emit('export-html')">
         <img src="/html_24.png" class="btn-img" alt="html_24.png" />
+      </button>
+      <button
+        v-if="documentMode === 'slides' && supportsPdfExport"
+        class="btn-head-image"
+        :disabled="isExportingPdf"
+        :aria-busy="isExportingPdf"
+        :aria-label="t(isExportingPdf ? 'export.pdfSaving' : 'toolbar.exportPdf')"
+        :title="t(isExportingPdf ? 'export.pdfSaving' : 'toolbar.exportPdf')"
+        @click="$emit('export-pdf')"
+      >
+        <img src="/picture_as_pdf_24.png" class="btn-img" alt="" />
       </button>
       <button
         v-if="isPreview"

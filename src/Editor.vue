@@ -138,7 +138,7 @@ const isScrollSyncEnabled = computed(
 );
 
 // ---- エクスポート ----
-const { printOut, exportHtml, openViewer, openSlideshow } = useExport(
+const { printOut, exportHtml, exportPdf, isExportingPdf, openViewer, openSlideshow } = useExport(
   editorContent,
   documentMode,
   parsedHtml,
@@ -355,6 +355,8 @@ useKeyboardShortcuts({
     @file-save="fileSave"
     @read-image="readImage"
     @print-out="printOut"
+    @export-pdf="exportPdf"
+    :is-exporting-pdf="isExportingPdf"
     @export-html="exportHtml"
     @toggle-preview="handlePreview"
     @toggle-scroll-sync="handleScrollSync"

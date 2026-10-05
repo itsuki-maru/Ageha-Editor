@@ -4,7 +4,10 @@ import { ref } from "vue";
 const mocks = vi.hoisted(() => ({
   invoke: vi.fn(),
   webviewOnce: vi.fn(),
+  save: vi.fn(),
 }));
+
+vi.mock("@tauri-apps/plugin-dialog", () => ({ save: mocks.save }));
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: mocks.invoke,
@@ -23,6 +26,7 @@ vi.mock("@/i18n", () => ({
 
 import { resolveStylePack } from "@/utils/stylePacks";
 import { useExport } from "@/composables/useExport";
+import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
 
 describe("useExport", () => {
   beforeEach(() => {
@@ -44,7 +48,9 @@ describe("useExport", () => {
       ref(content),
       ref(mode),
       ref("<h1>Title</h1>"),
-      ref('<html><body><section id="1"></section></body></html>'),
+      ref(
+        '<html><head></head><body><div class="marpit"><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject><section id="1"></section></foreignObject></svg></div></body></html>',
+      ),
       ref({
         mode: "slides",
         html: '<section id="1"></section>',
@@ -93,6 +99,59 @@ describe("useExport", () => {
       html: expect.stringContaining("slideshow-wrapper"),
     });
     expect(mocks.webviewOnce).toHaveBeenCalledWith("tauri://destroyed", expect.any(Function));
+    expect(WebviewWindow).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ fullscreen: true }),
+    );
+  });
+
+  it("PDF保存のキャンセル時には出力せず、処理中状態を解除する", async () => {
+    mocks.save.mockResolvedValue(null);
+    const { subject, showMessage } = createSubject("slides");
+    await subject.exportPdf();
+    expect(mocks.invoke).not.toHaveBeenCalled();
+    expect(showMessage).not.toHaveBeenCalled();
+    expect(subject.isExportingPdf.value).toBe(false);
+  });
+
+  it("PDFの完了を待ち、同時保存を防ぐ", async () => {
+    mocks.save.mockResolvedValue("C:/slides.pdf");
+    let finish!: () => void;
+    mocks.invoke.mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          finish = resolve;
+        }),
+    );
+    const { subject, showMessage } = createSubject("slides");
+    const pending = subject.exportPdf();
+    await vi.waitFor(() =>
+      expect(mocks.invoke).toHaveBeenCalledWith("export_slide_pdf", {
+        path: "C:/slides.pdf",
+        width: 1280,
+        height: 720,
+        html: expect.stringContaining("__agehaPdfState"),
+      }),
+    );
+    expect(subject.isExportingPdf.value).toBe(true);
+    expect(showMessage).not.toHaveBeenCalled();
+    await subject.exportPdf();
+    expect(mocks.save).toHaveBeenCalledOnce();
+    finish();
+    await pending;
+    expect(showMessage).toHaveBeenCalledWith("export.exportComplete");
+    expect(subject.isExportingPdf.value).toBe(false);
+  });
+
+  it("PDF失敗時には成功表示をせず、再試行できる", async () => {
+    mocks.save.mockResolvedValue("C:/slides.pdf");
+    mocks.invoke.mockRejectedValueOnce(new Error("PDF rendering failed"));
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const { subject, showMessage } = createSubject("slides");
+    await subject.exportPdf();
+    expect(showMessage).toHaveBeenCalledWith("export.pdfError");
+    expect(showMessage).not.toHaveBeenCalledWith("export.exportComplete");
+    expect(subject.isExportingPdf.value).toBe(false);
   });
 
   it.each([

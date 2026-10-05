@@ -1,7 +1,9 @@
-import { type Ref } from "vue";
+import { ref, type Ref } from "vue";
 import type { DocumentMode, SlideRenderResult } from "@/interface";
 import { invoke, convertFileSrc } from "@tauri-apps/api/core";
 import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
+import { save } from "@tauri-apps/plugin-dialog";
+import { prepareSlidePdf } from "@/utils/slidePdf";
 import {
   createHtml,
   createSlideHtmlDocument,
@@ -27,6 +29,33 @@ export function useExport(
   showMessage: (msg: string) => void,
   renderSlidesDocumentForExport?: () => Promise<string>,
 ) {
+  const isExportingPdf = ref(false);
+
+  async function exportPdf(): Promise<void> {
+    if (documentMode.value !== "slides" || isExportingPdf.value) return;
+    if (!editorContent.value.trim()) {
+      showMessage(translate("editor.emptyInput"));
+      return;
+    }
+    isExportingPdf.value = true;
+    try {
+      const path = await save({
+        title: translate("toolbar.exportPdf"),
+        defaultPath: "slides.pdf",
+        filters: [{ name: "PDF", extensions: ["pdf"] }],
+      });
+      if (!path) return;
+      const prepared = prepareSlidePdf(await getSlidesDocumentHtml());
+      await invoke("export_slide_pdf", { ...prepared, path });
+      showMessage(translate("export.exportComplete"));
+    } catch (error) {
+      console.error("Failed to export slides as PDF:", error);
+      showMessage(translate("export.pdfError"));
+    } finally {
+      isExportingPdf.value = false;
+    }
+  }
+
   // SVG foreignObject の描画前に印刷される問題を避けるため、スライドはファイル URL で開く。
   async function printOut(): Promise<void> {
     if (editorContent.value === "") {
@@ -107,7 +136,7 @@ export function useExport(
 
   async function openNativeViewer(
     html: string,
-    options: { title: string; width?: number; height?: number; maximized?: boolean },
+    options: { title: string; width?: number; height?: number; fullscreen?: boolean },
     onClosed?: () => void,
   ): Promise<void> {
     let filePath: string;
@@ -124,7 +153,7 @@ export function useExport(
       title: options.title,
       width: options.width,
       height: options.height,
-      maximized: options.maximized,
+      fullscreen: options.fullscreen,
     });
 
     win.once("tauri://destroyed", () => {
@@ -224,8 +253,13 @@ export function useExport(
       return;
     }
 
-    const html = createSlideshowHtmlDocument(await getSlidesDocumentHtml());
-    await openNativeViewer(html, { title: translate("export.slideshowTitle"), maximized: true });
+    try {
+      const html = createSlideshowHtmlDocument(await getSlidesDocumentHtml());
+      await openNativeViewer(html, { title: translate("export.slideshowTitle"), fullscreen: true });
+    } catch (error) {
+      console.error("Failed to open slideshow:", error);
+      showMessage(translate("export.viewerOpenError"));
+    }
   }
 
   async function getSlidesDocumentHtml(): Promise<string> {
@@ -298,5 +332,5 @@ export function useExport(
     return container.innerHTML;
   }
 
-  return { printOut, exportHtml, openViewer, openSlideshow };
+  return { printOut, exportHtml, exportPdf, isExportingPdf, openViewer, openSlideshow };
 }
