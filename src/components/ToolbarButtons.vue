@@ -190,10 +190,12 @@ const supportsPdfExport = navigator.userAgent.includes("Windows");
   border-radius: 5px;
   background: white;
   color: #253044;
+  text-align: center;
 }
 .style-picker select:focus-visible {
   outline: 2px solid #116956;
   outline-offset: 2px;
+  text-align: left;
 }
 #btn-head-zone,
 #btn-head-left,
