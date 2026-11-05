@@ -5,12 +5,11 @@ description = "Markdown Editor"
 authors = ["you"]
 edition = "2024"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+# 設定項目と定義の詳細は https://doc.rust-lang.org/cargo/reference/manifest.html を参照。
 
 [lib]
-# The `_lib` suffix may seem redundant but it is necessary
-# to make the lib name unique and wouldn't conflict with the bin name.
-# This seems to be only an issue on Windows, see https://github.com/rust-lang/cargo/issues/8519
+# ライブラリ名と実行ファイル名の衝突を避けるため、`_lib` 接尾辞を付ける。
+# Windows 固有とみられる問題の詳細は https://github.com/rust-lang/cargo/issues/8519 を参照。
 name = "ageha_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
@@ -30,10 +29,13 @@ once_cell = "1.20.3"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 tauri-plugin-store = "2"
+clap = { version = "4", features = ["derive"] }
+tempfile = "3"
+same-file = "1"
 
 [target.'cfg(windows)'.dependencies]
 webview2-com = "0.38"
-windows = "0.61"
+windows = { version = "0.61", features = ["Win32_System_Console"] }
 
 [profile.release]
 lto = true

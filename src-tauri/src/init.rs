@@ -1,4 +1,5 @@
 use super::schema::ApplicationInitSetup;
+use anyhow::Context;
 use dirs::home_dir;
 use serde::{Deserialize, Serialize};
 use std::fs;
@@ -78,8 +79,26 @@ fn read_to_json_data<T: for<'de> Deserialize<'de>>(file_path: &PathBuf) -> io::R
     Ok(data)
 }
 
-fn create_default_css(file_path: PathBuf) -> io::Result<()> {
-    let css = r#"
+pub fn read_export_styles() -> anyhow::Result<(String, String)> {
+    let settings_dir = home_dir()
+        .context("find the user home directory")?
+        .join(".ageha");
+    let settings = read_to_json_data(&settings_dir.join("ageha.env.json"))
+        .unwrap_or_else(|_| create_default_env(settings_dir));
+    Ok((
+        read_export_style(&settings.css_file_path, DEFAULT_CSS)?,
+        read_export_style(&settings.slide_css_file_path, DEFAULT_SLIDE_CSS)?,
+    ))
+}
+
+fn read_export_style(path: &str, default: &str) -> anyhow::Result<String> {
+    match fs::read_to_string(path) {
+        Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(default.to_owned()),
+        result => result.with_context(|| format!("read CSS {path}")),
+    }
+}
+
+const DEFAULT_CSS: &str = r#"
     @page {
         size: A4;
         margin: 10mm;
@@ -563,14 +582,15 @@ fn create_default_css(file_path: PathBuf) -> io::Result<()> {
       border-radius: 6px;
     }
     "#;
+
+fn create_default_css(file_path: PathBuf) -> io::Result<()> {
     let file = fs::File::create(file_path).expect("`ageha.css` fs create error.");
     let mut writer = io::BufWriter::new(file);
-    write!(writer, "{}", css)?;
+    write!(writer, "{DEFAULT_CSS}")?;
     Ok(())
 }
 
-fn create_default_slide_css(file_path: PathBuf) -> io::Result<()> {
-    let css = r#"/* Ageha Editor のスライド用カスタム CSS
+const DEFAULT_SLIDE_CSS: &str = r#"/* Ageha Editor のスライド用カスタム CSS
  *
  * このファイルは組み込みテーマ `ageha-slide` のあとに読み込まれる
  *
@@ -583,8 +603,10 @@ section {
 }
 */
 "#;
+
+fn create_default_slide_css(file_path: PathBuf) -> io::Result<()> {
     let file = fs::File::create(file_path).expect("`ageha-slide.css` fs create error.");
     let mut writer = io::BufWriter::new(file);
-    write!(writer, "{}", css)?;
+    write!(writer, "{DEFAULT_SLIDE_CSS}")?;
     Ok(())
 }

@@ -5,7 +5,7 @@ import { readFileSync } from "node:fs";
 
 const pkgJson = JSON.parse(readFileSync("./package.json", "utf-8"));
 
-// @ts-expect-error process is a nodejs global
+// @ts-expect-error process は Node.js のグローバル変数
 const host = process.env.TAURI_DEV_HOST;
 
 export default defineConfig(async () => ({
@@ -16,11 +16,19 @@ export default defineConfig(async () => ({
       '@': fileURLToPath(new URL('./src', import.meta.url))
     }
   },
-  // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
+  // Tauri 開発向けの Vite 設定。`tauri dev` または `tauri build` でのみ適用する。
   //
-  // 1. prevent vite from obscuring rust errors
+  // 1. Rust のエラーが Vite の画面クリアで消えないようにする。
   clearScreen: false,
-  // 2. tauri expects a fixed port, fail if that port is not available
+  build: {
+    rollupOptions: {
+      input: {
+        editor: fileURLToPath(new URL("./index.html", import.meta.url)),
+        md2html: fileURLToPath(new URL("./md2html.html", import.meta.url)),
+      },
+    },
+  },
+  // 2. Tauri は固定ポートを使うため、そのポートが使用中ならエラーにする。
   server: {
     port: 1420,
     strictPort: true,
@@ -33,7 +41,7 @@ export default defineConfig(async () => ({
         }
       : undefined,
     watch: {
-      // 3. tell vite to ignore watching `src-tauri`
+      // 3. `src-tauri` を Vite の監視対象から除外する。
       ignored: ["**/src-tauri/**"],
     },
   },

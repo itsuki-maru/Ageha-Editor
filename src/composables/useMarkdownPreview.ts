@@ -1,28 +1,15 @@
 import { nextTick, ref, watch, type Ref } from "vue";
-import { FilterXSS, getDefaultWhiteList } from "xss";
-import type { IFilterXSSOptions } from "xss";
-import { marked } from "marked";
-import type { MarkedOptions } from "marked";
 import mermaid from "mermaid";
 import type { DocumentMode, SlideRenderResult } from "@/interface";
-import { embedLocalImageSourcesInHtml } from "@/utils/assetPaths";
-import { detectDocumentMode, stripMarpFrontmatter } from "@/utils/documentMode";
+import { detectDocumentMode } from "@/utils/documentMode";
 import { createSlideHtmlDocument } from "@/utils/htmlTemplate";
 import { renderSlides } from "@/utils/slideRenderer";
 import {
-  PageBreakToken,
-  detailsToken,
-  mathExtensionToken,
-  noteToken,
-  renderIframe,
-  renderer,
-  resetMarkedHeadingSlugs,
-  setMarkedRendererFileContext,
-  setMarkedRendererPreviewAssetUrls,
-  videoToken,
-  warningToken,
-  youtubeToken,
-} from "../utils/markedSetup";
+  renderMarkdownHtml,
+  renderMermaidToSvg,
+  renderSlideMermaidToSvg,
+  renderSlidesDocument,
+} from "@/utils/documentRenderer";
 
 export function useMarkdownPreview(
   editorContent: Ref<string>,
@@ -34,59 +21,6 @@ export function useMarkdownPreview(
   const previewFrameHtml = ref("");
   const documentMode = ref<DocumentMode>("markdown");
   const slideRender = ref<SlideRenderResult | null>(null);
-
-  mermaid.initialize({ startOnLoad: false, theme: "default" });
-
-  marked.setOptions({ renderer, async: false });
-  marked.use({
-    extensions: [
-      videoToken,
-      detailsToken,
-      noteToken,
-      warningToken,
-      mathExtensionToken,
-      PageBreakToken,
-      youtubeToken,
-    ],
-  });
-
-  const xssOptions: IFilterXSSOptions = {
-    whiteList: {
-      // 既定の許可リストを土台にしつつ、Ageha 独自プレビューで必要な属性だけを追加で許可する。
-      ...getDefaultWhiteList(),
-      h1: ["id", "class"],
-      h2: ["id", "class"],
-      h3: ["id", "class"],
-      h4: ["id", "class"],
-      h5: ["id", "class"],
-      h6: ["id", "class"],
-      pre: ["class", "is", "data-auto-scaling"],
-      a: ["target", "rel", "href", "title"],
-      button: ["class", "data-target"],
-      code: ["id", "class"],
-      div: ["class"],
-      img: ["src", "alt", "title", "width", "height", "loading", "decoding"],
-      p: ["class"],
-      span: ["class", "aria-hidden", "style"],
-      "app-youtube": ["video-id", "data-src"],
-    },
-    onTag(tag, _html) {
-      if (tag === "iframe") return "Not Allow iframe ";
-    },
-    css: {
-      whiteList: {
-        height: true,
-        "margin-right": true,
-        top: true,
-        width: true,
-        "margin-left": true,
-        left: true,
-        right: true,
-        bottom: true,
-      },
-    },
-  };
-  const myXss = new FilterXSS(xssOptions);
 
   let renderSequence = 0;
   let markdownDebounceTimer: ReturnType<typeof setTimeout> | null = null;
@@ -131,7 +65,7 @@ export function useMarkdownPreview(
     { flush: "post", immediate: true },
   );
 
-  // Rebuild only the frame on a style change, preserving the rendered slide content.
+  // スタイル変更時は描画済みのスライド本文を保持し、フレームだけを再構築する。
   watch(
     slideCustomCss,
     () => {
@@ -145,11 +79,9 @@ export function useMarkdownPreview(
     { flush: "sync" },
   );
 
-  async function renderSlidesDocumentForExport(): Promise<string> {
-    // Render the current source even when preview is hidden or a debounce is pending.
-    const rendered = await renderSlides(editorContent.value, activeFilePath.value);
-    const html = await renderSlideMermaidToSvg(rendered.html);
-    return createSlideHtmlDocument(html, rendered.css, { userStyle: slideCustomCss.value });
+  function renderSlidesDocumentForExport(): Promise<string> {
+    // プレビュー非表示時や描画の遅延待ちでも、現在の本文から描画する。
+    return renderSlidesDocument(editorContent.value, activeFilePath.value, slideCustomCss.value);
   }
 
   async function renderMarkdownContent(md: string, filePath: string) {
@@ -171,28 +103,6 @@ export function useMarkdownPreview(
     }
 
     console.debug(`Markdown preview rendered in ${Math.round(performance.now() - startedAt)}ms`);
-  }
-
-  async function renderMarkdownHtml(
-    md: string,
-    filePath: string,
-    options: { embedLocalImages: boolean },
-  ): Promise<string> {
-    setMarkedRendererFileContext(filePath);
-    const markedOptions: MarkedOptions = { async: false };
-    setMarkedRendererPreviewAssetUrls(!options.embedLocalImages);
-    resetMarkedHeadingSlugs();
-    try {
-      const htmlStr = marked.parse(stripMarpFrontmatter(md), markedOptions);
-      const htmlWithAssets = options.embedLocalImages
-        ? await embedLocalImageSourcesInHtml(htmlStr as string, filePath)
-        : (htmlStr as string);
-      // HTML として整形したあとで危険なタグや属性を落とす。
-      const cleanHtml = myXss.process(htmlWithAssets);
-      return renderIframe(cleanHtml);
-    } finally {
-      setMarkedRendererPreviewAssetUrls(true);
-    }
   }
 
   async function renderMarkdownHtmlForExport(): Promise<string> {
@@ -265,42 +175,6 @@ export function useMarkdownPreview(
     } catch {
       console.error("Mermaid.js Syntax Error.");
     }
-  }
-
-  // 通常 Markdown 用: marked が出力する `.mermaid` ブロックを SVG へ差し替える。
-  // useExport からも呼ばれるため公開する。
-  async function renderMermaidToSvg(html: string): Promise<string> {
-    const container = document.createElement("div");
-    container.innerHTML = html;
-    let index = 0;
-
-    const blocks = container.querySelectorAll<HTMLElement>(".mermaid");
-    for (const block of Array.from(blocks)) {
-      const code = block.textContent ?? "";
-      const { svg } = await mermaid.render(`print-graph-${index++}`, code);
-      block.outerHTML = svg;
-    }
-
-    return container.innerHTML;
-  }
-
-  // スライド用: Marp が出力する fenced code (`code.language-mermaid`) を SVG へ差し替える。
-  async function renderSlideMermaidToSvg(html: string): Promise<string> {
-    const container = document.createElement("div");
-    container.innerHTML = html;
-    let index = 0;
-
-    const blocks = container.querySelectorAll<HTMLElement>("code.language-mermaid");
-    for (const codeBlock of Array.from(blocks)) {
-      const code = codeBlock.textContent ?? "";
-      const { svg } = await mermaid.render(`slide-graph-${index++}`, code);
-      const pre = codeBlock.closest("pre");
-      if (pre) {
-        pre.outerHTML = `<div class="mermaid-slide">${svg}</div>`;
-      }
-    }
-
-    return container.innerHTML;
   }
 
   return {
