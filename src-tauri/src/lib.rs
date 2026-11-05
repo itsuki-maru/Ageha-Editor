@@ -1,8 +1,11 @@
 use tauri::Manager;
+mod cli_export;
 mod config;
 mod handler;
 mod schema;
 mod utils;
+
+pub use cli_export::export_html;
 
 use config::AppConfig;
 use handler::file::{
@@ -11,6 +14,10 @@ use handler::file::{
 };
 use handler::pdf::export_slide_pdf;
 use handler::spawn_self::spawn_self;
+
+fn app_context() -> tauri::Context<tauri::Wry> {
+    tauri::generate_context!()
+}
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run(args_file_path: String, css_file_path: String, slide_css_file_path: String) {
@@ -43,6 +50,6 @@ pub fn run(args_file_path: String, css_file_path: String, slide_css_file_path: S
             spawn_self,
             export_slide_pdf,
         ])
-        .run(tauri::generate_context!())
+        .run(app_context())
         .expect("error while running tauri application");
 }

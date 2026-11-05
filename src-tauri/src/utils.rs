@@ -1,7 +1,7 @@
 use std::{env, io, path};
 
 /// `~/` はホームへ展開し、相対パスはカレントディレクトリ基準で絶対パスにする。
-pub fn get_abs_filepath(filename: &str) -> io::Result<path::PathBuf> {
+pub fn get_abs_filepath(filename: impl AsRef<path::Path>) -> io::Result<path::PathBuf> {
     let home_dir = match dirs::home_dir() {
         Some(path) => path,
         None => {
@@ -12,7 +12,7 @@ pub fn get_abs_filepath(filename: &str) -> io::Result<path::PathBuf> {
         }
     };
 
-    let path = path::Path::new(filename);
+    let path = filename.as_ref();
 
     if path.starts_with("~/") {
         let without_tilde = path.strip_prefix("~/").expect("Could not strip tilde.");
@@ -54,7 +54,7 @@ mod tests {
             .join("docs")
             .join("note.md");
 
-        let actual = get_abs_filepath(&absolute.to_string_lossy()).expect("path should resolve");
+        let actual = get_abs_filepath(&absolute).expect("path should resolve");
 
         assert_eq!(actual, PathBuf::from(absolute));
     }

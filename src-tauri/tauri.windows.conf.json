@@ -1,0 +1,7 @@
+{
+  "bundle": {
+    "resources": {
+      "cli/windows/ageha.cmd": "bin/ageha.cmd"
+    }
+  }
+}

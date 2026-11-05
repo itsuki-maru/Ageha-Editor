@@ -177,6 +177,16 @@ $$
 
 ---
 
+## コマンドで HTML に出力
+
+```sh
+ageha md2html -i target.md -o output.html
+```
+
+通常の Markdown と `marp: true` のスライドに対応。GUI の HTML エクスポートと同じ描画処理を使い、保存済みのスタイルと言語を適用する。相対画像のパスは入力 Markdown の場所が基準になる。変換には OS の WebView が必要。
+
+Windows のインストール版では、インストール先の `bin` を PATH に追加するか、`bin\ageha.cmd` を直接実行する。コマンド用ランチャーは変換の完了を待ち、終了コードを返す。
+
 ## カスタム CSS
 
 初回起動時にユーザーディレクトリへ `~/.ageha/` が作成される。

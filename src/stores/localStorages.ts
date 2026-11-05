@@ -41,7 +41,7 @@ function getStore(): Promise<TauriStore> {
  * 旧フォーマットのデータや欠落キーがあっても DEFAULT_STATE で補完する。
  * JSON 文字列・オブジェクト・null いずれの形式でも受け付ける。
  */
-function normalize(input: unknown): LocalStorageItem {
+export function normalizeSavedSettings(input: unknown): LocalStorageItem {
   try {
     const obj = (typeof input === "string" ? JSON.parse(input) : input) ?? {};
     return {
@@ -58,7 +58,7 @@ async function readState(): Promise<LocalStorageItem> {
   try {
     const store = await getStore();
     const raw = await store.get<string | object | null>(STATE_KEY);
-    return normalize(raw ?? null);
+    return normalizeSavedSettings(raw ?? null);
   } catch {
     return { ...DEFAULT_STATE };
   }
@@ -110,7 +110,7 @@ export const useLocalStorageStore = defineStore({
       // 値が変わっていない場合はパッチを当てないことで無限ループを防ぐ。
       bc?.addEventListener("message", (e: MessageEvent) => {
         if (e.data?.type !== "local:update") return;
-        const next = normalize(e.data.state);
+        const next = normalizeSavedSettings(e.data.state);
         const s = this.$state;
         if (
           s.isPreviewFromLocalStorage === next.isPreviewFromLocalStorage &&

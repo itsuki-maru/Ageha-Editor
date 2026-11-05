@@ -178,6 +178,16 @@ $$
 
 ---
 
+## Export HTML from the command line
+
+```sh
+ageha md2html -i target.md -o output.html
+```
+
+The command supports regular Markdown and `marp: true` slides. It uses the same renderer as GUI export and applies the saved style and language. Relative image paths are resolved from the input file's directory. Conversion requires the OS WebView.
+
+On Windows, add the installation's `bin` directory to PATH or run `bin\ageha.cmd` directly. The launcher waits for conversion and returns its exit code.
+
 ## Custom CSS
 
 On first launch, the application creates `~/.ageha/` in the user directory.

@@ -4,6 +4,7 @@ import { invoke, convertFileSrc } from "@tauri-apps/api/core";
 import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { save } from "@tauri-apps/plugin-dialog";
 import { prepareSlidePdf } from "@/utils/slidePdf";
+import { createSavedHtml } from "@/utils/htmlExport";
 import {
   createHtml,
   createSlideHtmlDocument,
@@ -109,7 +110,7 @@ export function useExport(
     if (!printWindow) return;
 
     try {
-      const html = await createExportHtml(true);
+      const html = await createMarkdownPrintHtml();
       printWindow.document.writeln(html);
       printWindow.document.close();
       // フォントや画像のロードを待ってから印刷することで崩れを防ぐ。
@@ -130,7 +131,12 @@ export function useExport(
       return;
     }
 
-    const html = await createExportHtml(false);
+    const html = await createSavedHtml(
+      documentMode.value,
+      cssData,
+      async () => renderMermaidToSvg(await renderMarkdownHtmlForExport()),
+      getSlidesDocumentHtml,
+    );
     await saveHtmlFile(html);
   }
 
@@ -181,25 +187,10 @@ export function useExport(
     }
   }
 
-  /** isPrint が true の場合は印刷用スタイルを追加する。 */
-  async function createExportHtml(isPrint: boolean): Promise<string> {
-    if (documentMode.value === "slides") {
-      const baseSlidesHtml = await getSlidesDocumentHtml();
-      return customizeSlideHtmlDocument(baseSlidesHtml, {
-        title: isPrint ? translate("export.printTitle") : translate("export.slidesTitle"),
-        // 印刷時だけ背景色を明示して白紙にならないようにする。
-        extraStyle: isPrint ? "@media print { html, body { background: #f4f7fb; } }" : undefined,
-      });
-    }
-
-    // Markdown モード: エクスポート前に Mermaid ダイアグラムを静的 SVG へ変換する。
-    // プレビューでは mermaid.init() が動的に描画しているが、
-    // 別ウィンドウや保存 HTML では Mermaid の JS が動作しないため事前変換が必要。
-    const markdownHtml = await renderMarkdownHtmlForExport();
-    const rendered = await renderMermaidToSvg(markdownHtml);
-    if (isPrint) {
-      const printReadyHtml = forceEagerImageLoading(rendered);
-      return `<html>
+  async function createMarkdownPrintHtml(): Promise<string> {
+    const rendered = await renderMermaidToSvg(await renderMarkdownHtmlForExport());
+    const printReadyHtml = forceEagerImageLoading(rendered);
+    return `<html>
         <head>
           <meta charset="UTF-8">
           <title>${translate("export.printTitle")}</title>
@@ -221,12 +212,6 @@ export function useExport(
         </head>
         <body id="ageha-document">${printReadyHtml}</body>
       </html>`;
-    }
-
-    return createHtml(rendered, cssData(), {
-      title: translate("export.viewerTitle"),
-      copiedLabel: translate("common.copied"),
-    });
   }
 
   async function createViewerHtml(): Promise<string> {
